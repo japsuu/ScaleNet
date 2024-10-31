@@ -2,6 +2,7 @@
 using System.Net.Sockets;
 using System.Text;
 using NetCoreServer;
+using Shared;
 
 namespace Server;
 
@@ -10,7 +11,7 @@ internal static class Program
     private static void Main(string[] args)
     {
         // TCP server port
-        int port = 1111;
+        int port = SharedConstants.SERVER_PORT;
         if (args.Length > 0)
             port = int.Parse(args[0]);
 

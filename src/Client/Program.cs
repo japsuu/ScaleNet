@@ -1,5 +1,6 @@
 ﻿using System.Net.Sockets;
 using System.Text;
+using Shared;
 using TcpClient = NetCoreServer.TcpClient;
 
 namespace Client;
@@ -14,7 +15,7 @@ internal static class Program
             address = args[0];
 
         // TCP server port
-        int port = 1111;
+        int port = SharedConstants.SERVER_PORT;
         if (args.Length > 1)
             port = int.Parse(args[1]);
 
