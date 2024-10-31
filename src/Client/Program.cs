@@ -61,13 +61,8 @@ internal static class Program
     }
 }
 
-internal class ChatClient : TcpClient
+internal class ChatClient(string address, int port) : TcpClient(address, port)
 {
-    public ChatClient(string address, int port) : base(address, port)
-    {
-    }
-
-
     public void DisconnectAndStop()
     {
         _stop = true;

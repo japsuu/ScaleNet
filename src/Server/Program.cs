@@ -57,13 +57,8 @@ internal static class Program
     }
 }
 
-internal class ChatSession : TcpSession
+internal class ChatSession(TcpServer server) : TcpSession(server)
 {
-    public ChatSession(TcpServer server) : base(server)
-    {
-    }
-
-
     protected override void OnConnected()
     {
         Console.WriteLine($"Chat TCP session with Id {Id} connected!");
@@ -100,13 +95,8 @@ internal class ChatSession : TcpSession
     }
 }
 
-internal class ChatServer : TcpServer
+internal class ChatServer(IPAddress address, int port) : TcpServer(address, port)
 {
-    public ChatServer(IPAddress address, int port) : base(address, port)
-    {
-    }
-
-
     protected override TcpSession CreateSession() => new ChatSession(this);
 
 
