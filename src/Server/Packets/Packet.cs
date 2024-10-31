@@ -1,38 +1,19 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
 
-namespace Server;
+namespace Server.Packets;
 
 internal readonly struct Packet // Could also be a pooled class
 {
-    private const byte FORMAT_VERSION = 1;
     private const int HEADER_LENGTH = 4;
     
-    public readonly Guid PlayerSessionId;
-    public readonly byte Version;
     public readonly byte Type;
     public readonly ArraySegment<byte> Data;
     
     
-    private Packet(Guid playerSessionId, byte version, byte type, ArraySegment<byte> data)
-    {
-        PlayerSessionId = playerSessionId;
-        Version = version;
-        Type = type;
-        Data = data;
-    }
-    
-    
-    public static bool TryCreate(Guid playerSessionId, byte[] buffer, int offset, int size, out Packet packet)
+    public Packet(byte[] buffer, int offset, int size)
     {
         Debug.Assert(size >= HEADER_LENGTH, "Received buffer is too short");
-        
-        byte version = buffer[offset];
-        if (version != FORMAT_VERSION)
-        {
-            packet = default;
-            return false;
-        }
         
         byte type = buffer[offset + 1];
         
@@ -52,8 +33,7 @@ internal readonly struct Packet // Could also be a pooled class
             data = [];
         }
         
-        packet = new Packet(playerSessionId, version, type, data);
-        
-        return true;
+        Type = type;
+        Data = data;
     }
 }
