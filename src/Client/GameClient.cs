@@ -1,4 +1,6 @@
-﻿namespace Client;
+﻿using Client.Networking;
+
+namespace Client;
 
 internal class GameClient(string address, int port)
 {

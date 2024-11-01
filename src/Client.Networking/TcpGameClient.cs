@@ -2,9 +2,9 @@ using System.Net.Sockets;
 using System.Text;
 using TcpClient = NetCoreServer.TcpClient;
 
-namespace Client;
+namespace Client.Networking;
 
-internal class TcpGameClient(string address, int port) : TcpClient(address, port)
+public class TcpGameClient(string address, int port) : TcpClient(address, port)
 {
     private const int CONNECTION_RETRY_TIMEOUT_MS = 1000;
     
