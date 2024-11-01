@@ -5,7 +5,7 @@ namespace Shared;
 
 public readonly struct Packet // Could also be a pooled class
 {
-    private const int HEADER_LENGTH = 4;
+    private const int HEADER_LENGTH = 2;
     
     public readonly byte Type;
     public readonly ArraySegment<byte> Data;
