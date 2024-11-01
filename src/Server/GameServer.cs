@@ -2,17 +2,22 @@
 using System.Net;
 using System.Net.Sockets;
 using NetCoreServer;
+using Server.Networking;
 using Server.Packets;
+using Shared;
 
 namespace Server;
 
-internal class GameServer : TcpServer
+internal class GameServer
 {
+    private readonly TcpGameServer _tcpServer;
     private readonly ConcurrentDictionary<byte, PacketHandler> _packetHandlers = new();
 
 
-    public GameServer(IPAddress address, int port) : base(address, port)
+    public GameServer(IPAddress address, int port)
     {
+        _tcpServer = new TcpGameServer(address, port, OnReceivePacket);
+
         // Register packet handlers
         List<PacketHandler> handlers =
         [
@@ -28,22 +33,34 @@ internal class GameServer : TcpServer
     }
 
 
+    public void Start()
+    {
+        _tcpServer.Start();
+    }
+
+
+    public void Stop()
+    {
+        _tcpServer.Stop();
+    }
+
+
     public void ProcessPackets()
     {
-        //TODO: Parallelize
-        foreach (TcpSession tcpSession in Sessions.Values)
-        {
-            PlayerSession? session = (PlayerSession)tcpSession;
-            session.ProcessIncoming();
-        }
+        _tcpServer.ProcessPackets();
     }
-    
-    
-    protected override TcpSession CreateSession() => new PlayerSession(this, _packetHandlers);
 
 
-    protected override void OnError(SocketError error)
+    private void OnReceivePacket(PlayerSession session, Packet packet)
     {
-        Console.WriteLine($"Chat TCP server caught an error with code {error}");
+        if (!_packetHandlers.TryGetValue(packet.Type, out PacketHandler? handler))
+        {
+            // Send error message and disconnect
+            session.SendAsync("Invalid packet type!");
+            session.Disconnect();
+            return;
+        }
+
+        handler.Handle(session, packet);
     }
 }
