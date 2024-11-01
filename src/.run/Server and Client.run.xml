@@ -9,6 +9,18 @@
         </option>
         <option name="executable">
           <ExecutableSnapshot>
+            <option name="id" value="buildSolution:b09016" />
+          </ExecutableSnapshot>
+        </option>
+      </ExecutableRowSnapshot>
+      <ExecutableRowSnapshot>
+        <option name="condition">
+          <ConditionSnapshot>
+            <option name="type" value="afterPreviousFinished" />
+          </ConditionSnapshot>
+        </option>
+        <option name="executable">
+          <ExecutableSnapshot>
             <option name="id" value="runConfig:.NET Project.Server" />
           </ExecutableSnapshot>
         </option>

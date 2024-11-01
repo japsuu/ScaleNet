@@ -1,4 +1,5 @@
-﻿using Shared;
+﻿using System.Text;
+using Shared;
 
 namespace Client;
 
@@ -26,8 +27,21 @@ internal static class Program
                 continue;
             }
 
-            // Send the entered text to the chat server
-            client.SendAsync(line);
+            // Create a packet
+            byte[] payload = Encoding.UTF8.GetBytes(line);
+            byte[] packet = new byte[payload.Length + 2];
+            
+            // Version
+            packet[0] = 1;
+            
+            // Type
+            packet[1] = 1;
+            
+            // Payload
+            Array.Copy(payload, 0, packet, 2, payload.Length);
+            
+            // Send the packet
+            client.SendPacket(packet);
         }
 
         client.Disconnect();

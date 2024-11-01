@@ -15,7 +15,7 @@ internal static class Program
         Console.WriteLine($"Using TCP port {port}\n");
         
         // Start the server
-        Console.Write("Server starting...");
+        Console.WriteLine("Server starting...");
         GameServer server = new GameServer(IPAddress.Any, port);
         server.Start();
         Console.WriteLine("Done!");
@@ -45,7 +45,7 @@ internal static class Program
         }
 
         // Stop the server
-        Console.Write("Server stopping...");
+        Console.WriteLine("Server stopping...");
         server.Stop();
         Console.WriteLine("Done!");
     }

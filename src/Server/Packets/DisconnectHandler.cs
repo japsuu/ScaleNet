@@ -1,4 +1,6 @@
-﻿namespace Server.Packets;
+﻿using Shared;
+
+namespace Server.Packets;
 
 internal class DisconnectHandler : PacketHandler
 {

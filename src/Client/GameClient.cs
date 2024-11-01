@@ -7,7 +7,7 @@ internal class GameClient(string address, int port)
 
     public void Connect()
     {
-        Console.Write($"Client connecting to {_tcpClient.Address}:{_tcpClient.Port}");
+        Console.WriteLine($"Client connecting to {_tcpClient.Address}:{_tcpClient.Port}");
         
         if (_tcpClient.ConnectAsync())
             Console.WriteLine("Done!");
@@ -20,7 +20,7 @@ internal class GameClient(string address, int port)
 
     public void Reconnect()
     {
-        Console.Write("Client reconnecting...");
+        Console.WriteLine("Client reconnecting...");
         _tcpClient.ReconnectAsync();
         Console.WriteLine("Done!");
     }
@@ -28,8 +28,20 @@ internal class GameClient(string address, int port)
 
     public void Disconnect()
     {
-        Console.Write("Client disconnecting...");
+        Console.WriteLine("Client disconnecting...");
         _tcpClient.DisconnectAndStop();
         Console.WriteLine("Done!");
+    }
+    
+    
+    public void SendPacket(byte[] packet)
+    {
+        _tcpClient.SendAsync(packet);
+
+        foreach (byte b in packet)
+        {
+            // Write the packet bytes as binary, padded with zeros
+            Console.WriteLine(Convert.ToString(b, 2).PadLeft(8, '0'));
+        }
     }
 }

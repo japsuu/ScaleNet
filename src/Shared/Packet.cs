@@ -1,9 +1,9 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
 
-namespace Server.Packets;
+namespace Shared;
 
-internal readonly struct Packet // Could also be a pooled class
+public readonly struct Packet // Could also be a pooled class
 {
     private const int HEADER_LENGTH = 4;
     

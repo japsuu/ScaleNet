@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Shared;
 
 namespace Server.Packets;
 
