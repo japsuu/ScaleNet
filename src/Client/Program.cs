@@ -1,7 +1,4 @@
-﻿using System.Net.Sockets;
-using System.Text;
-using Shared;
-using TcpClient = NetCoreServer.TcpClient;
+﻿using Shared;
 
 namespace Client;
 
@@ -9,44 +6,23 @@ internal static class Program
 {
     private static void Main(string[] args)
     {
-        // TCP server address
-        string address = "127.0.0.1";
-        if (args.Length > 0)
-            address = args[0];
+        const string address = "127.0.0.1";
+        const int port = SharedConstants.SERVER_PORT;
 
-        // TCP server port
-        int port = SharedConstants.SERVER_PORT;
-        if (args.Length > 1)
-            port = int.Parse(args[1]);
-
-        Console.WriteLine($"TCP server address: {address}");
-        Console.WriteLine($"TCP server port: {port}");
-
-        Console.WriteLine();
-
-        // Create a new TCP chat client
-        ChatClient client = new ChatClient(address, port);
-
-        // Connect the client
-        Console.Write("Client connecting...");
-        client.ConnectAsync();
-        Console.WriteLine("Done!");
+        GameClient client = new(address, port);
+        client.Connect();
 
         Console.WriteLine("Press Enter to stop the client or '!' to reconnect the client...");
 
-        // Perform text input
         while (true)
         {
             string? line = Console.ReadLine();
             if (string.IsNullOrEmpty(line))
                 break;
 
-            // Disconnect the client
             if (line == "!")
             {
-                Console.Write("Client disconnecting...");
-                client.DisconnectAsync();
-                Console.WriteLine("Done!");
+                client.Reconnect();
                 continue;
             }
 
@@ -54,54 +30,6 @@ internal static class Program
             client.SendAsync(line);
         }
 
-        // Disconnect the client
-        Console.Write("Client disconnecting...");
-        client.DisconnectAndStop();
-        Console.WriteLine("Done!");
+        client.Disconnect();
     }
-}
-
-internal class ChatClient(string address, int port) : TcpClient(address, port)
-{
-    public void DisconnectAndStop()
-    {
-        _stop = true;
-        DisconnectAsync();
-        while (IsConnected)
-            Thread.Yield();
-    }
-
-
-    protected override void OnConnected()
-    {
-        Console.WriteLine($"Chat TCP client connected a new session with Id {Id}");
-    }
-
-
-    protected override void OnDisconnected()
-    {
-        Console.WriteLine($"Chat TCP client disconnected a session with Id {Id}");
-
-        // Wait for a while...
-        Thread.Sleep(1000);
-
-        // Try to connect again
-        if (!_stop)
-            ConnectAsync();
-    }
-
-
-    protected override void OnReceived(byte[] buffer, long offset, long size)
-    {
-        Console.WriteLine(Encoding.UTF8.GetString(buffer, (int)offset, (int)size));
-    }
-
-
-    protected override void OnError(SocketError error)
-    {
-        Console.WriteLine($"Chat TCP client caught an error with code {error}");
-    }
-
-
-    private bool _stop;
 }
