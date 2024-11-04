@@ -7,6 +7,8 @@ internal static class Program
 {
     private static void Main(string[] args)
     {
+        Console.Title = "COV Server";
+        
         // TCP server port
         int port = SharedConstants.SERVER_PORT;
         if (args.Length > 0)

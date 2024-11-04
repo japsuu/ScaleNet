@@ -5,12 +5,15 @@ namespace Client;
 
 internal static class Program
 {
+    private const string ADDRESS = "127.0.0.1";
+    private const int PORT = SharedConstants.SERVER_PORT;
+    
+    
     private static void Main(string[] args)
     {
-        const string address = "127.0.0.1";
-        const int port = SharedConstants.SERVER_PORT;
+        Console.Title = "COV Client";
 
-        GameClient client = new(address, port);
+        GameClient client = new(ADDRESS, PORT);
         client.Connect();
 
         Console.WriteLine("Press Enter to stop the client or '!' to reconnect the client...");
