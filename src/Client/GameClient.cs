@@ -11,7 +11,7 @@ internal class GameClient
 {
     private readonly TcpGameClient _tcpClient;
     private readonly ArrayPool<byte> _bufferPool = ArrayPool<byte>.Create(1024, 64);
-    private readonly Dictionary<byte, MessageHandlerCollection> _messageHandlers = new();
+    private readonly Dictionary<byte, MessageHandler> _messageHandlers = new();
 
 
     public GameClient(string address, int port)
@@ -84,13 +84,13 @@ internal class GameClient
     {
         byte key = MessageManager.NetMessages.GetId<T>();
 
-        if (!_messageHandlers.TryGetValue(key, out MessageHandlerCollection? handlerCollection))
+        if (!_messageHandlers.TryGetValue(key, out MessageHandler? handlerCollection))
         {
-            handlerCollection = new MessageHandlerCollection<T>();
+            handlerCollection = new MessageHandler<T>();
             _messageHandlers.Add(key, handlerCollection);
         }
 
-        handlerCollection.RegisterHandler(handler);
+        handlerCollection.RegisterAction(handler);
     }
 
 
@@ -103,8 +103,8 @@ internal class GameClient
     {
         byte key = MessageManager.NetMessages.GetId<T>();
         
-        if (_messageHandlers.TryGetValue(key, out MessageHandlerCollection? handlerCollection))
-            handlerCollection.UnregisterHandler(handler);
+        if (_messageHandlers.TryGetValue(key, out MessageHandler? handlerCollection))
+            handlerCollection.UnregisterAction(handler);
     }
 
 
@@ -204,7 +204,7 @@ internal class GameClient
         NetMessage netMessage = MessageManager.NetMessages.CreateInstance(messageId);
         netMessage.Deserialize(buffer);
 
-        if (!_messageHandlers.TryGetValue(messageId, out MessageHandlerCollection? packetHandler))
+        if (!_messageHandlers.TryGetValue(messageId, out MessageHandler? packetHandler))
         {
             Logger.LogWarning($"Received a {netMessage} but no handler is registered for it. Ignoring.");
             return;
