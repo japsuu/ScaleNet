@@ -10,22 +10,13 @@ namespace Client;
 internal class GameClient
 {
     private readonly TcpGameClient _tcpClient;
-    private readonly ArrayPool<byte> _bufferPool = ArrayPool<byte>.Create(1024, 64);
-    private readonly Dictionary<byte, MessageHandler> _messageHandlers = new();
-
-
-    public GameClient(string address, int port)
-    {
-        _tcpClient = new TcpGameClient(address, port);
-        _tcpClient.ConnectionStateChanged += OnConnectionStateChanged;
-        _tcpClient.PacketReceived += OnPacketReceived;
-    }
-
-
+    private readonly ArrayPool<byte> _bufferPool;
+    private readonly Dictionary<byte, MessageHandler> _messageHandlers;
+    
     /// <summary>
     /// True if the local client is connected to the server.
     /// </summary>
-    public bool IsStarted { get; private set; }
+    public bool IsConnected { get; private set; }
 
     /// <summary>
     /// True if the local client is authenticated with the server.
@@ -41,6 +32,16 @@ internal class GameClient
     /// Called after local client has authenticated (when the client receives a welcome message from the server).
     /// </summary>
     public event Action? Authenticated;
+
+
+    public GameClient(string address, int port)
+    {
+        _bufferPool = ArrayPool<byte>.Create(1024, 64);
+        _messageHandlers = new Dictionary<byte, MessageHandler>();
+        _tcpClient = new TcpGameClient(address, port);
+        _tcpClient.ConnectionStateChanged += OnConnectionStateChanged;
+        _tcpClient.PacketReceived += OnPacketReceived;
+    }
     
     
     public void Connect()
@@ -115,7 +116,7 @@ internal class GameClient
     /// <param name="message">The message to send.</param>
     public void SendMessageToServer<T>(T message) where T : NetMessage
     {
-        if (!IsStarted)
+        if (!IsConnected)
         {
             Logger.LogError($"Local connection is not started, cannot send message of type {message}.");
             return;
@@ -154,7 +155,7 @@ internal class GameClient
     private void OnConnectionStateChanged(ConnectionStateArgs args)
     {
         ConnectionState state = args.ConnectionState;
-        IsStarted = state == ConnectionState.Connected;
+        IsConnected = state == ConnectionState.Connected;
 
         Logger.LogInfo($"Local client is {state.ToString().ToLower()}");
 
@@ -212,7 +213,7 @@ internal class GameClient
         
         Logger.LogDebug($"Received message {netMessage} from server.");
 
-        packetHandler.InvokeHandlers(netMessage);
+        packetHandler.Invoke(netMessage);
     }
 
 

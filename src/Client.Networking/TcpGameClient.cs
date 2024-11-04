@@ -72,8 +72,6 @@ public class TcpGameClient(string address, int port) : TcpClient(address, port)
 
     protected override void OnReceived(byte[] buffer, long offset, long size)
     {
-        Logger.LogDebug(Encoding.UTF8.GetString(buffer, (int)offset, (int)size));
-        
         Packet packet = new(buffer, (int)offset, (int)size);
         
         PacketReceived?.Invoke(packet);

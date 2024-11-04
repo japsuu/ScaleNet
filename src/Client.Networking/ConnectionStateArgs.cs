@@ -1,4 +1,4 @@
-﻿namespace Client.Networking;
+namespace Client.Networking;
 
 public readonly struct ConnectionStateArgs(ConnectionState connectionState)
 {

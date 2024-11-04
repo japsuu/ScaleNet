@@ -1,7 +1,7 @@
 namespace Client.Networking;
 
 /// <summary>
-/// States the local connection can be in.
+/// States a network connection can be in.
 /// </summary>
 public enum ConnectionState : byte
 {
