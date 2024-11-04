@@ -5,6 +5,7 @@ using NetCoreServer;
 using Server.Networking;
 using Server.Packets;
 using Shared;
+using Shared.Networking;
 
 namespace Server;
 

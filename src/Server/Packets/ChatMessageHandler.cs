@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using Server.Networking;
 using Shared;
+using Shared.Networking;
 
 namespace Server.Packets;
 

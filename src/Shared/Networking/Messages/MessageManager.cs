@@ -2,7 +2,7 @@
 
 namespace Shared.Networking.Messages;
 
-internal static class MessageManager
+public static class MessageManager
 {
     /// <summary>
     /// Uses reflection to find all NetMessage types, and registers them.
@@ -33,7 +33,7 @@ internal static class MessageManager
     /// <summary>
     /// Provides methods for retrieving message IDs for message types.
     /// </summary>
-    internal static class NetMessages
+    public static class NetMessages
     {
         private static byte nextId;
         private static readonly Dictionary<Type, byte> MessageIds = new();

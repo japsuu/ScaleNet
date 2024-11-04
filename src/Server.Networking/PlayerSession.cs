@@ -2,6 +2,7 @@
 using System.Net.Sockets;
 using NetCoreServer;
 using Shared;
+using Shared.Networking;
 
 namespace Server.Networking;
 

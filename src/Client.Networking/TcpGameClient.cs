@@ -1,5 +1,7 @@
 using System.Net.Sockets;
 using System.Text;
+using Shared.Networking;
+using Shared.Utils;
 using TcpClient = NetCoreServer.TcpClient;
 
 namespace Client.Networking;
@@ -10,7 +12,12 @@ public class TcpGameClient(string address, int port) : TcpClient(address, port)
     
     private bool _stop;
     
-    
+    public event Action<ConnectionStateArgs>? ConnectionStateChanged;
+    public event Action<Packet>? PacketReceived;
+
+
+#region Public methods
+
     public void DisconnectAndStop()
     {
         _stop = true;
@@ -19,16 +26,36 @@ public class TcpGameClient(string address, int port) : TcpClient(address, port)
             Thread.Yield();
     }
 
+#endregion
+
+
+#region Connect
+
+    protected override void OnConnecting()
+    {
+        ConnectionStateChanged?.Invoke(new ConnectionStateArgs(ConnectionState.Connecting));
+    }
+
 
     protected override void OnConnected()
     {
-        Console.WriteLine($"Client connected with session Id {Id}");
+        ConnectionStateChanged?.Invoke(new ConnectionStateArgs(ConnectionState.Connected));
+    }
+
+#endregion
+
+
+#region Disconnect
+
+    protected override void OnDisconnecting()
+    {
+        ConnectionStateChanged?.Invoke(new ConnectionStateArgs(ConnectionState.Disconnecting));
     }
 
 
     protected override void OnDisconnected()
     {
-        Console.WriteLine($"Client disconnected with session Id {Id}");
+        ConnectionStateChanged?.Invoke(new ConnectionStateArgs(ConnectionState.Disconnected));
 
         // Wait for a while...
         Thread.Sleep(CONNECTION_RETRY_TIMEOUT_MS);
@@ -38,15 +65,29 @@ public class TcpGameClient(string address, int port) : TcpClient(address, port)
             ConnectAsync();
     }
 
+#endregion
+
+
+#region Data receive
 
     protected override void OnReceived(byte[] buffer, long offset, long size)
     {
-        Console.WriteLine(Encoding.UTF8.GetString(buffer, (int)offset, (int)size));
+        Logger.LogDebug(Encoding.UTF8.GetString(buffer, (int)offset, (int)size));
+        
+        Packet packet = new(buffer, (int)offset, (int)size);
+        
+        PacketReceived?.Invoke(packet);
     }
 
+#endregion
+
+
+#region Error handling
 
     protected override void OnError(SocketError error)
     {
         Console.WriteLine($"Chat TCP client caught an error with code {error}");
     }
+
+#endregion
 }
