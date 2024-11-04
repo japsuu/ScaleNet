@@ -9,8 +9,8 @@ namespace Client;
 
 internal class GameClient
 {
-    private readonly ArrayPool<byte> _buffers = ArrayPool<byte>.Create(1024, 64);
     private readonly TcpGameClient _tcpClient;
+    private readonly ArrayPool<byte> _bufferPool = ArrayPool<byte>.Create(1024, 64);
     private readonly Dictionary<byte, MessageHandlerCollection> _messageHandlers = new();
 
 
@@ -131,7 +131,7 @@ internal class GameClient
         int bufferLength = buffer.Length;
         
         // Get a pooled byte[] buffer.
-        byte[] bytes = _buffers.Rent(bufferLength);
+        byte[] bytes = _bufferPool.Rent(bufferLength);
         
         // Get a ReadOnlySpan from the bytes.
         buffer.ToArray(bytes);
@@ -141,7 +141,9 @@ internal class GameClient
         _tcpClient.SendAsync(span);
         
         // Return the buffer to the pool.
-        _buffers.Return(bytes);
+        _bufferPool.Return(bytes);
+        
+        buffer.Clear();
     }
     
     

@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using Shared;
+using Shared.Utils;
 
 namespace Client;
 
@@ -44,7 +45,7 @@ internal static class Program
             Array.Copy(payload, 0, packet, 2, payload.Length);
             
             // Send the packet
-            client.SendPacket(packet);
+            Logger.LogInfo("TODO: Send the packet to the server...");
         }
 
         client.Disconnect();
