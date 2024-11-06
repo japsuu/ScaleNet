@@ -1,6 +1,8 @@
-﻿using Client.Networking;
+﻿using Client.Authentication;
+using Client.Networking;
 using NetStack.Buffers;
 using NetStack.Serialization;
+using Shared;
 using Shared.Networking;
 using Shared.Networking.Messages;
 using Shared.Utils;
@@ -10,8 +12,11 @@ namespace Client;
 internal class GameClient
 {
     private readonly TcpGameClient _tcpClient;
+    private readonly Authenticator _authenticator;
     private readonly ArrayPool<byte> _bufferPool;
     private readonly Dictionary<byte, MessageHandler> _messageHandlers;
+    
+    public SessionId SessionId { get; private set; }
     
     /// <summary>
     /// True if the local client is connected to the server.
@@ -36,32 +41,38 @@ internal class GameClient
 
     public GameClient(string address, int port)
     {
+        MessageManager.RegisterAllMessages();
+        
         _bufferPool = ArrayPool<byte>.Create(1024, 64);
         _messageHandlers = new Dictionary<byte, MessageHandler>();
         _tcpClient = new TcpGameClient(address, port);
         _tcpClient.ConnectionStateChanged += OnConnectionStateChanged;
         _tcpClient.PacketReceived += OnPacketReceived;
+        
+        _authenticator = new Authenticator(this, SharedConstants.DEVELOPMENT_AUTH_PASSWORD);
+        
+        RegisterMessageHandler<WelcomeMessage>(OnWelcomeReceived);
     }
     
     
     public void Connect()
     {
-        Console.WriteLine($"Client connecting to {_tcpClient.Address}:{_tcpClient.Port}");
+        Logger.LogInfo($"Client connecting to {_tcpClient.Address}:{_tcpClient.Port}");
         
         if (_tcpClient.ConnectAsync())
-            Console.WriteLine("Done!");
+            Logger.LogInfo("Done!");
         else
         {
-            Console.WriteLine("Connection failed!");
+            Logger.LogError("Connection failed!");
         }
     }
 
 
     public void Reconnect()
     {
-        Console.WriteLine("Client reconnecting...");
+        Logger.LogInfo("Client reconnecting...");
         _tcpClient.ReconnectAsync();
-        Console.WriteLine("Done!");
+        Logger.LogInfo("Done!");
     }
 
 
@@ -70,9 +81,9 @@ internal class GameClient
     /// </summary>
     public void Disconnect()
     {
-        Console.WriteLine("Client disconnecting...");
+        Logger.LogInfo("Client disconnecting...");
         _tcpClient.DisconnectAndStop();
-        Console.WriteLine("Done!");
+        Logger.LogInfo("Done!");
     }
     
 
@@ -124,7 +135,6 @@ internal class GameClient
 
         // Write to buffer.
         BitBuffer buffer = PacketBufferPool.GetBitBuffer();
-        buffer.AddByte((byte)InternalPacketType.Message);
         message.Serialize(buffer);
         
         Logger.LogDebug($"Sending message {message} to server.");
@@ -174,50 +184,41 @@ internal class GameClient
         
         BitBuffer buffer = PacketBufferPool.GetBitBuffer();
         buffer.FromArray(packet.Data.Array, packet.Data.Count);
-        InternalPacketType packetType = (InternalPacketType)buffer.ReadByte();
         
-        switch (packetType)
-        {
-            case InternalPacketType.Unset:
-                Logger.LogWarning("Received a packet with an unset type.");
-                break;
-            case InternalPacketType.Welcome:
-                ParseWelcomePacket(buffer);
-                break;
-            case InternalPacketType.Message:
-                ParseMessagePacket(buffer);
-                break;
-            case InternalPacketType.DisconnectNotification:
-                Disconnect();
-                break;
-            default:
-                Logger.LogWarning($"Received a message with an unknown packet type {packetType}.");
-                break;
-        }
+        ParsePacket(buffer);
         
         buffer.Clear();
     }
     
     
-    private void ParseMessagePacket(BitBuffer buffer)
+    private void ParsePacket(BitBuffer buffer)
     {
+        // Create a message instance.
         byte messageId = buffer.ReadByte();
         NetMessage netMessage = MessageManager.NetMessages.CreateInstance(messageId);
-        netMessage.Deserialize(buffer);
+        
+        // Deserialize to instance.
+        MessageDeserializeResult result = netMessage.Deserialize(buffer);
+        if (result != MessageDeserializeResult.Success)
+        {
+            Logger.LogWarning($"Failed to deserialize message {netMessage}. Reason: {result}");
+            return;
+        }
+        Logger.LogDebug($"Received message {netMessage} from server.");
 
+        // Get handler.
         if (!_messageHandlers.TryGetValue(messageId, out MessageHandler? packetHandler))
         {
-            Logger.LogWarning($"Received a {netMessage} but no handler is registered for it. Ignoring.");
+            Logger.LogWarning($"No handler is registered for {netMessage}. Ignoring.");
             return;
         }
         
-        Logger.LogDebug($"Received message {netMessage} from server.");
-
+        // Invoke handler with message.
         packetHandler.Invoke(netMessage);
     }
 
 
-    private void ParseWelcomePacket(BitBuffer buffer)
+    private void OnWelcomeReceived(WelcomeMessage message)
     {
         Logger.LogInfo("Received welcome message from server.");
 

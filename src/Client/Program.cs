@@ -17,7 +17,7 @@ internal static class Program
         GameClient client = new(ADDRESS, PORT);
         client.Connect();
 
-        Console.WriteLine("Press Enter to stop the client or '!' to reconnect the client...");
+        Logger.LogInfo("Press Enter to stop the client or '!' to reconnect the client...");
 
         while (true)
         {

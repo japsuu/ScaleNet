@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using Shared;
+using Shared.Utils;
 
 namespace Server;
 
@@ -14,19 +15,19 @@ internal static class Program
         if (args.Length > 0)
             port = int.Parse(args[0]);
 
-        Console.WriteLine($"Using TCP port {port}\n");
+        Logger.LogInfo($"Using TCP port {port}\n");
         
         // Start the server
-        Console.WriteLine("Server starting...");
+        Logger.LogInfo("Server starting...");
         GameServer server = new GameServer(IPAddress.Any, port);
         server.Start();
-        Console.WriteLine("Done!");
+        Logger.LogInfo("Done!");
 
         while (true)
         {
             server.ProcessPackets();
             
-            Thread.Sleep(200);
+            Thread.Sleep(1000 / ServerConstants.TICKS_PER_SECOND);
             
             /*string? line = Console.ReadLine();
             if (string.IsNullOrEmpty(line))
@@ -47,8 +48,8 @@ internal static class Program
         }
 
         // Stop the server
-        Console.WriteLine("Server stopping...");
+        Logger.LogInfo("Server stopping...");
         server.Stop();
-        Console.WriteLine("Done!");
+        Logger.LogInfo("Done!");
     }
 }

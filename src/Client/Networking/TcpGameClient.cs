@@ -1,5 +1,4 @@
 using System.Net.Sockets;
-using System.Text;
 using Shared.Networking;
 using Shared.Utils;
 using TcpClient = NetCoreServer.TcpClient;
@@ -84,7 +83,7 @@ public class TcpGameClient(string address, int port) : TcpClient(address, port)
 
     protected override void OnError(SocketError error)
     {
-        Console.WriteLine($"Chat TCP client caught an error with code {error}");
+        Logger.LogError($"Chat TCP client caught an error with code {error}");
     }
 
 #endregion

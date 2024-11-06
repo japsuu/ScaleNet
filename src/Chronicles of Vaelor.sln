@@ -6,10 +6,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Client\Client.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared", "Shared\Shared.csproj", "{648EF40E-A9BC-45FE-A642-44FA32E944F7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client.Networking", "Client.Networking\Client.Networking.csproj", "{81A5B70B-0F9F-4BB7-8257-33B721C1F89E}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server.Networking", "Server.Networking\Server.Networking.csproj", "{7A668C3C-EA41-4294-887C-9991AF689986}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,13 +24,5 @@ Global
 		{648EF40E-A9BC-45FE-A642-44FA32E944F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{648EF40E-A9BC-45FE-A642-44FA32E944F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{648EF40E-A9BC-45FE-A642-44FA32E944F7}.Release|Any CPU.Build.0 = Release|Any CPU
-		{81A5B70B-0F9F-4BB7-8257-33B721C1F89E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{81A5B70B-0F9F-4BB7-8257-33B721C1F89E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{81A5B70B-0F9F-4BB7-8257-33B721C1F89E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{81A5B70B-0F9F-4BB7-8257-33B721C1F89E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7A668C3C-EA41-4294-887C-9991AF689986}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7A668C3C-EA41-4294-887C-9991AF689986}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7A668C3C-EA41-4294-887C-9991AF689986}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7A668C3C-EA41-4294-887C-9991AF689986}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

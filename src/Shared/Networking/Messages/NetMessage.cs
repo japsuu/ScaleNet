@@ -13,9 +13,6 @@ namespace Shared.Networking.Messages;
 /// </summary>
 public abstract class NetMessage
 {
-    public abstract byte Id { get; }
-
-
     protected NetMessage()
     {
         
@@ -24,23 +21,23 @@ public abstract class NetMessage
     
     public void Serialize(BitBuffer buffer)
     {
-        buffer.AddByte(Id);
+        buffer.AddByte(MessageManager.NetMessages.GetId(GetType()));
         SerializeInternal(buffer);
     }
     
     
-    public bool Deserialize(BitBuffer buffer)
+    public MessageDeserializeResult Deserialize(BitBuffer buffer)
     {
         return DeserializeInternal(buffer);
     }
 
 
     protected abstract void SerializeInternal(BitBuffer buffer);
-    protected abstract bool DeserializeInternal(BitBuffer buffer);
+    protected abstract MessageDeserializeResult DeserializeInternal(BitBuffer buffer);
 
 
     public override string ToString()
     {
-        return $"{GetType().Name} (ID: {Id})";
+        return $"{GetType().Name} (ID: {MessageManager.NetMessages.GetId(GetType())})";
     }
 }
