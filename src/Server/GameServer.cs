@@ -214,7 +214,13 @@ internal class GameServer
     {
         // Create a message instance.
         byte messageId = buffer.ReadByte();
-        NetMessage netMessage = MessageManager.NetMessages.CreateInstance(messageId);
+        NetMessage? netMessage = MessageManager.NetMessages.CreateInstance(messageId);
+        
+        if (netMessage == null)
+        {
+            Logger.LogWarning($"Received a message with unknown ID {messageId}. Ignoring.");
+            return;
+        }
         
         // Deserialize to instance.
         MessageDeserializeResult deserializeResult = netMessage.Deserialize(buffer);

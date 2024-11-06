@@ -195,7 +195,13 @@ internal class GameClient
     {
         // Create a message instance.
         byte messageId = buffer.ReadByte();
-        NetMessage netMessage = MessageManager.NetMessages.CreateInstance(messageId);
+        NetMessage? netMessage = MessageManager.NetMessages.CreateInstance(messageId);
+        
+        if (netMessage == null)
+        {
+            Logger.LogWarning($"Failed to create message instance for ID {messageId}. Ignoring.");
+            return;
+        }
         
         // Deserialize to instance.
         MessageDeserializeResult result = netMessage.Deserialize(buffer);

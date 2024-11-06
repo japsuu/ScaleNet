@@ -51,12 +51,12 @@ public static class MessageManager
         }
 
 
-        public static NetMessage CreateInstance(byte id)
+        public static NetMessage? CreateInstance(byte id)
         {
             if (MessageCreators.TryGetValue(id, out Func<NetMessage>? creator))
                 return creator();
 
-            throw new InvalidOperationException($"No message type registered for ID {id}, cannot create instance.");
+            return null;
         }
         
         
