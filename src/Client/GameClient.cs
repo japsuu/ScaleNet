@@ -135,6 +135,7 @@ internal class GameClient
 
         // Write to buffer.
         BitBuffer buffer = PacketBufferPool.GetBitBuffer();
+        buffer.AddByte(MessageManager.NetMessages.GetId<T>());
         message.Serialize(buffer);
         
         Logger.LogDebug($"Sending message {message} to server.");

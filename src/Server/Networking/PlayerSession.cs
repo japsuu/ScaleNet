@@ -98,6 +98,7 @@ internal class PlayerSession
     {
         // Write to buffer.
         BitBuffer buffer = PacketBufferPool.GetBitBuffer();
+        buffer.AddByte(MessageManager.NetMessages.GetId<T>());
         message.Serialize(buffer);
         
         Logger.LogDebug($"Queue message {message} to client.");

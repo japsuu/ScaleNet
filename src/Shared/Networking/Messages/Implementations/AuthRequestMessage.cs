@@ -26,4 +26,10 @@ public class AuthRequestMessage(AuthenticationMethod authenticationMethod) : Net
         
         return MessageDeserializeResult.Success;
     }
+
+
+    public override string ToString()
+    {
+        return $"{GetType().Name} (ID: {MessageManager.NetMessages.GetId(GetType())})";
+    }
 }
