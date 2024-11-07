@@ -94,12 +94,15 @@ internal class PlayerSession
     }
 
 
-    public void QueueSend<T>(T message) where T : NetMessage
+    public void QueueSend<T>(T message) where T : INetMessage
     {
         // Write to buffer.
         BitBuffer buffer = PacketBufferPool.GetBitBuffer();
-        buffer.AddByte(MessageManager.NetMessages.GetId<T>());
-        message.Serialize(buffer);
+        if (!MessageManager.NetMessages.Serialize(message, buffer))
+        {
+            Logger.LogError($"Failed to serialize message {message}.");
+            return;
+        }
         
         Logger.LogDebug($"Queue message {message} to client.");
         

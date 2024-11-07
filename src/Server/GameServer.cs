@@ -74,7 +74,7 @@ internal class GameServer
     /// <param name="handler">Method to call.</param>
     /// <typeparam name="T"></typeparam>
     /// <param name="requiresAuthentication">True if the client must be authenticated to send this message.</param>
-    public void RegisterMessageHandler<T>(Action<PlayerSession, T> handler, bool requiresAuthentication = true) where T : NetMessage
+    public void RegisterMessageHandler<T>(Action<PlayerSession, T> handler, bool requiresAuthentication = true) where T : INetMessage
     {
         byte key = MessageManager.NetMessages.GetId<T>();
 
@@ -93,7 +93,7 @@ internal class GameServer
     /// </summary>
     /// <param name="handler">The method to unregister.</param>
     /// <typeparam name="T">Type of message to unregister.</typeparam>
-    public void UnregisterMessageHandler<T>(Action<PlayerSession, T> handler) where T : NetMessage
+    public void UnregisterMessageHandler<T>(Action<PlayerSession, T> handler) where T : INetMessage
     {
         byte key = MessageManager.NetMessages.GetId<T>();
         
@@ -102,7 +102,7 @@ internal class GameServer
     }
     
     
-    public void SendMessageToClient<T>(PlayerSession client, T message, bool requireAuthenticated = true) where T : NetMessage
+    public void SendMessageToClient<T>(PlayerSession client, T message, bool requireAuthenticated = true) where T : INetMessage
     {
         if (!IsStarted)
         {
@@ -126,7 +126,7 @@ internal class GameServer
     /// <param name="message">Packet data being sent.</param>
     /// <param name="requireAuthenticated">True if the client must be authenticated to receive this message.</param>
     /// <typeparam name="T">The type of message to send.</typeparam>
-    public void SendMessageToAllClients<T>(T message, bool requireAuthenticated = true) where T : NetMessage
+    public void SendMessageToAllClients<T>(T message, bool requireAuthenticated = true) where T : INetMessage
     {
         if (!IsStarted)
         {
@@ -143,7 +143,7 @@ internal class GameServer
     /// Sends a message to all clients except the specified one.
     /// </summary>
     public void SendMessageToAllClientsExcept<T>(T message, PlayerSession except, bool requireAuthenticated = true)
-        where T : NetMessage
+        where T : INetMessage
     {
         if (!IsStarted)
         {
@@ -163,7 +163,7 @@ internal class GameServer
     /// <summary>
     /// Sends a message to all clients except the specified ones.
     /// </summary>
-    public void SendMessageToAllClientsExcept<T>(T message, List<PlayerSession> except, bool requireAuthenticated = true) where T : NetMessage
+    public void SendMessageToAllClientsExcept<T>(T message, List<PlayerSession> except, bool requireAuthenticated = true) where T : INetMessage
     {
         if (!IsStarted)
         {
@@ -213,36 +213,15 @@ internal class GameServer
     private void ParsePacket(PlayerSession session, BitBuffer buffer)
     {
         // Create a message instance.
-        byte messageId = buffer.ReadByte();
-        NetMessage? netMessage = MessageManager.NetMessages.CreateInstance(messageId);
+        INetMessage? netMessage = MessageManager.NetMessages.Deserialize(buffer, out byte messageId);
         
         if (netMessage == null)
         {
-            Logger.LogWarning($"Received a message with unknown ID {messageId}. Ignoring.");
+            Logger.LogWarning($"Failed to deserialize message {netMessage}. Kicking client {session.Id} immediately.");
+            session.Kick(DisconnectReason.MalformedData);
             return;
         }
         
-        // Deserialize to instance.
-        MessageDeserializeResult deserializeResult = netMessage.Deserialize(buffer);
-        if (deserializeResult != MessageDeserializeResult.Success)
-        {
-            Logger.LogWarning($"Failed to deserialize message {netMessage}. Reason: {deserializeResult}");
-
-            switch (deserializeResult)
-            {
-                case MessageDeserializeResult.MalformedData:
-                    session.Kick(DisconnectReason.MalformedData);
-                    break;
-                case MessageDeserializeResult.OutdatedVersion:
-                    session.Kick(DisconnectReason.OutdatedVersion);
-                    break;
-                default:
-                    session.Kick(DisconnectReason.UnexpectedProblem);
-                    break;
-            }
-            
-            return;
-        }
         Logger.LogDebug($"Received message {netMessage} from client {session.Id}.");
 
         // Get handler.

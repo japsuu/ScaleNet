@@ -92,7 +92,7 @@ internal class GameClient
     /// </summary>
     /// <param name="handler">Method to call.</param>
     /// <typeparam name="T"></typeparam>
-    public void RegisterMessageHandler<T>(Action<T> handler) where T : NetMessage
+    public void RegisterMessageHandler<T>(Action<T> handler) where T : INetMessage
     {
         byte key = MessageManager.NetMessages.GetId<T>();
 
@@ -111,7 +111,7 @@ internal class GameClient
     /// </summary>
     /// <param name="handler">The method to unregister.</param>
     /// <typeparam name="T">Type of message to unregister.</typeparam>
-    public void UnregisterMessageHandler<T>(Action<T> handler) where T : NetMessage
+    public void UnregisterMessageHandler<T>(Action<T> handler) where T : INetMessage
     {
         byte key = MessageManager.NetMessages.GetId<T>();
         
@@ -125,7 +125,7 @@ internal class GameClient
     /// </summary>
     /// <typeparam name="T">Type of message to send.</typeparam>
     /// <param name="message">The message to send.</param>
-    public void SendMessageToServer<T>(T message) where T : NetMessage
+    public void SendMessageToServer<T>(T message) where T : INetMessage
     {
         if (!IsConnected)
         {
@@ -135,8 +135,11 @@ internal class GameClient
 
         // Write to buffer.
         BitBuffer buffer = PacketBufferPool.GetBitBuffer();
-        buffer.AddByte(MessageManager.NetMessages.GetId<T>());
-        message.Serialize(buffer);
+        if (!MessageManager.NetMessages.Serialize(message, buffer))
+        {
+            Logger.LogError($"Failed to serialize message {message}.");
+            return;
+        }
         
         Logger.LogDebug($"Sending message {message} to server.");
         
@@ -195,8 +198,7 @@ internal class GameClient
     private void ParsePacket(BitBuffer buffer)
     {
         // Create a message instance.
-        byte messageId = buffer.ReadByte();
-        NetMessage? netMessage = MessageManager.NetMessages.CreateInstance(messageId);
+        INetMessage? netMessage = MessageManager.NetMessages.Deserialize(buffer, out byte messageId);
         
         if (netMessage == null)
         {
@@ -204,13 +206,6 @@ internal class GameClient
             return;
         }
         
-        // Deserialize to instance.
-        MessageDeserializeResult result = netMessage.Deserialize(buffer);
-        if (result != MessageDeserializeResult.Success)
-        {
-            Logger.LogWarning($"Failed to deserialize message {netMessage}. Reason: {result}");
-            return;
-        }
         Logger.LogDebug($"Received message {netMessage} from server.");
 
         // Get handler.

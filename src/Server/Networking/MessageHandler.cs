@@ -7,13 +7,13 @@ internal abstract class MessageHandler
     public abstract bool RequiresAuthentication { get; }
     public abstract void RegisterAction(object action);
     public abstract void UnregisterAction(object action);
-    public abstract void Invoke(PlayerSession session, NetMessage message);
+    public abstract void Invoke(PlayerSession session, INetMessage message);
 }
 
 /// <summary>
 /// Handles packets received on clients, from the server.
 /// </summary>
-internal class MessageHandler<T>(bool requiresAuthentication) : MessageHandler where T : NetMessage
+internal class MessageHandler<T>(bool requiresAuthentication) : MessageHandler where T : INetMessage
 {
     private readonly List<Action<PlayerSession, T>> _actions = [];
     
@@ -52,7 +52,7 @@ internal class MessageHandler<T>(bool requiresAuthentication) : MessageHandler w
     /// <remarks>
     /// Not thread-safe.
     /// </remarks>
-    public override void Invoke(PlayerSession session, NetMessage message)
+    public override void Invoke(PlayerSession session, INetMessage message)
     {
         if (message is not T tMessage)
             return;

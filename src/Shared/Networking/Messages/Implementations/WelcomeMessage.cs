@@ -1,5 +1,3 @@
-using NetStack.Serialization;
-
 namespace Shared.Networking.Messages;
 
 /// <summary>
@@ -11,20 +9,7 @@ namespace Shared.Networking.Messages;
 /// <remarks>
 /// Server -&gt; Client
 /// </remarks>
-public class WelcomeMessage(SessionId sessionId) : NetMessage
+public readonly struct WelcomeMessage(SessionId sessionId) : INetMessage
 {
-    public SessionId SessionId { get; private set; } = sessionId;
-
-
-    protected override void SerializeInternal(BitBuffer buffer)
-    {
-        buffer.AddUInt(SessionId.Value);
-    }
-
-
-    protected override MessageDeserializeResult DeserializeInternal(BitBuffer buffer)
-    {
-        SessionId = new SessionId(buffer.ReadUInt());
-        return MessageDeserializeResult.Success;
-    }
+    public readonly SessionId SessionId = sessionId;
 }
