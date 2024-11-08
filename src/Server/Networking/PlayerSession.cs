@@ -7,6 +7,16 @@ using Shared.Utils;
 
 namespace Server.Networking;
 
+public class PlayerData(string username)
+{
+    public readonly string Username = username;
+}
+
+public class AuthenticationData(string personalId)
+{
+    public readonly string PersonalId = personalId;
+}
+
 internal class PlayerSession
 {
     private readonly GameServer _server;
@@ -17,6 +27,10 @@ internal class PlayerSession
     public readonly SessionId Id;
     
     public bool IsAuthenticated { get; private set; }
+
+    public AuthenticationData? AuthData { get; private set; }
+    
+    public PlayerData? PlayerData { get; private set; }
 
     public bool RejectNewPackets
     {
@@ -39,9 +53,24 @@ internal class PlayerSession
     }
 
 
-    public void SetAuthenticated()
+    public void LoadPlayerData()
+    {
+        if (AuthData == null)
+        {
+            Logger.LogError("Cannot load player data without authentication data.");
+            return;
+        }
+        
+        //TODO: Load user data from the database based on the personal ID.
+
+        PlayerData = new PlayerData(AuthData.PersonalId);
+    }
+
+
+    public void SetAuthenticated(string personalId)
     {
         IsAuthenticated = true;
+        AuthData = new AuthenticationData(personalId);
     }
     
     

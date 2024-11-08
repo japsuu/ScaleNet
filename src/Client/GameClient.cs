@@ -47,6 +47,7 @@ internal class GameClient
         
         RegisterMessageHandler<WelcomeMessage>(OnWelcomeReceived);
         RegisterMessageHandler<DisconnectMessage>(OnDisconnectReceived);
+        RegisterMessageHandler<ChatMessageNotification>(msg => Logger.LogInfo($"[Chat] {msg.User}: {msg.Message}"));
     }
     
     

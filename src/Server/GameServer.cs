@@ -39,8 +39,12 @@ internal class GameServer
         
         _tcpServer.ServerStateChanged += OnServerStateChanged;
         _tcpServer.ClientStateChanged += OnClientStateChanged;
+        
+        RegisterMessageHandler<ChatMessage>(OnChatMessageReceived);
     }
 
+
+#region Starting and stopping
 
     public void Start()
     {
@@ -64,6 +68,10 @@ internal class GameServer
         _tcpServer.Stop();
     }
 
+#endregion
+
+
+#region Received message handling
 
     /// <summary>
     /// Registers a method to call when a message of the specified type arrives.
@@ -97,8 +105,25 @@ internal class GameServer
         if (_messageHandlers.TryGetValue(key, out MessageHandler? handlerCollection))
             handlerCollection.UnregisterAction(handler);
     }
-    
-    
+
+
+    private void OnChatMessageReceived(PlayerSession session, ChatMessage msg)
+    {
+        Logger.LogInfo($"Received chat message from {session.Id}: {msg.Message}");
+        
+        // If the message is empty, ignore it.
+        if (string.IsNullOrWhiteSpace(msg.Message))
+            return;
+        
+        // Forward the message to all clients.
+        SendMessageToAllClients(new ChatMessageNotification(session.PlayerData!.Username, msg.Message));
+    }
+
+#endregion
+
+
+#region Sending messages
+
     public void SendMessageToClient<T>(PlayerSession client, T message, bool requireAuthenticated = true) where T : INetMessage
     {
         if (!IsStarted)
@@ -175,6 +200,10 @@ internal class GameServer
         }
     }
 
+#endregion
+
+
+#region Packet processing
 
     public void ProcessPackets()
     {
@@ -218,8 +247,12 @@ internal class GameServer
         // Invoke handler with message.
         packetHandler.Invoke(session, msg);
     }
-    
-    
+
+#endregion
+
+
+#region Server state
+
     private void OnServerStateChanged(ServerStateArgs args)
     {
         ServerState state = args.State;
@@ -230,6 +263,10 @@ internal class GameServer
         StateChanged?.Invoke(args);
     }
 
+#endregion
+
+
+#region Client state
 
     private void OnClientStateChanged(ClientStateArgs clientStateArgs)
     {
@@ -253,6 +290,10 @@ internal class GameServer
         }
     }
 
+#endregion
+
+
+#region Authentication
 
     /// <summary>
     /// Called when the authenticator has concluded a result for a connection.
@@ -273,15 +314,12 @@ internal class GameServer
     /// </summary>
     private static void OnClientAuthenticated(PlayerSession session)
     {
-        if (session.IsAuthenticated)
-        {
-            Logger.LogWarning($"Client {session.Id} is already authenticated.");
-            return;
-        }
-        
-        session.SetAuthenticated();
-        
         // Send the client a welcome message.
         session.QueueSend(new WelcomeMessage(session.Id.Value));
+        
+        // Load user data.
+        session.LoadPlayerData();
     }
+
+#endregion
 }

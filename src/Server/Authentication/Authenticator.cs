@@ -36,22 +36,30 @@ internal class Authenticator
     }
 
 
-    private void OnReceiveAuthResponsePacket(PlayerSession conn, AuthResponseMessage netMessage)
+    private void OnReceiveAuthResponsePacket(PlayerSession session, AuthResponseMessage netMessage)
     {
-        /* If a client is already authenticated, this could be an attack. Connections
+        /* If a client is already authenticated, this could be an attack. Sessions
          * are removed when a client disconnects, so there is no reason they should
          * already be considered authenticated. */
-        if (conn.IsAuthenticated)
+        if (session.IsAuthenticated)
         {
-            conn.Kick(DisconnectReason.ExploitAttempt);
+            session.Kick(DisconnectReason.ExploitAttempt);
             return;
         }
 
         bool validName = !string.IsNullOrWhiteSpace(netMessage.Username);
         bool isCorrectPassword = netMessage.Password == _password;
         bool isAuthSuccess = validName && isCorrectPassword;
+
+        if (isAuthSuccess)
+        {
+            // TODO: Fetch the player's personal ID from the database, based on the credentials.
+            string pId = netMessage.Username;
+            
+            session.SetAuthenticated(pId);
+        }
         
         // Invoke result. This is handled internally to complete the connection or kick client.
-        AuthenticationResultConcluded?.Invoke(conn, isAuthSuccess);
+        AuthenticationResultConcluded?.Invoke(session, isAuthSuccess);
     }
 }

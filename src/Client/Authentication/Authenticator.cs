@@ -28,7 +28,7 @@ internal class Authenticator
             return;
         }
         
-        string username = "development";
+        string username = $"developer-{RandomUtils.RandomString(6)}";
         string password = _password;
         
         // Ensure the username and password are within the 24-character limit.
