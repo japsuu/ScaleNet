@@ -47,6 +47,6 @@ internal class ClientConnection(TcpGameServer server) : TcpSession(server)
 
     protected override void OnError(SocketError error)
     {
-        Logger.LogError($"TCP session caught an error with code {error}");
+        Logger.LogError($"TCP session of player with Id {Id} caught an error with code {error}");
     }
 }
