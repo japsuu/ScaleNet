@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using Server.Networking.LowLevel;
 using Shared;
 using Shared.Networking;
@@ -25,6 +26,8 @@ internal class PlayerSession
     private readonly ConcurrentQueue<Packet> _outgoingPackets = new();
 
     public readonly SessionId Id;
+    
+    public bool IsDisconnecting { get; private set; }
     
     public bool IsAuthenticated { get; private set; }
 
@@ -55,6 +58,8 @@ internal class PlayerSession
 
     public void LoadPlayerData()
     {
+        Debug.Assert(!IsDisconnecting, "Cannot load player data for a disconnecting client.");
+
         if (AuthData == null)
         {
             Logger.LogError("Cannot load player data without authentication data.");
@@ -69,6 +74,8 @@ internal class PlayerSession
 
     public void SetAuthenticated(string personalId)
     {
+        Debug.Assert(!IsDisconnecting, "Cannot authenticate a disconnecting client.");
+
         IsAuthenticated = true;
         AuthData = new AuthenticationData(personalId);
     }
@@ -76,7 +83,9 @@ internal class PlayerSession
     
     public void IterateIncoming()
     {
-        while (_incomingPackets.TryDequeue(out Packet packet))
+        Debug.Assert(!IsDisconnecting, "Cannot iterate incoming packets for a disconnecting client.");
+
+        while (_incomingPackets.TryDequeue(out Packet packet) && !IsDisconnecting)
         {
             _server.OnPacketReceived(this, packet);
         }
@@ -85,7 +94,7 @@ internal class PlayerSession
     
     public void IterateOutgoing()
     {
-        while (_outgoingPackets.TryDequeue(out Packet packet))
+        while (_outgoingPackets.TryDequeue(out Packet packet) && !IsDisconnecting)
         {
             SendPacket(packet);
         }
@@ -103,6 +112,8 @@ internal class PlayerSession
     /// </remarks>
     public void Kick(DisconnectReason reason, bool iterateOutgoing = true)
     {
+        Debug.Assert(!IsDisconnecting, "Cannot disconnect a client that is already disconnecting.");
+
         Logger.LogDebug($"Disconnecting client {Id} with reason {reason}.");
         
         if (iterateOutgoing)
@@ -114,11 +125,15 @@ internal class PlayerSession
         }
         
         _connection.Disconnect();
+        
+        IsDisconnecting = true;
     }
 
 
     public void QueueSend<T>(T message) where T : INetMessage
     {
+        Debug.Assert(!IsDisconnecting, "Cannot send messages to a disconnecting client.");
+        
         // Write to buffer.
         byte[] bytes = NetMessages.Serialize(message);
         

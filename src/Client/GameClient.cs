@@ -133,6 +133,12 @@ internal class GameClient
         
         byte[] bytes = NetMessages.Serialize(message);
         
+        if (bytes.Length > SharedConstants.MAX_PACKET_SIZE_BYTES)
+        {
+            Logger.LogError($"Message {message} exceeds maximum packet size of {SharedConstants.MAX_PACKET_SIZE_BYTES} bytes. Skipping.");
+            //return;
+        }
+        
         ReadOnlySpan<byte> span = new(bytes, 0, bytes.Length);
 
         // Send the packet.

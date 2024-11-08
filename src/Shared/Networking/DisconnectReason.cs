@@ -28,5 +28,6 @@ public enum DisconnectReason : byte
     AuthenticationFailed,
     
     ServerShutdown,
-    OutdatedVersion
+    OutdatedVersion,
+    OversizedPacket
 }

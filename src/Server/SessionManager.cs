@@ -32,6 +32,18 @@ internal class SessionManager(GameServer server)
     }
     
     
+    public bool HasSession(SessionId id)
+    {
+        return _sessionsBySessionId.ContainsKey(id);
+    }
+    
+    
+    public bool HasSession(Guid connectionId)
+    {
+        return _sessionsByConnectionId.ContainsKey(connectionId);
+    }
+    
+    
     public bool TryGetSession(SessionId id, out PlayerSession? session)
     {
         return _sessionsBySessionId.TryGetValue(id, out session);
@@ -51,16 +63,16 @@ internal class SessionManager(GameServer server)
     }
     
     
-    public void EndSession(SessionId id)
+    public void EndSession(SessionId id, out PlayerSession? session)
     {
-        if (_sessionsBySessionId.TryRemove(id, out PlayerSession? session))
+        if (_sessionsBySessionId.TryRemove(id, out session))
             _sessionsByConnectionId.TryRemove(session.ConnectionId, out _);
     }
     
     
-    public void EndSession(Guid connectionId)
+    public void EndSession(Guid connectionId, out PlayerSession? session)
     {
-        if (_sessionsByConnectionId.TryRemove(connectionId, out PlayerSession? session))
+        if (_sessionsByConnectionId.TryRemove(connectionId, out session))
             _sessionsBySessionId.TryRemove(session.Id, out _);
     }
 }

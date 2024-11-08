@@ -15,18 +15,6 @@ internal class ClientConnection(TcpGameServer server) : TcpSession(server)
     public bool RejectNewPackets { get; set; }
     
     public event Action<Packet>? PacketReceived;
-    
-    
-    protected override void OnConnected()
-    {
-        Logger.LogInfo($"Player with Id {Id} connected!");
-    }
-
-
-    protected override void OnDisconnected()
-    {
-        Logger.LogInfo($"Player with Id {Id} disconnected!");
-    }
 
 
     protected override void OnReceived(byte[] buffer, long offset, long size)

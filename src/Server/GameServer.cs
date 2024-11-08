@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
 using Server.Authentication;
 using Server.Networking;
@@ -225,6 +226,13 @@ internal class GameServer
             return;
         }
         
+        if (packet.Data.Count > SharedConstants.MAX_PACKET_SIZE_BYTES)
+        {
+            Logger.LogWarning($"Received a packet that exceeds the maximum size. Kicking client {session.Id} immediately.");
+            session.Kick(DisconnectReason.OversizedPacket);
+            return;
+        }
+        
         INetMessage msg = NetMessages.Deserialize(packet.Data);
         Type messageId = msg.GetType();
         
@@ -271,22 +279,42 @@ internal class GameServer
     private void OnClientStateChanged(ClientStateArgs clientStateArgs)
     {
         ClientConnection connection = clientStateArgs.Connection;
+        Guid connId = connection.Id;
+        PlayerSession? session;
         
         Logger.LogDebug($"Client {connection.Id} is {clientStateArgs.State.ToString().ToLower()}");
         
         switch (clientStateArgs.State)
         {
             case ClientState.Connecting:
-                PlayerSession session = _sessionManager.StartSession(connection);
+            {
+                session = _sessionManager.StartSession(connection);
                 
+                Logger.LogInfo($"Player with session Id {session.Id} connecting!");
+
                 if (_authenticator != null)
                     _authenticator.OnNewSession(session);
                 else
                     OnClientAuthenticated(session);
                 break;
-            case ClientState.Disconnecting:
-                _sessionManager.EndSession(connection.Id);
+            }
+            case ClientState.Connected:
+            {
+                Debug.Assert(_sessionManager.HasSession(connId), "Client connected but session was not created.");
                 break;
+            }
+            case ClientState.Disconnecting:
+            {
+                _sessionManager.EndSession(connection.Id, out session);
+                
+                Logger.LogInfo($"Player with session Id {session!.Id} disconnecting!");
+                break;
+            }
+            case ClientState.Disconnected:
+            {
+                Debug.Assert(!_sessionManager.HasSession(connId), "Client disconnected but session was not removed.");
+                break;
+            }
         }
     }
 
