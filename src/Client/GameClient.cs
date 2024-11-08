@@ -43,7 +43,7 @@ internal class GameClient
         _tcpClient.ConnectionStateChanged += OnConnectionStateChanged;
         _tcpClient.PacketReceived += OnPacketReceived;
         
-        _authenticator = new Authenticator(this, SharedConstants.DEVELOPMENT_AUTH_PASSWORD);
+        _authenticator = new Authenticator(this);
         
         RegisterMessageHandler<WelcomeMessage>(OnWelcomeReceived);
         RegisterMessageHandler<DisconnectMessage>(OnDisconnectReceived);
@@ -77,9 +77,7 @@ internal class GameClient
     /// </summary>
     public void Disconnect()
     {
-        Logger.LogInfo("Client disconnecting...");
         _tcpClient.DisconnectAndStop();
-        Logger.LogInfo("Done!");
     }
     
 

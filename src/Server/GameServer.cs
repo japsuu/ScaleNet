@@ -135,7 +135,7 @@ internal class GameServer
 
         if (requireAuthenticated && !client.IsAuthenticated)
         {
-            Logger.LogWarning($"Cannot send message to client {client.Id} because they are not authenticated.");
+            Logger.LogWarning($"Cannot send message {message} to client {client.Id} because they are not authenticated.");
             return;
         }
 
@@ -158,7 +158,10 @@ internal class GameServer
         }
 
         foreach (PlayerSession c in _sessionManager.Sessions)
-            SendMessageToClient(c, message, requireAuthenticated);
+        {
+            if (c.IsAuthenticated)
+                SendMessageToClient(c, message, requireAuthenticated);
+        }
     }
 
 

@@ -1,3 +1,4 @@
+using Shared;
 using Shared.Networking.Messages;
 using Shared.Utils;
 
@@ -6,13 +7,11 @@ namespace Client.Authentication;
 internal class Authenticator
 {
     private readonly GameClient _client;
-    private readonly string _password;
 
 
-    public Authenticator(GameClient client, string password)
+    public Authenticator(GameClient client)
     {
         _client = client;
-        _password = password;
         
         client.RegisterMessageHandler<AuthRequestMessage>(OnReceiveAuthRequestPacket);
     }
@@ -28,8 +27,17 @@ internal class Authenticator
             return;
         }
         
-        string username = $"developer-{RandomUtils.RandomString(6)}";
-        string password = _password;
+        Logger.LogInfo("Enter your username:");
+        string? username = Console.ReadLine();
+        
+        if (string.IsNullOrEmpty(username))
+            username = $"User-{RandomUtils.RandomString(6)}";
+        
+        Logger.LogInfo("Enter your password:");
+        string? password = Console.ReadLine();
+        
+        if (string.IsNullOrEmpty(password))
+            password = SharedConstants.DEVELOPMENT_AUTH_PASSWORD;
         
         // Ensure the username and password are within the 24-character limit.
         if (username.Length > 24)

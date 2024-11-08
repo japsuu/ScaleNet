@@ -6,21 +6,34 @@ namespace Client;
 
 internal static class Program
 {
-    private const string ADDRESS = "127.0.0.1";
-    private const int PORT = SharedConstants.SERVER_PORT;
+    private const string DEFAULT_ADDRESS = "127.0.0.1";
+    private const int DEFAULT_PORT = SharedConstants.SERVER_PORT;
     
     
     private static void Main(string[] args)
     {
         Console.Title = "COV Client";
-
-        GameClient client = new(ADDRESS, PORT);
+        
+        Logger.LogInfo("Enter the server address:");
+        string? address = Console.ReadLine();
+        if (string.IsNullOrEmpty(address))
+            address = DEFAULT_ADDRESS;
+        
+        Logger.LogInfo("Enter the server port:");
+        string? portStr = Console.ReadLine();
+        if (string.IsNullOrEmpty(portStr) || !int.TryParse(portStr, out int port))
+            port = DEFAULT_PORT;
+        
+        GameClient client = new(address, port);
         client.Connect();
 
         Logger.LogInfo("Press Enter to stop the client or '!' to reconnect the client...");
 
         while (true)
         {
+            if (!client.IsAuthenticated)
+                continue;
+            
             string? line = Console.ReadLine();
             if (string.IsNullOrEmpty(line))
                 break;
@@ -35,5 +48,7 @@ internal static class Program
         }
 
         client.Disconnect();
+        Logger.LogError("Client disconnected. Press any key to exit.");
+        Console.ReadKey();
     }
 }
