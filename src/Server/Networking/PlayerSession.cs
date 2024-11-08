@@ -1,6 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using NetStack.Buffers;
-using NetStack.Serialization;
 using Server.Networking.LowLevel;
 using Shared;
 using Shared.Networking;
@@ -49,7 +47,7 @@ internal class PlayerSession
     {
         while (_incomingPackets.TryDequeue(out Packet packet))
         {
-            _server.HandlePacket(this, packet);
+            _server.OnPacketReceived(this, packet);
         }
     }
     
@@ -83,44 +81,26 @@ internal class PlayerSession
             
             IterateOutgoing();
         }
-        else
-        {
-            // Return all pooled packets.
-            while (_outgoingPackets.TryDequeue(out Packet packet))
-                ArrayPool<byte>.Shared.Return(packet.Data.Array!);
-        }
         
         _connection.Disconnect();
     }
 
 
-    public void QueueSend<T>(T message) where T : NetMessage
+    public void QueueSend<T>(T message) where T : INetMessage
     {
         // Write to buffer.
-        BitBuffer buffer = PacketBufferPool.GetBitBuffer();
-        buffer.AddByte(MessageManager.NetMessages.GetId<T>());
-        message.Serialize(buffer);
+        byte[] bytes = NetMessages.Serialize(message);
         
         Logger.LogDebug($"Queue message {message} to client.");
         
-        int bufferLength = buffer.Length;
-        
-        // Get a pooled byte[] buffer.
-        byte[] bytes = ArrayPool<byte>.Shared.Rent(bufferLength);
-        
         // Enqueue the packet.
-        buffer.ToArray(bytes);
-        _outgoingPackets.Enqueue(new Packet(bytes, 0, bufferLength));
-        
-        buffer.Clear();
+        _outgoingPackets.Enqueue(new Packet(bytes, 0, bytes.Length));
     }
     
     
     private void SendPacket(Packet packet)
     {
         _connection.SendAsync(packet.Data);
-        
-        ArrayPool<byte>.Shared.Return(packet.Data.Array!);
         
         Logger.LogDebug($"Sent packet to client {Id}.");
     }

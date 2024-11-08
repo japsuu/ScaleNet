@@ -6,13 +6,13 @@ public abstract class MessageHandler
 {
     public abstract void RegisterAction(object action);
     public abstract void UnregisterAction(object action);
-    public abstract void Invoke(NetMessage message);
+    public abstract void Invoke(INetMessage message);
 }
 
 /// <summary>
 /// Handles packets received on clients, from the server.
 /// </summary>
-public class MessageHandler<T> : MessageHandler where T : NetMessage
+public class MessageHandler<T> : MessageHandler where T : INetMessage
 {
     private readonly List<Action<T>> _actions = [];
 
@@ -35,7 +35,7 @@ public class MessageHandler<T> : MessageHandler where T : NetMessage
     }
 
 
-    public override void Invoke(NetMessage message)
+    public override void Invoke(INetMessage message)
     {
         if (message is not T tMessage)
             return;

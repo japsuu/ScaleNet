@@ -1,7 +1,5 @@
 ﻿using Client.Authentication;
 using Client.Networking;
-using NetStack.Buffers;
-using NetStack.Serialization;
 using Shared;
 using Shared.Networking;
 using Shared.Networking.Messages;
@@ -13,8 +11,7 @@ internal class GameClient
 {
     private readonly TcpGameClient _tcpClient;
     private readonly Authenticator _authenticator;
-    private readonly ArrayPool<byte> _bufferPool;
-    private readonly Dictionary<byte, MessageHandler> _messageHandlers;
+    private readonly Dictionary<Type, MessageHandler> _messageHandlers;
     
     public SessionId SessionId { get; private set; }
     
@@ -41,10 +38,7 @@ internal class GameClient
 
     public GameClient(string address, int port)
     {
-        MessageManager.RegisterAllMessages();
-        
-        _bufferPool = ArrayPool<byte>.Create(1024, 64);
-        _messageHandlers = new Dictionary<byte, MessageHandler>();
+        _messageHandlers = new Dictionary<Type, MessageHandler>();
         _tcpClient = new TcpGameClient(address, port);
         _tcpClient.ConnectionStateChanged += OnConnectionStateChanged;
         _tcpClient.PacketReceived += OnPacketReceived;
@@ -92,9 +86,9 @@ internal class GameClient
     /// </summary>
     /// <param name="handler">Method to call.</param>
     /// <typeparam name="T"></typeparam>
-    public void RegisterMessageHandler<T>(Action<T> handler) where T : NetMessage
+    public void RegisterMessageHandler<T>(Action<T> handler) where T : INetMessage
     {
-        byte key = MessageManager.NetMessages.GetId<T>();
+        Type key = typeof(T);
 
         if (!_messageHandlers.TryGetValue(key, out MessageHandler? handlerCollection))
         {
@@ -111,9 +105,9 @@ internal class GameClient
     /// </summary>
     /// <param name="handler">The method to unregister.</param>
     /// <typeparam name="T">Type of message to unregister.</typeparam>
-    public void UnregisterMessageHandler<T>(Action<T> handler) where T : NetMessage
+    public void UnregisterMessageHandler<T>(Action<T> handler) where T : INetMessage
     {
-        byte key = MessageManager.NetMessages.GetId<T>();
+        Type key = typeof(T);
         
         if (_messageHandlers.TryGetValue(key, out MessageHandler? handlerCollection))
             handlerCollection.UnregisterAction(handler);
@@ -125,37 +119,22 @@ internal class GameClient
     /// </summary>
     /// <typeparam name="T">Type of message to send.</typeparam>
     /// <param name="message">The message to send.</param>
-    public void SendMessageToServer<T>(T message) where T : NetMessage
+    public void SendMessageToServer<T>(T message) where T : INetMessage
     {
         if (!IsConnected)
         {
             Logger.LogError($"Local connection is not started, cannot send message of type {message}.");
             return;
         }
-
-        // Write to buffer.
-        BitBuffer buffer = PacketBufferPool.GetBitBuffer();
-        buffer.AddByte(MessageManager.NetMessages.GetId<T>());
-        message.Serialize(buffer);
         
         Logger.LogDebug($"Sending message {message} to server.");
         
-        int bufferLength = buffer.Length;
+        byte[] bytes = NetMessages.Serialize(message);
         
-        // Get a pooled byte[] buffer.
-        byte[] bytes = _bufferPool.Rent(bufferLength);
-        
-        // Get a ReadOnlySpan from the bytes.
-        buffer.ToArray(bytes);
-        ReadOnlySpan<byte> span = new(bytes, 0, bufferLength);
+        ReadOnlySpan<byte> span = new(bytes, 0, bytes.Length);
 
         // Send the packet.
         _tcpClient.SendAsync(span);
-        
-        // Return the buffer to the pool.
-        _bufferPool.Return(bytes);
-        
-        buffer.Clear();
     }
     
     
@@ -183,45 +162,21 @@ internal class GameClient
             return;
         }
         
-        BitBuffer buffer = PacketBufferPool.GetBitBuffer();
-        buffer.FromArray(packet.Data.Array, packet.Data.Count);
-        
-        ParsePacket(buffer);
-        
-        buffer.Clear();
-    }
-    
-    
-    private void ParsePacket(BitBuffer buffer)
-    {
         // Create a message instance.
-        byte messageId = buffer.ReadByte();
-        NetMessage? netMessage = MessageManager.NetMessages.CreateInstance(messageId);
+        INetMessage msg = NetMessages.Deserialize(packet.Data);
+        Type messageId = msg.GetType();
         
-        if (netMessage == null)
-        {
-            Logger.LogWarning($"Failed to create message instance for ID {messageId}. Ignoring.");
-            return;
-        }
-        
-        // Deserialize to instance.
-        MessageDeserializeResult result = netMessage.Deserialize(buffer);
-        if (result != MessageDeserializeResult.Success)
-        {
-            Logger.LogWarning($"Failed to deserialize message {netMessage}. Reason: {result}");
-            return;
-        }
-        Logger.LogDebug($"Received message {netMessage} from server.");
+        Logger.LogDebug($"Received message {msg} from server.");
 
         // Get handler.
         if (!_messageHandlers.TryGetValue(messageId, out MessageHandler? packetHandler))
         {
-            Logger.LogWarning($"No handler is registered for {netMessage}. Ignoring.");
+            Logger.LogWarning($"No handler is registered for {msg}. Ignoring.");
             return;
         }
         
         // Invoke handler with message.
-        packetHandler.Invoke(netMessage);
+        packetHandler.Invoke(msg);
     }
 
 

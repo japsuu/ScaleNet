@@ -6,5 +6,5 @@
 /// </summary>
 public readonly struct Packet(byte[] buffer, int offset, int size)
 {
-    public readonly ArraySegment<byte> Data = new(buffer, offset, size);
+    public readonly ArraySegment<byte> Data = new(buffer, offset, size);    //TODO: Change to ReadOnlyMemory<byte>
 }
