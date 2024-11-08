@@ -42,7 +42,7 @@ internal class TcpGameServer(IPAddress address, int port) : TcpServer(address, p
 
     protected override void OnConnected(TcpSession session)
     {
-        ClientStateChanged?.Invoke(new ClientStateArgs((ClientConnection)session, ClientState.Connecting));
+        ClientStateChanged?.Invoke(new ClientStateArgs((ClientConnection)session, ClientState.Connected));
     }
 
 

@@ -17,6 +17,10 @@ internal class SessionManager(GameServer server)
 
     public PlayerSession StartSession(ClientConnection connection)
     {
+        // Ensure that the connection is not already associated with a session.
+        if (_sessionsByConnectionId.ContainsKey(connection.Id))
+            throw new InvalidOperationException("Connection is already associated with a session.");
+        
         uint uId = Interlocked.Increment(ref nextSessionId);
         SessionId id = new(uId);
         PlayerSession session = new(id, server, connection);

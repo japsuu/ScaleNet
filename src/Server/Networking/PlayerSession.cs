@@ -34,6 +34,8 @@ internal class PlayerSession
         _connection = connection;
         
         _connection.PacketReceived += OnPacketReceived;
+        
+        Logger.LogDebug($"Created session {Id} for client {ConnectionId}.");
     }
 
 

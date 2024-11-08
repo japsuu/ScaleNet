@@ -46,6 +46,7 @@ internal class GameClient
         _authenticator = new Authenticator(this, SharedConstants.DEVELOPMENT_AUTH_PASSWORD);
         
         RegisterMessageHandler<WelcomeMessage>(OnWelcomeReceived);
+        RegisterMessageHandler<DisconnectMessage>(OnDisconnectReceived);
     }
     
     
@@ -155,7 +156,6 @@ internal class GameClient
 
     private void OnPacketReceived(Packet packet)
     {
-        Logger.LogDebug($"Received segment {packet.Data.AsStringHex()} from server.");
         if (packet.Data.Array == null)
         {
             Logger.LogWarning("Received a packet with null data.");
@@ -187,5 +187,14 @@ internal class GameClient
         // Mark local connection as authenticated.
         IsAuthenticated = true;
         Authenticated?.Invoke();
+    }
+
+
+    private void OnDisconnectReceived(DisconnectMessage message)
+    {
+        Logger.LogWarning($"Received disconnect message from server: {message.Reason}");
+        
+        // Disconnect the local client.
+        Disconnect();
     }
 }

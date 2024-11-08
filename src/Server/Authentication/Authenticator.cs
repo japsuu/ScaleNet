@@ -21,7 +21,7 @@ internal class Authenticator
         _server = server;
         _password = password;
         
-        server.RegisterMessageHandler<AuthResponseMessage>(OnReceiveAuthResponsePacket);
+        server.RegisterMessageHandler<AuthResponseMessage>(OnReceiveAuthResponsePacket, false);
     }
 
 
@@ -32,8 +32,7 @@ internal class Authenticator
     public void OnNewSession(PlayerSession session)
     {
         // Send the client a authentication request.
-        AuthRequestMessage netMessage = new(0);
-        _server.SendMessageToClient(session, netMessage, false);
+        _server.SendMessageToClient(session, new AuthRequestMessage(AuthenticationMethod.UsernamePassword), false);
     }
 
 

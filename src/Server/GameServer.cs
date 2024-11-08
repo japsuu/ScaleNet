@@ -189,7 +189,6 @@ internal class GameServer
     
     public void OnPacketReceived(PlayerSession session, Packet packet)
     {
-        Logger.LogDebug($"Received segment {packet.Data.AsStringHex()} from client {session.Id}.");
         if (packet.Data.Array == null)
         {
             Logger.LogWarning($"Received a packet with null data. Kicking client {session.Id} immediately.");
@@ -236,6 +235,8 @@ internal class GameServer
     {
         ClientConnection connection = clientStateArgs.Connection;
         
+        Logger.LogDebug($"Client {connection.Id} is {clientStateArgs.State.ToString().ToLower()}");
+        
         switch (clientStateArgs.State)
         {
             case ClientState.Connecting:
@@ -245,7 +246,6 @@ internal class GameServer
                     _authenticator.OnNewSession(session);
                 else
                     OnClientAuthenticated(session);
-                
                 break;
             case ClientState.Disconnecting:
                 _sessionManager.EndSession(connection.Id);
@@ -282,7 +282,6 @@ internal class GameServer
         session.SetAuthenticated();
         
         // Send the client a welcome message.
-        WelcomeMessage message = new(session.Id.Value);
-        session.QueueSend(message);
+        session.QueueSend(new WelcomeMessage(session.Id.Value));
     }
 }

@@ -18,10 +18,8 @@ internal static class Program
         Logger.LogInfo($"Using TCP port {port}\n");
         
         // Start the server
-        Logger.LogInfo("Server starting...");
         GameServer server = new GameServer(IPAddress.Any, port);
         server.Start();
-        Logger.LogInfo("Done!");
 
         while (true)
         {
