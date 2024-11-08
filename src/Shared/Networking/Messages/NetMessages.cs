@@ -33,6 +33,7 @@ public static class NetMessages
 [Union(2, typeof(DisconnectMessage))]
 [Union(3, typeof(SessionInitiateMessage))]
 [Union(4, typeof(WelcomeMessage))]
+[Union(5, typeof(ChatMessage))]
 public interface INetMessage;
 
 /// <summary>
@@ -111,4 +112,19 @@ public readonly struct WelcomeMessage(uint sessionId) : INetMessage
 {
     [Key(0)]
     public readonly uint SessionId = sessionId;
+}
+
+/// <summary>
+/// Sent from the client to the server,
+/// when the client wants to send a chat message.
+/// </summary>
+///
+/// <remarks>
+/// Client -&gt; Server
+/// </remarks>
+[MessagePackObject]
+public readonly struct ChatMessage(string msg) : INetMessage
+{
+    [Key(0)]
+    public readonly string Msg = msg;
 }

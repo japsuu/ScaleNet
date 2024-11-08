@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using Shared;
+using Shared.Networking.Messages;
 using Shared.Utils;
 
 namespace Client;
@@ -31,21 +32,7 @@ internal static class Program
                 continue;
             }
 
-            // Create a packet
-            byte[] payload = Encoding.UTF8.GetBytes(line);
-            byte[] packet = new byte[payload.Length + 2];
-            
-            // Version
-            packet[0] = 1;
-            
-            // Type
-            packet[1] = 1;
-            
-            // Payload
-            Array.Copy(payload, 0, packet, 2, payload.Length);
-            
-            // Send the packet
-            Logger.LogInfo("TODO: Send the packet to the server...");
+            client.SendMessageToServer(new ChatMessage(line));
         }
 
         client.Disconnect();
