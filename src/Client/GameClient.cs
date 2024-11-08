@@ -24,7 +24,7 @@ internal class GameClient
     /// True if the local client is authenticated with the server.
     /// </summary>
     public bool IsAuthenticated { get; private set; }
-
+    
     /// <summary>
     /// Called after the local client connection state changes.
     /// </summary>
@@ -183,6 +183,8 @@ internal class GameClient
     private void OnWelcomeReceived(WelcomeMessage message)
     {
         Logger.LogInfo("Received welcome message from server.");
+        
+        SessionId = new SessionId(message.SessionId);
 
         // Mark local connection as authenticated.
         IsAuthenticated = true;
