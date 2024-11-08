@@ -33,6 +33,7 @@
         <Optimize>true</Optimize>
         <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
         <OutputPath>..\..\Build\Release\</OutputPath>
+        <DebugType>none</DebugType>
     </PropertyGroup>
 
 </Project>

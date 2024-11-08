@@ -43,6 +43,8 @@ internal static class Program
                 client.Reconnect();
                 continue;
             }
+            
+            ClearPreviousConsoleLine();
 
             client.SendMessageToServer(new ChatMessage(line));
         }
@@ -50,5 +52,14 @@ internal static class Program
         client.Disconnect();
         Logger.LogError("Client disconnected. Press any key to exit.");
         Console.ReadKey();
+    }
+    
+    private static void ClearPreviousConsoleLine()
+    {
+        int currentLineCursor = Console.CursorTop - 1;
+        Console.SetCursorPosition(0, Console.CursorTop - 1);
+        for (int i = 0; i < Console.WindowWidth; i++)
+            Console.Write(" ");
+        Console.SetCursorPosition(0, currentLineCursor);
     }
 }
