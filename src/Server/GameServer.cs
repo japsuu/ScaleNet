@@ -320,8 +320,10 @@ internal class GameServer
                 _sessionManager.EndSession(connection.Id, out session);
                 
                 Logger.LogInfo($"Player with session Id {session!.Id} disconnecting!");
-        
-                SendMessageToAllClientsExcept(new ChatMessageNotification(session.PlayerData!.Username, "Left the chat."), session);
+
+                // Only authenticated sessions have player data.
+                if (session.IsAuthenticated)
+                    SendMessageToAllClientsExcept(new ChatMessageNotification(session.PlayerData!.Username, "Left the chat."), session);
                 break;
             }
             case ClientState.Disconnected:
