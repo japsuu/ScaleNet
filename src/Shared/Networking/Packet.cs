@@ -2,9 +2,20 @@
 
 /// <summary>
 /// A raw packet of data.
-/// TODO: Packet memory pooling.
 /// </summary>
-public readonly struct Packet(byte[] buffer, int offset, int size)
+public readonly struct Packet
 {
-    public readonly ArraySegment<byte> Data = new(buffer, offset, size);    //TODO: Change to ReadOnlyMemory<byte>
+    public readonly ReadOnlyMemory<byte> Data;
+
+
+    public Packet(byte[] buffer, int offset, int size)
+    {
+        Data = new ReadOnlyMemory<byte>(buffer, offset, size);
+    }
+    
+
+    public Packet(ReadOnlyMemory<byte> buffer)
+    {
+        Data = buffer;
+    }
 }

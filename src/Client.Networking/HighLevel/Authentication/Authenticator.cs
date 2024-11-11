@@ -6,10 +6,10 @@ namespace Client.Networking.HighLevel.Authentication;
 
 internal class Authenticator
 {
-    private readonly GameClient _client;
+    private readonly NetClientManager _client;
 
 
-    public Authenticator(GameClient client)
+    public Authenticator(NetClientManager client)
     {
         _client = client;
         

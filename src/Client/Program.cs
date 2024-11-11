@@ -24,10 +24,11 @@ internal static class Program
             port = DEFAULT_PORT;
         
         GameClient client = new(address, port);
+        
+        // Start the blocking client loop
         client.Run();
 
-        client.Disconnect();
-        Logger.LogError("Client disconnected. Press any key to exit.");
+        Logger.LogInfo("Press any key to exit.");
         Console.ReadKey();
     }
 }

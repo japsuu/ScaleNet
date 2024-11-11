@@ -5,24 +5,51 @@ using TcpClient = NetCoreServer.TcpClient;
 
 namespace Client.Networking.LowLevel.Transport;
 
-public class CovTcpClient(string address, int port) : TcpClient(address, port)
+public class TcpNetClientTransport(string address, int port) : TcpClient(address, port), INetClientTransport
 {
+    private IPacketMiddleware? _middleware;
     private ConnectionState _connectionState = ConnectionState.Disconnected;
     
     public event Action<ConnectionStateArgs>? ConnectionStateChanged;
     public event Action<Packet>? PacketReceived;
 
 
-#region Public methods
-
-    public void DisconnectAndStop()
+    void INetClientTransport.Connect()
     {
-        Disconnect();
-        while (IsConnected)
-            Thread.Yield();
+        base.Connect();
     }
 
-#endregion
+
+    void INetClientTransport.Reconnect()
+    {
+        base.Reconnect();
+    }
+
+
+    void INetClientTransport.Disconnect()
+    {
+        base.Disconnect();
+    }
+
+
+    void INetClientTransport.SendAsync(ReadOnlyMemory<byte> buffer)
+    {
+        _middleware?.HandleOutgoingPacket(ref buffer);
+        
+        base.SendAsync(buffer.Span);
+    }
+
+
+    void INetClientTransport.IterateIncomingPackets()
+    {
+        ReceiveAsync();
+    }
+
+
+    void INetClientTransport.SetPacketMiddleware(IPacketMiddleware? middleware)
+    {
+        _middleware = middleware;
+    }
 
 
 #region Lifetime
@@ -61,24 +88,20 @@ public class CovTcpClient(string address, int port) : TcpClient(address, port)
 #endregion
 
 
-#region Data receive
-
     protected override void OnReceived(byte[] buffer, long offset, long size)
     {
-        Packet packet = new(buffer, (int)offset, (int)size);
+        ReadOnlyMemory<byte> p = new(buffer, (int)offset, (int)size);
+        
+        _middleware?.HandleIncomingPacket(ref p);
+        
+        Packet packet = new(p);
         
         PacketReceived?.Invoke(packet);
     }
 
-#endregion
-
-
-#region Error handling
 
     protected override void OnError(SocketError error)
     {
-        Logger.LogError($"Chat TCP client caught an error with code {error}");
+        Logger.LogError($"TCP transport caught an error with code {error}");
     }
-
-#endregion
 }

@@ -8,11 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Client.Networking\Client.Networking.csproj" />
       <ProjectReference Include="..\Shared\Shared.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <PackageReference Include="NetCoreServer" Version="8.0.7" />
     </ItemGroup>
 
     <!-- Debug configuration -->
