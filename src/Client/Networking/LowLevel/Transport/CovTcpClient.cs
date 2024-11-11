@@ -5,7 +5,7 @@ using TcpClient = NetCoreServer.TcpClient;
 
 namespace Client.Networking.LowLevel.Transport;
 
-public class TcpGameClient(string address, int port) : TcpClient(address, port)
+public class CovTcpClient(string address, int port) : TcpClient(address, port)
 {
     private ConnectionState _connectionState = ConnectionState.Disconnected;
     

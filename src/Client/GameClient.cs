@@ -10,7 +10,7 @@ namespace Client;
 
 internal class GameClient
 {
-    private readonly TcpGameClient _tcpClient;
+    private readonly CovTcpClient _covTcpClient;
     private readonly Authenticator _authenticator;
     private readonly Dictionary<Type, MessageHandler> _messageHandlers;
     
@@ -40,9 +40,9 @@ internal class GameClient
     public GameClient(string address, int port)
     {
         _messageHandlers = new Dictionary<Type, MessageHandler>();
-        _tcpClient = new TcpGameClient(address, port);
-        _tcpClient.ConnectionStateChanged += OnConnectionStateChanged;
-        _tcpClient.PacketReceived += OnPacketReceived;
+        _covTcpClient = new CovTcpClient(address, port);
+        _covTcpClient.ConnectionStateChanged += OnConnectionStateChanged;
+        _covTcpClient.PacketReceived += OnPacketReceived;
         
         _authenticator = new Authenticator(this);
         
@@ -60,7 +60,7 @@ internal class GameClient
 
         while (IsConnected)
         {
-            _tcpClient.ReceiveAsync();  // Iterate incoming
+            _covTcpClient.ReceiveAsync();  // Iterate incoming
             
             if (!IsAuthenticated)
                 continue;
@@ -81,15 +81,15 @@ internal class GameClient
 
     public void Connect()
     {
-        Logger.LogInfo($"Connecting to {_tcpClient.Address}:{_tcpClient.Port}...");
-        _tcpClient.Connect();
+        Logger.LogInfo($"Connecting to {_covTcpClient.Address}:{_covTcpClient.Port}...");
+        _covTcpClient.Connect();
     }
 
 
     public void Reconnect()
     {
         Logger.LogInfo("Reconnecting...");
-        _tcpClient.Reconnect();
+        _covTcpClient.Reconnect();
     }
 
 
@@ -99,7 +99,7 @@ internal class GameClient
     public void Disconnect()
     {
         Logger.LogInfo("Disconnecting...");
-        _tcpClient.DisconnectAndStop();
+        _covTcpClient.DisconnectAndStop();
     }
     
 
@@ -162,7 +162,7 @@ internal class GameClient
         ReadOnlySpan<byte> span = new(bytes, 0, bytes.Length);
 
         // Send the packet.
-        _tcpClient.SendAsync(span);
+        _covTcpClient.SendAsync(span);
     }
     
     
