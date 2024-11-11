@@ -1,5 +1,6 @@
 ﻿using Client.Authentication;
 using Client.Networking;
+using Client.Networking.LowLevel.Transport;
 using Shared;
 using Shared.Networking;
 using Shared.Networking.Messages;

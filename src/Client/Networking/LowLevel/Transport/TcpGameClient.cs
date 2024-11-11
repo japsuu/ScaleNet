@@ -3,7 +3,7 @@ using Shared.Networking;
 using Shared.Utils;
 using TcpClient = NetCoreServer.TcpClient;
 
-namespace Client.Networking;
+namespace Client.Networking.LowLevel.Transport;
 
 public class TcpGameClient(string address, int port) : TcpClient(address, port)
 {

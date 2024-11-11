@@ -16,7 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Networking\Transport\" />
+      <Folder Include="Networking\HighLevel\" />
     </ItemGroup>
 
     <!-- Debug configuration -->
