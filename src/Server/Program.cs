@@ -20,6 +20,7 @@ internal static class Program
         // Start the server
         GameServer server = new GameServer(IPAddress.Any, port);
         server.Start();
+        Console.WriteLine("startup");
 
         while (true)
         {
