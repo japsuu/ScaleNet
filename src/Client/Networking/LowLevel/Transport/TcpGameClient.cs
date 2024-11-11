@@ -7,9 +7,7 @@ namespace Client.Networking.LowLevel.Transport;
 
 public class TcpGameClient(string address, int port) : TcpClient(address, port)
 {
-    private const int CONNECTION_RETRY_TIMEOUT_MS = 1000;
-    
-    private bool _stop;
+    private ConnectionState _connectionState = ConnectionState.Disconnected;
     
     public event Action<ConnectionStateArgs>? ConnectionStateChanged;
     public event Action<Packet>? PacketReceived;
@@ -19,7 +17,6 @@ public class TcpGameClient(string address, int port) : TcpClient(address, port)
 
     public void DisconnectAndStop()
     {
-        _stop = true;
         Disconnect();
         while (IsConnected)
             Thread.Yield();
@@ -28,40 +25,37 @@ public class TcpGameClient(string address, int port) : TcpClient(address, port)
 #endregion
 
 
-#region Connect
+#region Lifetime
 
     protected override void OnConnecting()
     {
-        ConnectionStateChanged?.Invoke(new ConnectionStateArgs(ConnectionState.Connecting));
+        ConnectionState prevState = _connectionState;
+        _connectionState = ConnectionState.Connecting;
+        ConnectionStateChanged?.Invoke(new ConnectionStateArgs(_connectionState, prevState));
     }
 
 
     protected override void OnConnected()
     {
-        ConnectionStateChanged?.Invoke(new ConnectionStateArgs(ConnectionState.Connected));
+        ConnectionState prevState = _connectionState;
+        _connectionState = ConnectionState.Connected;
+        ConnectionStateChanged?.Invoke(new ConnectionStateArgs(_connectionState, prevState));
     }
 
-#endregion
-
-
-#region Disconnect
-
+    
     protected override void OnDisconnecting()
     {
-        ConnectionStateChanged?.Invoke(new ConnectionStateArgs(ConnectionState.Disconnecting));
+        ConnectionState prevState = _connectionState;
+        _connectionState = ConnectionState.Disconnecting;
+        ConnectionStateChanged?.Invoke(new ConnectionStateArgs(_connectionState, prevState));
     }
 
 
     protected override void OnDisconnected()
     {
-        ConnectionStateChanged?.Invoke(new ConnectionStateArgs(ConnectionState.Disconnected));
-
-        // Wait for a while...
-        Thread.Sleep(CONNECTION_RETRY_TIMEOUT_MS);
-
-        // Try to connect again
-        if (!_stop)
-            Connect();
+        ConnectionState prevState = _connectionState;
+        _connectionState = ConnectionState.Disconnected;
+        ConnectionStateChanged?.Invoke(new ConnectionStateArgs(_connectionState, prevState));
     }
 
 #endregion

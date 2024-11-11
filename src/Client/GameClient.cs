@@ -172,7 +172,7 @@ internal class GameClient
     /// <param name="args">The new connection state.</param>
     private void OnConnectionStateChanged(ConnectionStateArgs args)
     {
-        ConnectionState state = args.ConnectionState;
+        ConnectionState state = args.NewConnectionState;
         IsConnected = state == ConnectionState.Connected;
         IsAuthenticated = false;
 

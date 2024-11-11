@@ -1,9 +1,7 @@
 namespace Client.Networking;
 
-public readonly struct ConnectionStateArgs(ConnectionState connectionState)
+public readonly struct ConnectionStateArgs(ConnectionState newConnectionState, ConnectionState oldConnectionState)
 {
-    /// <summary>
-    /// New connection state.
-    /// </summary>
-    public readonly ConnectionState ConnectionState = connectionState;
+    public readonly ConnectionState NewConnectionState = newConnectionState;
+    public readonly ConnectionState OldConnectionState = oldConnectionState;
 }
