@@ -1,4 +1,5 @@
 using Server.Networking;
+using Shared;
 using Shared.Networking;
 using Shared.Networking.Messages;
 
@@ -44,6 +45,12 @@ internal class Authenticator
         if (session.IsAuthenticated)
         {
             session.Kick(DisconnectReason.ExploitAttempt);
+            return;
+        }
+
+        if (netMessage.Version != SharedConstants.GAME_VERSION)
+        {
+            session.Kick(DisconnectReason.OutdatedVersion);
             return;
         }
 

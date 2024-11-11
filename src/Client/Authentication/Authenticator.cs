@@ -46,7 +46,7 @@ internal class Authenticator
             throw new InvalidOperationException("Password is too long.");
         
         // Respond to the server with the password.
-        AuthResponseMessage response = new(username, password);
+        AuthResponseMessage response = new(username, password, SharedConstants.GAME_VERSION);
         _client.SendMessageToServer(response);
     }
 }

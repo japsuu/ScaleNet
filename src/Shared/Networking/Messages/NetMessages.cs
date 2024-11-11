@@ -30,11 +30,10 @@ public static class NetMessages
 /// </remarks>
 [Union(0, typeof(AuthRequestMessage))]
 [Union(1, typeof(AuthResponseMessage))]
-[Union(2, typeof(DisconnectMessage))]
-[Union(3, typeof(SessionInitiateMessage))]
-[Union(4, typeof(WelcomeMessage))]
-[Union(5, typeof(ChatMessage))]
-[Union(6, typeof(ChatMessageNotification))]
+[Union(2, typeof(WelcomeMessage))]
+[Union(3, typeof(DisconnectMessage))]
+[Union(4, typeof(ChatMessage))]
+[Union(5, typeof(ChatMessageNotification))]
 public interface INetMessage;
 
 /// <summary>
@@ -59,12 +58,14 @@ public readonly struct AuthRequestMessage(AuthenticationMethod authenticationMet
 /// Client -&gt; Server
 /// </remarks>
 [MessagePackObject]
-public readonly struct AuthResponseMessage(string username, string password) : INetMessage
+public readonly struct AuthResponseMessage(string username, string password, ushort version) : INetMessage
 {
     [Key(0)]
     public readonly string Username = username;
     [Key(1)]
     public readonly string Password = password;
+    [Key(2)]
+    public readonly ushort Version = version;
 }
 
 /// <summary>
@@ -80,23 +81,6 @@ public readonly struct DisconnectMessage(DisconnectReason reason) : INetMessage
 {
     [Key(0)]
     public readonly DisconnectReason Reason = reason;
-}
-
-/// <summary>
-/// Sent from the client to the server,
-/// when initiating a connection.<br/>
-/// Contains the client's credentials.<br/>
-/// If the connection is accepted, server responds with <see cref="WelcomeMessage"/>.
-/// </summary>
-///
-/// <remarks>
-/// Client -&gt; Server
-/// </remarks>
-[MessagePackObject]
-public readonly struct SessionInitiateMessage(ushort version) : INetMessage
-{
-    [Key(0)]
-    public readonly ushort Version = version;
 }
 
 /// <summary>
