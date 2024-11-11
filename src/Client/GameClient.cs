@@ -155,7 +155,7 @@ internal class GameClient
         if (bytes.Length > SharedConstants.MAX_PACKET_SIZE_BYTES)
         {
             Logger.LogError($"Message {message} exceeds maximum packet size of {SharedConstants.MAX_PACKET_SIZE_BYTES} bytes. Skipping.");
-            //return;
+            return;
         }
         
         ReadOnlySpan<byte> span = new(bytes, 0, bytes.Length);
