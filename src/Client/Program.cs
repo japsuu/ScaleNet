@@ -1,5 +1,4 @@
 ﻿using Shared;
-using Shared.Networking.Messages;
 using Shared.Utils;
 
 namespace Client;
@@ -25,41 +24,10 @@ internal static class Program
             port = DEFAULT_PORT;
         
         GameClient client = new(address, port);
-        client.Connect();
-
-        Logger.LogInfo("Press Enter to stop the client or '!' to reconnect the client...");
-
-        while (true)
-        {
-            if (!client.IsAuthenticated)
-                continue;
-            
-            string? line = Console.ReadLine();
-            if (string.IsNullOrEmpty(line))
-                break;
-
-            if (line == "!")
-            {
-                client.Reconnect();
-                continue;
-            }
-            
-            ClearPreviousConsoleLine();
-
-            client.SendMessageToServer(new ChatMessage(line));
-        }
+        client.Run();
 
         client.Disconnect();
         Logger.LogError("Client disconnected. Press any key to exit.");
         Console.ReadKey();
-    }
-    
-    private static void ClearPreviousConsoleLine()
-    {
-        int currentLineCursor = Console.CursorTop - 1;
-        Console.SetCursorPosition(0, Console.CursorTop - 1);
-        for (int i = 0; i < Console.WindowWidth; i++)
-            Console.Write(" ");
-        Console.SetCursorPosition(0, currentLineCursor);
     }
 }

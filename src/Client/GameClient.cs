@@ -51,24 +51,44 @@ internal class GameClient
     }
     
     
+    public void Run()
+    {
+        Connect();
+
+        Logger.LogInfo("'!' to exit");
+
+        while (IsConnected)
+        {
+            _tcpClient.ReceiveAsync();  // Iterate incoming
+            
+            if (!IsAuthenticated)
+                continue;
+            
+            string? line = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
+            
+            if (line == "!")
+                break;
+            
+            ClearPreviousConsoleLine();
+
+            SendMessageToServer(new ChatMessage(line));
+        }
+    }
+
+
     public void Connect()
     {
-        Logger.LogInfo($"Client connecting to {_tcpClient.Address}:{_tcpClient.Port}");
-        
-        if (_tcpClient.ConnectAsync())
-            Logger.LogInfo("Done!");
-        else
-        {
-            Logger.LogError("Connection failed!");
-        }
+        Logger.LogInfo($"Connecting to {_tcpClient.Address}:{_tcpClient.Port}...");
+        _tcpClient.Connect();
     }
 
 
     public void Reconnect()
     {
-        Logger.LogInfo("Client reconnecting...");
-        _tcpClient.ReconnectAsync();
-        Logger.LogInfo("Done!");
+        Logger.LogInfo("Reconnecting...");
+        _tcpClient.Reconnect();
     }
 
 
@@ -77,6 +97,7 @@ internal class GameClient
     /// </summary>
     public void Disconnect()
     {
+        Logger.LogInfo("Disconnecting...");
         _tcpClient.DisconnectAndStop();
     }
     
@@ -152,8 +173,9 @@ internal class GameClient
     {
         ConnectionState state = args.ConnectionState;
         IsConnected = state == ConnectionState.Connected;
+        IsAuthenticated = false;
 
-        Logger.LogInfo($"Local client is {state.ToString().ToLower()}");
+        Logger.LogInfo($"Local client is {state.ToString().ToLower()}.");
 
         ConnectionStateChanged?.Invoke(args);
     }
@@ -203,5 +225,14 @@ internal class GameClient
         
         // Disconnect the local client.
         Disconnect();
+    }
+    
+    private static void ClearPreviousConsoleLine()
+    {
+        int currentLineCursor = Console.CursorTop - 1;
+        Console.SetCursorPosition(0, Console.CursorTop - 1);
+        for (int i = 0; i < Console.WindowWidth; i++)
+            Console.Write(" ");
+        Console.SetCursorPosition(0, currentLineCursor);
     }
 }

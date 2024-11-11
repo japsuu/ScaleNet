@@ -159,8 +159,10 @@ internal class GameServer
 
         foreach (PlayerSession c in _sessionManager.Sessions)
         {
-            if (c.IsAuthenticated)
-                SendMessageToClient(c, message, requireAuthenticated);
+            if (requireAuthenticated && !c.IsAuthenticated)
+                continue;
+            
+            SendMessageToClient(c, message, requireAuthenticated);
         }
     }
 
@@ -180,6 +182,10 @@ internal class GameServer
         {
             if (c == except)
                 continue;
+            
+            if (requireAuthenticated && !c.IsAuthenticated)
+                continue;
+            
             SendMessageToClient(c, message, requireAuthenticated);
         }
     }
@@ -200,6 +206,10 @@ internal class GameServer
         {
             if (except.Contains(c))
                 continue;
+            
+            if (requireAuthenticated && !c.IsAuthenticated)
+                continue;
+
             SendMessageToClient(c, message, requireAuthenticated);
         }
     }
@@ -282,7 +292,6 @@ internal class GameServer
     private void OnClientStateChanged(ClientStateArgs clientStateArgs)
     {
         ClientConnection connection = clientStateArgs.Connection;
-        Guid connId = connection.Id;
         PlayerSession? session;
         
         Logger.LogDebug($"Client {connection.Id} is {clientStateArgs.State.ToString().ToLower()}");
@@ -303,7 +312,7 @@ internal class GameServer
             }
             case ClientState.Connected:
             {
-                Debug.Assert(_sessionManager.HasSession(connId), "Client connected but session was not created.");
+                Debug.Assert(_sessionManager.HasSession(connection.Id), "Client connected but session was not created.");
                 break;
             }
             case ClientState.Disconnecting:
@@ -311,11 +320,13 @@ internal class GameServer
                 _sessionManager.EndSession(connection.Id, out session);
                 
                 Logger.LogInfo($"Player with session Id {session!.Id} disconnecting!");
+        
+                SendMessageToAllClientsExcept(new ChatMessageNotification(session.PlayerData!.Username, "Left the chat."), session);
                 break;
             }
             case ClientState.Disconnected:
             {
-                Debug.Assert(!_sessionManager.HasSession(connId), "Client disconnected but session was not removed.");
+                Debug.Assert(!_sessionManager.HasSession(connection.Id), "Client disconnected but session was not removed.");
                 break;
             }
         }
@@ -331,7 +342,7 @@ internal class GameServer
     /// </summary>
     /// <param name="session">The connection that was authenticated.</param>
     /// <param name="success">True if authentication passed, false if failed.</param>
-    private static void OnAuthenticatorResultConcluded(PlayerSession session, bool success)
+    private void OnAuthenticatorResultConcluded(PlayerSession session, bool success)
     {
         if (success)
             OnClientAuthenticated(session);
@@ -343,13 +354,22 @@ internal class GameServer
     /// <summary>
     /// Called when a remote client authenticates with the server.
     /// </summary>
-    private static void OnClientAuthenticated(PlayerSession session)
+    private void OnClientAuthenticated(PlayerSession session)
     {
+        Logger.LogInfo($"Client {session.Id} authenticated!");
+        
         // Send the client a welcome message.
         session.QueueSend(new WelcomeMessage(session.Id.Value));
         
         // Load user data.
-        session.LoadPlayerData();
+        if (!session.LoadPlayerData())
+        {
+            Logger.LogWarning($"Client {session.Id} player data could not be loaded.");
+            session.Kick(DisconnectReason.CorruptPlayerData);
+            return;
+        }
+        
+        SendMessageToAllClientsExcept(new ChatMessageNotification(session.PlayerData!.Username, "Joined the chat."), session);
     }
 
 #endregion

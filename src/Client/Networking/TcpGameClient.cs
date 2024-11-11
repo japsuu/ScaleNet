@@ -20,7 +20,7 @@ public class TcpGameClient(string address, int port) : TcpClient(address, port)
     public void DisconnectAndStop()
     {
         _stop = true;
-        DisconnectAsync();
+        Disconnect();
         while (IsConnected)
             Thread.Yield();
     }
@@ -61,7 +61,7 @@ public class TcpGameClient(string address, int port) : TcpClient(address, port)
 
         // Try to connect again
         if (!_stop)
-            ConnectAsync();
+            Connect();
     }
 
 #endregion

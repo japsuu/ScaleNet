@@ -56,19 +56,20 @@ internal class PlayerSession
     }
 
 
-    public void LoadPlayerData()
+    public bool LoadPlayerData()
     {
         Debug.Assert(!IsDisconnecting, "Cannot load player data for a disconnecting client.");
 
         if (AuthData == null)
         {
             Logger.LogError("Cannot load player data without authentication data.");
-            return;
+            return false;
         }
         
         //TODO: Load user data from the database based on the personal ID.
 
         PlayerData = new PlayerData(AuthData.PersonalId);
+        return true;
     }
 
 

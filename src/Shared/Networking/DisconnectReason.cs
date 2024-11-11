@@ -29,5 +29,6 @@ public enum DisconnectReason : byte
     
     ServerShutdown,
     OutdatedVersion,
-    OversizedPacket
+    OversizedPacket,
+    CorruptPlayerData
 }
