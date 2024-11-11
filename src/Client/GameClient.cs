@@ -190,7 +190,14 @@ internal class GameClient
         }
         
         // Create a message instance.
-        INetMessage msg = NetMessages.Deserialize(packet.Data);
+        INetMessage? msg = NetMessages.Deserialize(packet.Data);
+        
+        if (msg == null)
+        {
+            Logger.LogWarning("Could not deserialize message from packet. Ignoring.");
+            return;
+        }
+        
         Type messageId = msg.GetType();
         
         Logger.LogDebug($"Received message {msg} from server.");

@@ -12,11 +12,18 @@ public static class NetMessages
     }
 
 
-    public static INetMessage Deserialize(ReadOnlyMemory<byte> bin)
+    public static INetMessage? Deserialize(ReadOnlyMemory<byte> bin)
     {
-        INetMessage msg = MessagePackSerializer.Deserialize<INetMessage>(bin);
+        try
+        {
+            INetMessage msg = MessagePackSerializer.Deserialize<INetMessage>(bin);
 
-        return msg;
+            return msg;
+        }
+        catch
+        {
+            return null;
+        }
     }
 }
 

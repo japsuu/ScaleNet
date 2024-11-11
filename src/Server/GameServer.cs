@@ -246,7 +246,15 @@ internal class GameServer
             return;
         }
         
-        INetMessage msg = NetMessages.Deserialize(packet.Data);
+        INetMessage? msg = NetMessages.Deserialize(packet.Data);
+        
+        if (msg == null)
+        {
+            Logger.LogWarning($"Received a packet that could not be deserialized. Kicking client {session.Id} immediately.");
+            session.Kick(DisconnectReason.MalformedData);
+            return;
+        }
+        
         Type messageId = msg.GetType();
         
         Logger.LogDebug($"Received message {messageId} from client {session.Id}.");
