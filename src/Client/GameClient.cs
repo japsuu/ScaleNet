@@ -1,5 +1,6 @@
 ﻿using Client.Authentication;
 using Client.Networking;
+using Client.Networking.HighLevel;
 using Client.Networking.LowLevel.Transport;
 using Shared;
 using Shared.Networking;
@@ -12,7 +13,7 @@ internal class GameClient
 {
     private readonly CovTcpClient _covTcpClient;
     private readonly Authenticator _authenticator;
-    private readonly Dictionary<Type, MessageHandler> _messageHandlers;
+    private readonly MessageHandlerManager _messageHandlerManager;
     
     public SessionId SessionId { get; private set; }
     
@@ -39,7 +40,7 @@ internal class GameClient
 
     public GameClient(string address, int port)
     {
-        _messageHandlers = new Dictionary<Type, MessageHandler>();
+        _messageHandlerManager = new MessageHandlerManager();
         _covTcpClient = new CovTcpClient(address, port);
         _covTcpClient.ConnectionStateChanged += OnConnectionStateChanged;
         _covTcpClient.PacketReceived += OnPacketReceived;
@@ -108,18 +109,7 @@ internal class GameClient
     /// </summary>
     /// <param name="handler">Method to call.</param>
     /// <typeparam name="T"></typeparam>
-    public void RegisterMessageHandler<T>(Action<T> handler) where T : INetMessage
-    {
-        Type key = typeof(T);
-
-        if (!_messageHandlers.TryGetValue(key, out MessageHandler? handlerCollection))
-        {
-            handlerCollection = new MessageHandler<T>();
-            _messageHandlers.Add(key, handlerCollection);
-        }
-
-        handlerCollection.RegisterAction(handler);
-    }
+    public void RegisterMessageHandler<T>(Action<T> handler) where T : INetMessage => _messageHandlerManager.RegisterMessageHandler(handler);
 
 
     /// <summary>
@@ -127,13 +117,7 @@ internal class GameClient
     /// </summary>
     /// <param name="handler">The method to unregister.</param>
     /// <typeparam name="T">Type of message to unregister.</typeparam>
-    public void UnregisterMessageHandler<T>(Action<T> handler) where T : INetMessage
-    {
-        Type key = typeof(T);
-        
-        if (_messageHandlers.TryGetValue(key, out MessageHandler? handlerCollection))
-            handlerCollection.UnregisterAction(handler);
-    }
+    public void UnregisterMessageHandler<T>(Action<T> handler) where T : INetMessage => _messageHandlerManager.UnregisterMessageHandler(handler);
 
 
     /// <summary>
@@ -199,19 +183,10 @@ internal class GameClient
             return;
         }
         
-        Type messageId = msg.GetType();
-        
         Logger.LogDebug($"Received message {msg} from server.");
 
-        // Get handler.
-        if (!_messageHandlers.TryGetValue(messageId, out MessageHandler? packetHandler))
-        {
+        if (!_messageHandlerManager.TryHandleMessage(msg))
             Logger.LogWarning($"No handler is registered for {msg}. Ignoring.");
-            return;
-        }
-        
-        // Invoke handler with message.
-        packetHandler.Invoke(msg);
     }
 
 

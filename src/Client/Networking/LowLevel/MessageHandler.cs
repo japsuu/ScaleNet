@@ -1,8 +1,8 @@
 ﻿using Shared.Networking.Messages;
 
-namespace Client.Networking;
+namespace Client.Networking.LowLevel;
 
-public abstract class MessageHandler
+internal abstract class MessageHandler
 {
     public abstract void RegisterAction(object action);
     public abstract void UnregisterAction(object action);
@@ -10,9 +10,9 @@ public abstract class MessageHandler
 }
 
 /// <summary>
-/// Handles packets received on clients, from the server.
+/// Handles messages received from the server.
 /// </summary>
-public class MessageHandler<T> : MessageHandler where T : INetMessage
+internal class MessageHandler<T> : MessageHandler where T : INetMessage
 {
     private readonly List<Action<T>> _actions = [];
 
@@ -20,7 +20,7 @@ public class MessageHandler<T> : MessageHandler where T : INetMessage
     public override void RegisterAction(object action)
     {
         if (action is not Action<T> tAction)
-            throw new ArgumentException("Action is not of type Action<T>.");
+            throw new ArgumentException($"Action is not of expected type {nameof(Action<T>)}.");
         
         _actions.Add(tAction);
     }
@@ -29,7 +29,7 @@ public class MessageHandler<T> : MessageHandler where T : INetMessage
     public override void UnregisterAction(object action)
     {
         if (action is not Action<T> tAction)
-            throw new ArgumentException("Action is not of type Action<T>.");
+            throw new ArgumentException($"Action is not of expected type {nameof(Action<T>)}.");
         
         _actions.Remove(tAction);
     }
