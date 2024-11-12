@@ -7,12 +7,12 @@ namespace Client;
 
 internal class GameClient
 {
-    private readonly NetClientManager _netClient;
+    private readonly NetClient _netClient;
 
 
     public GameClient(string address, int port)
     {
-        _netClient = new NetClientManager(new TcpNetClientTransport(address, port));
+        _netClient = new NetClient(new TcpNetClientTransport(address, port));
         
         _netClient.RegisterMessageHandler<ChatMessageNotification>(msg => Logger.LogInfo($"[Chat] {msg.User}: {msg.Message}"));
     }

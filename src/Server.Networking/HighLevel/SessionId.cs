@@ -1,4 +1,4 @@
-﻿namespace Shared;
+﻿namespace Server.Networking.HighLevel;
 
 /// <summary>
 /// A unique identifier for a client session.

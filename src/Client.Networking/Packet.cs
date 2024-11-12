@@ -1,4 +1,4 @@
-﻿namespace Shared.Networking;
+﻿namespace Client.Networking;
 
 /// <summary>
 /// A raw packet of data.

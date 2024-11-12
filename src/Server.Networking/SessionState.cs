@@ -3,7 +3,7 @@ namespace Server.Networking;
 /// <summary>
 /// States a remove network connection can be in.
 /// </summary>
-public enum ClientState : byte
+public enum SessionState : byte
 {
     /// <summary>
     /// Connection is fully stopped.

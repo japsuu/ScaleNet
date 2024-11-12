@@ -1,12 +1,9 @@
-﻿using System.Collections.Concurrent;
-using System.Diagnostics;
-using Server.Networking.LowLevel;
-using Shared;
+﻿using System.Diagnostics;
 using Shared.Networking;
 using Shared.Networking.Messages;
 using Shared.Utils;
 
-namespace Server.Networking;
+namespace Server.Networking.HighLevel;
 
 public class PlayerData(string username)
 {
@@ -18,41 +15,24 @@ public class AuthenticationData(string personalId)
     public readonly string PersonalId = personalId;
 }
 
-internal class PlayerSession
+public class Client
 {
-    private readonly GameServer _server;
-    private readonly ClientConnection _connection;
-    private readonly ConcurrentQueue<Packet> _incomingPackets = new();
-    private readonly ConcurrentQueue<Packet> _outgoingPackets = new();
+    private readonly NetServer _server;
 
     public readonly SessionId Id;
     
     public bool IsDisconnecting { get; private set; }
-    
     public bool IsAuthenticated { get; private set; }
 
     public AuthenticationData? AuthData { get; private set; }
-    
     public PlayerData? PlayerData { get; private set; }
 
-    public bool RejectNewPackets
-    {
-        get => _connection.RejectNewPackets;
-        set => _connection.RejectNewPackets = value;
-    }
-    
-    public Guid ConnectionId => _connection.Id;
 
-
-    public PlayerSession(SessionId id, GameServer server, ClientConnection connection)
+    public Client(SessionId id, NetServer server)
     {
         Id = id;
         _server = server;
-        _connection = connection;
         
-        _connection.PacketReceived += OnPacketReceived;
-        
-        Logger.LogDebug($"Created session {Id} for client {ConnectionId}.");
     }
 
 
@@ -153,5 +133,15 @@ internal class PlayerSession
     }
 
 
-    private void OnPacketReceived(Packet p) => _incomingPackets.Enqueue(p);
+    private void OnPacketReceived(Packet p)
+    {
+        if (_incomingPackets.Count >= ServerConstants.MAX_PACKETS_PER_TICK)
+        {
+            Logger.LogWarning($"Client {Id} is sending too many packets.");
+            Kick(DisconnectReason.TooManyPackets);
+            return;
+        }
+        
+        _incomingPackets.Enqueue(p);
+    }
 }

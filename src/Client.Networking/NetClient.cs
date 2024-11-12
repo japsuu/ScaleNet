@@ -8,16 +8,16 @@ using Shared.Utils;
 
 namespace Client.Networking;
 
-public class NetClientManager
+public class NetClient
 {
     private readonly INetClientTransport _transport;
     private readonly Authenticator _authenticator;
     private readonly MessageHandlerManager _messageHandlerManager;
     
     /// <summary>
-    /// The current unique session ID.
+    /// The current unique client ID.
     /// </summary>
-    public SessionId SessionId { get; private set; }
+    public uint ClientId { get; private set; }
     
     /// <summary>
     /// True if the local client is connected to the server.
@@ -40,7 +40,7 @@ public class NetClientManager
     public event Action? Authenticated;
 
 
-    public NetClientManager(INetClientTransport transport)
+    public NetClient(INetClientTransport transport)
     {
         _messageHandlerManager = new MessageHandlerManager();
         _transport = transport;
@@ -169,7 +169,7 @@ public class NetClientManager
     {
         Logger.LogInfo("Received welcome message from server.");
         
-        SessionId = new SessionId(message.SessionId);
+        ClientId = message.ClientId;
 
         // Mark local connection as authenticated.
         IsAuthenticated = true;

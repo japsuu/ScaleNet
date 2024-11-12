@@ -1,23 +1,23 @@
-using Server.Networking;
+using Server.Networking.HighLevel;
 using Shared;
 using Shared.Networking;
 using Shared.Networking.Messages;
 
-namespace Server.Authentication;
+namespace Server.Networking.Authentication;
 
 internal class Authenticator
 {
-    private readonly GameServer _server;
+    private readonly NetServer _server;
     private readonly string _password;
     
     /// <summary>
     /// Called when authenticator has concluded a result for a connection. Boolean is true if authentication passed, false if failed.
     /// The Server listens to this event automatically.
     /// </summary>
-    public event Action<PlayerSession, bool>? AuthenticationResultConcluded;
+    public event Action<Client, bool>? AuthenticationResultConcluded;
 
 
-    public Authenticator(GameServer server, string password)
+    public Authenticator(NetServer server, string password)
     {
         _server = server;
         _password = password;
@@ -30,14 +30,14 @@ internal class Authenticator
     /// Called on the server immediately after a client connects. Can be used to send data to the client for authentication.
     /// </summary>
     /// <param name="session">Connection which is not yet authenticated.</param>
-    public void OnNewSession(PlayerSession session)
+    public void OnNewSession(Client session)
     {
         // Send the client a authentication request.
         _server.SendMessageToClient(session, new AuthRequestMessage(AuthenticationMethod.UsernamePassword), false);
     }
 
 
-    private void OnReceiveAuthResponsePacket(PlayerSession session, AuthResponseMessage netMessage)
+    private void OnReceiveAuthResponsePacket(Client session, AuthResponseMessage netMessage)
     {
         /* If a client is already authenticated, this could be an attack. Sessions
          * are removed when a client disconnects, so there is no reason they should

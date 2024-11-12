@@ -1,4 +1,4 @@
-﻿namespace Client.Networking.LowLevel.Transport;
+﻿namespace Shared.Networking;
 
 /// <summary>
 /// Represents a middleware that can pre-process incoming and outgoing packets.<br/>

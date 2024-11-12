@@ -93,17 +93,17 @@ public readonly struct DisconnectMessage(DisconnectReason reason) : INetMessage
 /// <summary>
 /// Sent from the server to the client,
 /// if the client is accepted as a valid connection.<br/>
-/// Contains the client's sessionId.
+/// Contains the client's unique clientId.
 /// </summary>
 ///
 /// <remarks>
 /// Server -&gt; Client
 /// </remarks>
 [MessagePackObject]
-public readonly struct WelcomeMessage(uint sessionId) : INetMessage
+public readonly struct WelcomeMessage(uint clientId) : INetMessage
 {
     [Key(0)]
-    public readonly uint SessionId = sessionId;
+    public readonly uint ClientId = clientId;
 }
 
 /// <summary>
