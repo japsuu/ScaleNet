@@ -155,7 +155,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
             // Get a pooled buffer, and add the 16-bit packet length prefix.
             int packetLength = buffer.Length + 2;
             byte[] data = ArrayPool<byte>.Shared.Rent(packetLength);
-            BinaryPrimitives.WriteUInt16BigEndian(data, (ushort)buffer.Length);
+            BinaryPrimitives.WriteUInt16LittleEndian(data, (ushort)buffer.Length);
             buffer.Span.CopyTo(data.AsSpan(2));
         
             session.SendAsync(data, 0, packetLength);

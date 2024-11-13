@@ -77,13 +77,6 @@ public class NetClient
         Logger.LogInfo("Disconnecting...");
         _transport.Disconnect();
     }
-
-
-    public void Update()
-    {
-        // Iterate incoming
-        _transport.IterateIncomingPackets();
-    }
     
 
     /// <summary>
@@ -124,15 +117,9 @@ public class NetClient
             Logger.LogError($"Message {message} exceeds maximum packet size of {SharedConstants.MAX_PACKET_SIZE_BYTES} bytes. Skipping.");
             return;
         }
-        
-        ReadOnlyMemory<byte> buffer = new(bytes, 0, bytes.Length);
-        Console.WriteLine("sending:");
-        Console.WriteLine(buffer.AsStringBits());
-        Console.WriteLine(MessagePack.MessagePackSerializer.ConvertToJson(buffer));
-        Console.WriteLine(buffer.Length);
 
         // Send the packet.
-        _transport.SendAsync(buffer);
+        _transport.SendAsync(bytes);
     }
     
     
@@ -160,6 +147,7 @@ public class NetClient
         if (msg == null)
         {
             Logger.LogWarning("Could not deserialize message from packet. Ignoring.");
+            throw new NotImplementedException();
             return;
         }
         

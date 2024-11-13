@@ -14,11 +14,6 @@ public interface INetClientTransport
     /// </summary>
     /// <param name="buffer">The buffer to send. Contents are copied internally.</param>
     public void SendAsync(ReadOnlyMemory<byte> buffer);
-
-    /// <summary>
-    /// Iterates the incoming packets.
-    /// </summary>
-    public void IterateIncomingPackets();
     
     /// <summary>
     /// Called after the local client connection state changes.

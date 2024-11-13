@@ -19,7 +19,13 @@ public class TcpNetClientTransport(string address, int port, IPacketMiddleware? 
 
     void INetClientTransport.Connect()
     {
-        base.Connect();
+        if (!base.Connect())
+        {
+            Logger.LogError("Failed to connect to the server.");
+            return;
+        }
+        
+        base.ReceiveAsync();
     }
 
 
@@ -42,19 +48,13 @@ public class TcpNetClientTransport(string address, int port, IPacketMiddleware? 
         // Get a pooled buffer, and add the 16-bit packet length prefix.
         int packetLength = buffer.Length + 2;
         byte[] data = ArrayPool<byte>.Shared.Rent(packetLength);
-        BinaryPrimitives.WriteUInt16BigEndian(data, (ushort)buffer.Length);
+        BinaryPrimitives.WriteUInt16LittleEndian(data, (ushort)buffer.Length);
         buffer.Span.CopyTo(data.AsSpan(2));
         
         base.SendAsync(data, 0, packetLength);
         
         // Return the buffer to the pool.
         ArrayPool<byte>.Shared.Return(data);
-    }
-
-
-    void INetClientTransport.IterateIncomingPackets()
-    {
-        ReceiveAsync();
     }
 
 
@@ -98,63 +98,87 @@ public class TcpNetClientTransport(string address, int port, IPacketMiddleware? 
     {
         // Append the received bytes to the buffer
         _receiveBuffer.Write(buffer, (int)offset, (int)size);
-        
+        _receiveBuffer.Position = 0;
+
         while (true)
         {
             // Check if we have at least 2 bytes for the length prefix
-            if (_receiveBuffer.Length < 2)
+            if (_receiveBuffer.Length - _receiveBuffer.Position < 2)
                 break;
 
-            // Set the position to the start to read the length prefix
-            _receiveBuffer.Position = 0;
+            // Read the length prefix
             byte[] lengthPrefix = new byte[2];
-            _receiveBuffer.Read(lengthPrefix, 0, 2);
+            int rCount = _receiveBuffer.Read(lengthPrefix, 0, 2);
+            
+            if (rCount != 2)
+            {
+                Logger.LogWarning("Failed to read the packet length prefix.");
+                break;
+            }
 
-            // Determine the length of the packet
-            ushort packetLength = BitConverter.ToUInt16(lengthPrefix, 0);
+            // Interpret the length using little-endian
+            ushort packetLength = BinaryPrimitives.ReadUInt16LittleEndian(lengthPrefix);
+            
+            if (packetLength <= 0)
+                Logger.LogWarning("Received a packet with a length of 0.");
 
             // Check if the entire packet is in the buffer
-            if (_receiveBuffer.Length < packetLength + 2)
+            if (_receiveBuffer.Length - _receiveBuffer.Position < packetLength)
             {
-                // Reset the position to the end for appending more data later
-                _receiveBuffer.Position = _receiveBuffer.Length;
+                // Not enough data, rewind to just after the last full read for appending more data later
+                _receiveBuffer.Position -= 2; // Rewind to the start of the length prefix
                 break;
             }
 
             // Extract the packet data (excluding the length prefix)
-            byte[] packetData = ArrayPool<byte>.Shared.Rent(packetLength);
-            _receiveBuffer.Read(packetData, 0, packetLength);
+            byte[] packetData = new byte[packetLength];
+            rCount = _receiveBuffer.Read(packetData, 0, packetLength);
+            
+            if (rCount != packetLength)
+            {
+                Logger.LogWarning("Failed to read the full packet data.");
+                break;
+            }
 
             // Create a packet and enqueue it
-            OnReceiveFullPacket(packetData);
-            
-            // Return the buffer to the pool
-            ArrayPool<byte>.Shared.Return(packetData);
+            OnReceiveFullPacket(packetData, packetLength);
 
-            // Create a new MemoryStream for leftover data
-            int leftoverData = (int)(_receiveBuffer.Length - _receiveBuffer.Position);
-            if (leftoverData > 0)
-            {
-                byte[] remainingBytes = ArrayPool<byte>.Shared.Rent(leftoverData);
-                
-                _receiveBuffer.Read(remainingBytes, 0, leftoverData);
-                _receiveBuffer.SetLength(0);
-                _receiveBuffer.Write(remainingBytes, 0, remainingBytes.Length);
-                
-                ArrayPool<byte>.Shared.Return(remainingBytes);
-            }
-            else
-            {
-                _receiveBuffer.SetLength(0); // Clear the buffer if no data is left
-            }
+            // Position is naturally incremented, no manual reset required here
         }
+
+        // Handle leftover data and re-adjust the buffer
+        int leftoverData = (int)(_receiveBuffer.Length - _receiveBuffer.Position);
+        if (leftoverData > 0)
+        {
+            byte[] remainingBytes = ArrayPool<byte>.Shared.Rent(leftoverData);
+
+            int rCount = _receiveBuffer.Read(remainingBytes, 0, leftoverData);
+            
+            if (rCount != leftoverData)
+            {
+                Logger.LogWarning("Failed to read the leftover data.");
+                ArrayPool<byte>.Shared.Return(remainingBytes);
+                return;
+            }
+            
+            _receiveBuffer.SetLength(0);
+            _receiveBuffer.Write(remainingBytes, 0, leftoverData);
+
+            ArrayPool<byte>.Shared.Return(remainingBytes);
+        }
+        else
+            _receiveBuffer.SetLength(0); // Clear the buffer if no data is left
     }
 
 
-    private void OnReceiveFullPacket(byte[] data)
+    private void OnReceiveFullPacket(byte[] data, int length)
     {
+        /*Console.WriteLine("receive:");
+        Console.WriteLine(data.AsStringBits());
+        Console.WriteLine(MessagePack.MessagePackSerializer.ConvertToJson(data));*/
+
         middleware?.HandleIncomingPacket(ref data);
-        Packet packet = new(data);
+        Packet packet = new(data, 0, length);
         PacketReceived?.Invoke(packet);
     }
 

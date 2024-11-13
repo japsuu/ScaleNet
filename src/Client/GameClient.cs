@@ -26,8 +26,6 @@ internal class GameClient
 
         while (_netClient.IsConnected)
         {
-            _netClient.Update();
-            
             if (!_netClient.IsAuthenticated)
                 continue;
             
@@ -47,7 +45,7 @@ internal class GameClient
 
             //_netClient.SendMessageToServer(new ChatMessage(line));
 
-            for (int i = 0; i < 20; i++)
+            for (int i = 0; i < 10000; i++)
             {
                 _netClient.SendMessageToServer(new ChatMessage($"{line} {i}"));
             }
