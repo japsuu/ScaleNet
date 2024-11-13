@@ -2,13 +2,12 @@
 using System.Net;
 using System.Net.Sockets;
 using NetCoreServer;
-using Server.Networking.HighLevel;
 using Shared;
 using Shared.Networking;
 using Shared.Networking.Messages;
 using Shared.Utils;
 
-namespace Server.Networking.LowLevel.Transport;
+namespace Server.Networking.LowLevel.Transport.Tcp;
 
 public class TcpServerTransport : TcpServer, IServerTransport
 {
@@ -42,8 +41,8 @@ public class TcpServerTransport : TcpServer, IServerTransport
     public bool RejectNewConnections { get; set; }
     public bool RejectNewMessages { get; set; }
     
-    public event Action<ServerStateArgs>? ServerStateChanged;
-    public event Action<SessionStateArgs>? SessionStateChanged;
+    public event Action<ServerStateChangeArgs>? ServerStateChanged;
+    public event Action<SessionStateChangeArgs>? SessionStateChanged;
     public event Action<SessionId, INetMessage>? HandleMessage;
 
 
@@ -53,7 +52,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
         Middleware = middleware;
 
         // Fill the available session IDs bag.
-        for (uint i = 1; i < uint.MaxValue; i++)
+        for (uint i = 1; i < maxConnections; i++)
             _availableSessionIds.Add(i);
     }
 
@@ -192,7 +191,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
     {
         SessionId id = ((TcpClientSession)session).SessionId;
         
-        SessionStateChanged?.Invoke(new SessionStateArgs(id, SessionState.Connecting));
+        SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.Connecting));
     }
     
 
@@ -200,7 +199,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
     {
         SessionId id = ((TcpClientSession)session).SessionId;
         
-        SessionStateChanged?.Invoke(new SessionStateArgs(id, SessionState.Connected));
+        SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.Connected));
         
         //TODO: Figure out an way to reject new connections earlier.
         if (RejectNewConnections || _sessions.Count >= MaxConnections)
@@ -212,7 +211,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
     {
         SessionId id = ((TcpClientSession)session).SessionId;
         
-        SessionStateChanged?.Invoke(new SessionStateArgs(id, SessionState.Disconnecting));
+        SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.Disconnecting));
     }
 
 
@@ -220,7 +219,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
     {
         SessionId id = ((TcpClientSession)session).SessionId;
         
-        SessionStateChanged?.Invoke(new SessionStateArgs(id, SessionState.Disconnected));
+        SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.Disconnected));
         
         OnEndSession(id);
     }
@@ -234,7 +233,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
     {
         ServerState prevState = _serverState;
         _serverState = ServerState.Starting;
-        ServerStateChanged?.Invoke(new ServerStateArgs(_serverState, prevState));
+        ServerStateChanged?.Invoke(new ServerStateChangeArgs(_serverState, prevState));
     }
 
 
@@ -242,7 +241,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
     {
         ServerState prevState = _serverState;
         _serverState = ServerState.Started;
-        ServerStateChanged?.Invoke(new ServerStateArgs(_serverState, prevState));
+        ServerStateChanged?.Invoke(new ServerStateChangeArgs(_serverState, prevState));
     }
 
     
@@ -250,7 +249,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
     {
         ServerState prevState = _serverState;
         _serverState = ServerState.Stopping;
-        ServerStateChanged?.Invoke(new ServerStateArgs(_serverState, prevState));
+        ServerStateChanged?.Invoke(new ServerStateChangeArgs(_serverState, prevState));
     }
 
 
@@ -258,7 +257,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
     {
         ServerState prevState = _serverState;
         _serverState = ServerState.Stopped;
-        ServerStateChanged?.Invoke(new ServerStateArgs(_serverState, prevState));
+        ServerStateChanged?.Invoke(new ServerStateChangeArgs(_serverState, prevState));
     }
 
 #endregion

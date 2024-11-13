@@ -1,4 +1,4 @@
-﻿namespace Server.Networking.HighLevel;
+﻿namespace Server.Networking;
 
 /// <summary>
 /// ID of a client session/connection.

@@ -1,7 +1,11 @@
 ﻿using System.Net;
 using Server.Networking;
+using Server.Networking.Authentication;
+using Server.Networking.Authentication.Resolvers;
 using Server.Networking.HighLevel;
 using Server.Networking.LowLevel.Transport;
+using Server.Networking.LowLevel.Transport.Tcp;
+using Shared;
 using Shared.Networking.Messages;
 using Shared.Utils;
 
@@ -14,9 +18,12 @@ internal class GameServer
 
     public GameServer(IPAddress address, int port)
     {
-        _netServer = new NetServer(new TcpServerTransport(address, port, ServerConstants.MAX_CONNECTIONS));
+        _netServer = new NetServer(
+            new TcpServerTransport(address, port, ServerConstants.MAX_CONNECTIONS),
+            new DefaultAuthenticationResolver(SharedConstants.DEVELOPMENT_AUTH_PASSWORD));
         
         _netServer.ClientStateChanged += OnClientStateChanged;
+        _netServer.ClientAuthenticated += client => _netServer.SendMessageToAllClientsExcept(new ChatMessageNotification(client.PlayerData!.Username, "Joined the chat."), client);;
         
         _netServer.RegisterMessageHandler<ChatMessage>(OnChatMessageReceived);
     }
@@ -39,9 +46,12 @@ internal class GameServer
     }
 
 
-    private void OnClientStateChanged(ClientStateArgs obj)
+    private void OnClientStateChanged(ClientStateChangeArgs args)
     {
-        Client client = obj.Client;
+        if (args.NewState != ConnectionState.Disconnected)
+            return;
+        
+        Client client = args.Client;
         
         // Only authenticated sessions have player data.
         if (client.IsAuthenticated)

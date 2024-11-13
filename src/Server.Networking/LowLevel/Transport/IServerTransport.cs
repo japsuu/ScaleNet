@@ -1,5 +1,4 @@
-﻿using Server.Networking.HighLevel;
-using Shared.Networking;
+﻿using Shared.Networking;
 using Shared.Networking.Messages;
 
 namespace Server.Networking.LowLevel.Transport;
@@ -11,12 +10,12 @@ public interface IServerTransport
     public bool RejectNewConnections { get; set; }
     public bool RejectNewMessages { get; set; }
 
-    public event Action<ServerStateArgs>? ServerStateChanged;
+    public event Action<ServerStateChangeArgs>? ServerStateChanged;
 
     /// <summary>
     /// Called when the connection state of a client changes.
     /// </summary>
-    public event Action<SessionStateArgs>? SessionStateChanged;
+    public event Action<SessionStateChangeArgs>? SessionStateChanged;
 
     /// <summary>
     /// Called to handle incoming messages.<br/>

@@ -21,12 +21,12 @@ internal class MessageHandlerManager
     /// <param name="requiresAuthentication">True if the client must be authenticated to send this message.</param>
     public void RegisterMessageHandler<T>(Action<Client, T> handler, bool requiresAuthentication = true) where T : INetMessage
     {
-        Type key = typeof(T);
+        Type msgType = typeof(T);
         
-        if (!_messageHandlers.TryGetValue(key, out MessageHandler? handlerCollection))
+        if (!_messageHandlers.TryGetValue(msgType, out MessageHandler? handlerCollection))
         {
             handlerCollection = new MessageHandler<T>(requiresAuthentication);
-            _messageHandlers.TryAdd(key, handlerCollection);
+            _messageHandlers.TryAdd(msgType, handlerCollection);
         }
 
         handlerCollection.RegisterAction(handler);
@@ -55,18 +55,18 @@ internal class MessageHandlerManager
     /// <returns>True if the message was handled, false otherwise.</returns>
     public void TryHandleMessage(Client client, INetMessage msg)
     {
-        Type messageId = msg.GetType();
+        Type msgType = msg.GetType();
         
         // Try to get a handler.
-        if (!_messageHandlers.TryGetValue(messageId, out MessageHandler? messageHandler))
+        if (!_messageHandlers.TryGetValue(msgType, out MessageHandler? messageHandler))
         {
-            Logger.LogWarning($"No handler is registered for {messageId}. Ignoring.");
+            Logger.LogWarning($"No handler is registered for {msgType}. Ignoring.");
             return;
         }
 
         if (messageHandler.RequiresAuthentication && !client.IsAuthenticated)
         {
-            Logger.LogWarning($"Client {client.SessionId} sent a message of type {messageId} without being authenticated. Kicking.");
+            Logger.LogWarning($"Session {client.SessionId} sent a message of type {msgType} without being authenticated. Kicking.");
             client.Kick(DisconnectReason.ExploitAttempt);
             return;
         }

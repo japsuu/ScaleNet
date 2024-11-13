@@ -1,8 +1,6 @@
-﻿using Server.Networking.HighLevel;
+﻿namespace Server.Networking.HighLevel;
 
-namespace Server.Networking;
-
-public readonly struct ClientStateArgs(Client client, SessionState state)
+public readonly struct ClientStateChangeArgs(Client client, ConnectionState newState)
 {
     /// <summary>
     /// The client that changed state.
@@ -12,5 +10,5 @@ public readonly struct ClientStateArgs(Client client, SessionState state)
     /// <summary>
     /// New client connection state.
     /// </summary>
-    public readonly SessionState State = state;
+    public readonly ConnectionState NewState = newState;
 }

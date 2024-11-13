@@ -1,11 +1,10 @@
 ﻿using System.Collections.Concurrent;
 using System.Net.Sockets;
 using NetCoreServer;
-using Server.Networking.HighLevel;
 using Shared.Networking;
 using Shared.Utils;
 
-namespace Server.Networking.LowLevel.Transport;
+namespace Server.Networking.LowLevel.Transport.Tcp;
 
 internal class TcpClientSession(SessionId id, TcpServerTransport transport) : TcpSession(transport)
 {

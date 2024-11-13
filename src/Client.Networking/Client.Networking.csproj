@@ -20,7 +20,7 @@
         <DefineConstants>TRACE</DefineConstants>
         <Optimize>false</Optimize>
         <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
-        <OutputPath>..\..\Build\bin\Debug\</OutputPath>
+        <OutputPath>..\..\Build\Debug\</OutputPath>
     </PropertyGroup>
 
     <!-- Release configuration -->
@@ -28,7 +28,7 @@
         <DefineConstants>TRACE</DefineConstants>
         <Optimize>true</Optimize>
         <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
-        <OutputPath>..\..\Build\bin\Release\</OutputPath>
+        <OutputPath>..\..\Build\Release\</OutputPath>
         <DebugType>none</DebugType>
     </PropertyGroup>
 

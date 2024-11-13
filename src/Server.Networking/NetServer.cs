@@ -1,5 +1,6 @@
-﻿using System.Collections.Concurrent;
+﻿using System.Diagnostics;
 using Server.Networking.Authentication;
+using Server.Networking.Authentication.Resolvers;
 using Server.Networking.HighLevel;
 using Server.Networking.LowLevel;
 using Server.Networking.LowLevel.Transport;
@@ -26,21 +27,26 @@ public class NetServer
     /// <summary>
     /// Called after the server state changes.
     /// </summary>
-    public event Action<ServerStateArgs>? ServerStateChanged;
+    public event Action<ServerStateChangeArgs>? ServerStateChanged;
     
     /// <summary>
     /// Called after a client's state changes.
     /// </summary>
-    public event Action<ClientStateArgs>? ClientStateChanged;
+    public event Action<ClientStateChangeArgs>? ClientStateChanged;
+    
+    /// <summary>
+    /// Called after a client has successfully authenticated.
+    /// </summary>
+    public event Action<Client>? ClientAuthenticated;
 
 
-    public NetServer(IServerTransport transport)
+    public NetServer(IServerTransport transport, IAuthenticationResolver authenticationResolver)
     {
         Transport = transport;
         _messageHandlerManager = new MessageHandlerManager();
         _clientManager = new ClientManager(this);
         
-        _authenticator = new Authenticator(this, new DefaultAuthenticationResolver(SharedConstants.DEVELOPMENT_AUTH_PASSWORD));
+        _authenticator = new Authenticator(this, authenticationResolver);
         _authenticator.ClientAuthSuccess += OnClientAuthenticated;
         
         Transport.ServerStateChanged += OnServerStateChanged;
@@ -195,13 +201,11 @@ public class NetServer
     {
         if (!_clientManager.TryGetClient(sessionId, out Client? client))
         {
-            Logger.LogWarning($"Received a message from an unknown client {sessionId}. Ignoring.");
+            Logger.LogWarning($"Received a message from an unknown session {sessionId}. Ignoring.");
             return;
         }
         
-        Type messageId = msg.GetType();
-        
-        Logger.LogDebug($"Received message {messageId} from client {client.SessionId}.");
+        Logger.LogDebug($"Received message {msg.GetType()} from client {client.SessionId}.");
         
         _messageHandlerManager.TryHandleMessage(client, msg);
     }
@@ -211,7 +215,7 @@ public class NetServer
 
 #region Server state
 
-    private void OnServerStateChanged(ServerStateArgs args)
+    private void OnServerStateChanged(ServerStateChangeArgs args)
     {
         ServerState state = args.NewState;
         IsStarted = state == ServerState.Started;
@@ -226,16 +230,16 @@ public class NetServer
 
 #region Client state
 
-    private void OnSessionStateChanged(SessionStateArgs sessionStateArgs)
+    private void OnSessionStateChanged(SessionStateChangeArgs sessionStateChangeArgs)
     {
-        SessionId sessionId = sessionStateArgs.SessionId;
+        SessionId sessionId = sessionStateChangeArgs.SessionId;
         Client? client;
         
-        Logger.LogInfo($"Session {sessionId} is {sessionStateArgs.State.ToString().ToLower()}");
+        Logger.LogInfo($"Session {sessionId} is {sessionStateChangeArgs.NewState.ToString().ToLower()}");
         
-        switch (sessionStateArgs.State)
+        switch (sessionStateChangeArgs.NewState)
         {
-            case SessionState.Connecting:
+            case ConnectionState.Connecting:
             {
                 if (!_clientManager.TryAddClient(sessionId, out client))
                 {
@@ -251,7 +255,7 @@ public class NetServer
                 
                 break;
             }
-            case SessionState.Connected:
+            case ConnectionState.Connected:
             {
                 if (!_clientManager.TryGetClient(sessionId, out client))
                 {
@@ -261,7 +265,7 @@ public class NetServer
                 
                 break;
             }
-            case SessionState.Disconnecting:
+            case ConnectionState.Disconnecting:
             {
                 if (!_clientManager.TryGetClient(sessionId, out client))
                 {
@@ -271,7 +275,7 @@ public class NetServer
                 
                 break;
             }
-            case SessionState.Disconnected:
+            case ConnectionState.Disconnected:
             {
                 if (!_clientManager.TryRemoveClient(sessionId, out client))
                 {
@@ -282,10 +286,10 @@ public class NetServer
                 break;
             }
             default:
-                throw new InvalidOperationException($"Unknown session state {sessionStateArgs.State}");
+                throw new InvalidOperationException($"Unknown session state {sessionStateChangeArgs.NewState}");
         }
                 
-        ClientStateChanged?.Invoke(new ClientStateArgs(client, sessionStateArgs.State));
+        ClientStateChanged?.Invoke(new ClientStateChangeArgs(client, sessionStateChangeArgs.NewState));
     }
 
 #endregion
@@ -296,22 +300,24 @@ public class NetServer
     /// <summary>
     /// Called when a remote client authenticates with the server.
     /// </summary>
-    private void OnClientAuthenticated(Client session)
+    private void OnClientAuthenticated(Client client)
     {
-        Logger.LogInfo($"Client {session.SessionId} authenticated!");
+        Debug.Assert(client.IsAuthenticated, "Client is not authenticated.");
         
-        // Send the client a welcome message.
-        session.QueueSend(new WelcomeMessage(session.SessionId.Value));
+        Logger.LogInfo($"Session {client.SessionId} authenticated!");
         
         // Load user data.
-        if (!session.LoadPlayerData())
+        if (!client.LoadPlayerData())
         {
-            Logger.LogWarning($"Client {session.SessionId} player data could not be loaded.");
-            session.Kick(DisconnectReason.CorruptPlayerData);
+            Logger.LogWarning($"Session {client.SessionId} player data could not be loaded.");
+            client.Kick(DisconnectReason.CorruptPlayerData);
             return;
         }
         
-        SendMessageToAllClientsExcept(new ChatMessageNotification(session.PlayerData!.Username, "Joined the chat."), session);
+        // Send the client a welcome message.
+        client.QueueSend(new WelcomeMessage(client.AuthData!.ClientId.Value));
+        
+        ClientAuthenticated?.Invoke(client);
     }
 
 #endregion

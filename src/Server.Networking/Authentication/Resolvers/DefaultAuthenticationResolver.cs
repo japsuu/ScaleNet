@@ -1,6 +1,7 @@
-﻿using Shared.Networking;
+﻿using Server.Networking.Database;
+using Shared.Networking;
 
-namespace Server.Networking.Authentication;
+namespace Server.Networking.Authentication.Resolvers;
 
 public class DefaultAuthenticationResolver(string password) : IAuthenticationResolver
 {

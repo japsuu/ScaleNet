@@ -2,9 +2,9 @@
 using System.Diagnostics.CodeAnalysis;
 using Shared.Networking;
 
-namespace Server.Networking;
+namespace Server.Networking.Database;
 
-public static class InMemoryMockDatabase
+internal static class InMemoryMockDatabase
 {
     private static readonly ConcurrentDictionary<ClientUid, string> Usernames = new();
     
