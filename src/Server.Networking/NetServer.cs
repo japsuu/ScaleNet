@@ -15,7 +15,6 @@ public class NetServer
     private readonly MessageHandlerManager _messageHandlerManager;
     private readonly Authenticator? _authenticator;
     private readonly ClientManager _clientManager;
-    private readonly ConcurrentDictionary<Type, MessageHandler> _messageHandlers;
     
     public readonly IServerTransport Transport;
     
@@ -38,8 +37,8 @@ public class NetServer
     public NetServer(IServerTransport transport)
     {
         Transport = transport;
+        _messageHandlerManager = new MessageHandlerManager();
         _clientManager = new ClientManager(this);
-        _messageHandlers = new ConcurrentDictionary<Type, MessageHandler>();
         
         _authenticator = new Authenticator(this, new DefaultAuthenticationResolver(SharedConstants.DEVELOPMENT_AUTH_PASSWORD));
         _authenticator.ClientAuthSuccess += OnClientAuthenticated;
@@ -203,23 +202,8 @@ public class NetServer
         Type messageId = msg.GetType();
         
         Logger.LogDebug($"Received message {messageId} from client {client.SessionId}.");
-
-        // Get handler.
-        if (!_messageHandlers.TryGetValue(messageId, out MessageHandler? messageHandler))
-        {
-            Logger.LogWarning($"No handler is registered for {messageId}. Ignoring.");
-            return;
-        }
-
-        if (messageHandler.RequiresAuthentication && !client.IsAuthenticated)
-        {
-            Logger.LogWarning($"Client {client.SessionId} sent a message of type {messageId} without being authenticated. Kicking.");
-            client.Kick(DisconnectReason.ExploitAttempt);
-            return;
-        }
         
-        // Invoke handler with message.
-        messageHandler.Invoke(client, msg);
+        _messageHandlerManager.TryHandleMessage(client, msg);
     }
 
 #endregion

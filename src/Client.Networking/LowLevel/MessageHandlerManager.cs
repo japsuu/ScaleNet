@@ -1,7 +1,7 @@
-﻿using Client.Networking.LowLevel;
-using Shared.Networking.Messages;
+﻿using Shared.Networking.Messages;
+using Shared.Utils;
 
-namespace Client.Networking.HighLevel;
+namespace Client.Networking.LowLevel;
 
 /// <summary>
 /// Maintains a collection of message handlers, tied to specific message types.
@@ -45,16 +45,18 @@ public class MessageHandlerManager
     /// </summary>
     /// <param name="msg">The message to handle.</param>
     /// <returns>True if the message was handled, false otherwise.</returns>
-    public bool TryHandleMessage(INetMessage msg)
+    public void TryHandleMessage(INetMessage msg)
     {
         Type messageId = msg.GetType();
         
         // Try to get a handler.
         if (!_messageHandlers.TryGetValue(messageId, out MessageHandler? packetHandler))
-            return false;
+        {
+            Logger.LogWarning($"No handler is registered for {msg}. Ignoring.");
+            return;
+        }
 
         // Invoke handler with message.
         packetHandler.Invoke(msg);
-        return true;
     }
 }

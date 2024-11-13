@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using Server.Networking.LowLevel.Transport;
 using Shared.Networking;
 using Shared.Networking.Messages;
 using Shared.Utils;
@@ -20,28 +19,19 @@ public class AuthenticationData(ClientUid clientUid)
     public readonly ClientUid ClientId = clientUid;
 }
 
-public class Client
+public class Client(SessionId sessionId, NetServer server)
 {
-    private readonly NetServer _server;
-
     /// <summary>
     /// ID of the session/connection.
     /// Changes when the client reconnects.
     /// </summary>
-    public readonly SessionId SessionId;
+    public readonly SessionId SessionId = sessionId;
     
     public bool IsAuthenticated { get; private set; }
     public bool IsDisconnecting { get; private set; }
 
     public AuthenticationData? AuthData { get; private set; }
     public PlayerData? PlayerData { get; private set; }
-
-
-    public Client(SessionId sessionId, NetServer server)
-    {
-        SessionId = sessionId;
-        _server = server;
-    }
 
 
     public void SetAuthenticated(ClientUid clientUid)
@@ -92,7 +82,7 @@ public class Client
 
         Logger.LogDebug($"Disconnecting client {SessionId} with reason {reason}.");
         
-        _server.Transport.DisconnectSession(SessionId, reason, iterateOutgoing);
+        server.Transport.DisconnectSession(SessionId, reason, iterateOutgoing);
         
         IsDisconnecting = true;
     }
@@ -104,6 +94,6 @@ public class Client
         
         Logger.LogDebug($"Queue message {message} to client.");
         
-        _server.Transport.QueueSendAsync(SessionId, message);
+        server.Transport.QueueSendAsync(SessionId, message);
     }
 }

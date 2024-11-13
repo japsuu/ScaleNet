@@ -1,5 +1,6 @@
 ﻿using Client.Networking.HighLevel;
 using Client.Networking.HighLevel.Authentication;
+using Client.Networking.LowLevel;
 using Client.Networking.LowLevel.Transport;
 using Shared;
 using Shared.Networking;
@@ -160,8 +161,7 @@ public class NetClient
         
         Logger.LogDebug($"Received message {msg} from server.");
 
-        if (!_messageHandlerManager.TryHandleMessage(msg))
-            Logger.LogWarning($"No handler is registered for {msg}. Ignoring.");
+        _messageHandlerManager.TryHandleMessage(msg);
     }
 
 

@@ -1,5 +1,7 @@
 ﻿using Server.Networking.HighLevel;
+using Shared.Networking;
 using Shared.Networking.Messages;
+using Shared.Utils;
 
 namespace Server.Networking.LowLevel;
 
@@ -51,16 +53,25 @@ internal class MessageHandlerManager
     /// <param name="client">The client that sent the message.</param>
     /// <param name="msg">The message to handle.</param>
     /// <returns>True if the message was handled, false otherwise.</returns>
-    public bool TryHandleMessage(Client client, INetMessage msg)
+    public void TryHandleMessage(Client client, INetMessage msg)
     {
         Type messageId = msg.GetType();
         
         // Try to get a handler.
-        if (!_messageHandlers.TryGetValue(messageId, out MessageHandler? packetHandler))
-            return false;
+        if (!_messageHandlers.TryGetValue(messageId, out MessageHandler? messageHandler))
+        {
+            Logger.LogWarning($"No handler is registered for {messageId}. Ignoring.");
+            return;
+        }
+
+        if (messageHandler.RequiresAuthentication && !client.IsAuthenticated)
+        {
+            Logger.LogWarning($"Client {client.SessionId} sent a message of type {messageId} without being authenticated. Kicking.");
+            client.Kick(DisconnectReason.ExploitAttempt);
+            return;
+        }
 
         // Invoke handler with message.
-        packetHandler.Invoke(client, msg);
-        return true;
+        messageHandler.Invoke(client, msg);
     }
 }
