@@ -8,49 +8,39 @@ namespace Client;
 internal class GameClient
 {
     private readonly NetClient _netClient;
+    
+    public bool IsConnected => _netClient.IsConnected;
+    public bool IsAuthenticated => _netClient.IsAuthenticated;
 
 
     public GameClient(string address, int port)
     {
         _netClient = new NetClient(new TcpNetClientTransport(address, port));
         
-        _netClient.RegisterMessageHandler<ChatMessageNotification>(msg => Logger.LogInfo($"[Chat] {msg.User}: {msg.Message}"));
+        _netClient.RegisterMessageHandler<ChatMessageNotification>(OnChatMessage);
     }
 
 
-    public void Run()
+    private void OnChatMessage(ChatMessageNotification msg)
+    {
+        //Logger.LogInfo($"[Chat] {msg.User}: {msg.Message}");
+    }
+
+
+    public void Connect()
     {
         _netClient.Connect();
-
-        Logger.LogInfo("'!' to exit");
-
-        while (_netClient.IsConnected)
-        {
-            if (!_netClient.IsAuthenticated)
-                continue;
-            
-            string? line = Console.ReadLine();
-            
-            // Since Console.ReadLine is blocking, we need to check if the client is still connected and authenticated
-            if (!_netClient.IsConnected || !_netClient.IsAuthenticated)
-                break;
-            
-            if (string.IsNullOrWhiteSpace(line))
-                continue;
-            
-            if (line == "!")
-                break;
-            
-            ConsoleUtils.ClearPreviousConsoleLine();
-
-            //_netClient.SendMessageToServer(new ChatMessage(line));
-
-            for (int i = 0; i < 10000; i++)
-            {
-                _netClient.SendMessageToServer(new ChatMessage($"{line} {i}"));
-            }
-        }
-        
+    }
+    
+    
+    public void SendTestMessage(int num)
+    {
+        _netClient.SendMessageToServer(new ChatMessage($"Test {num}"));
+    }
+    
+    
+    public void Disconnect()
+    {
         _netClient.Disconnect();
     }
 }

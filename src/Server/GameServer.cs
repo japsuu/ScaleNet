@@ -23,7 +23,7 @@ internal class GameServer
             new DefaultAuthenticationResolver(SharedConstants.DEVELOPMENT_AUTH_PASSWORD));
         
         _netServer.ClientStateChanged += OnClientStateChanged;
-        _netServer.ClientAuthenticated += client => _netServer.SendMessageToAllClientsExcept(new ChatMessageNotification(client.PlayerData!.Username, "Joined the chat."), client);;
+        //_netServer.ClientAuthenticated += client => _netServer.SendMessageToAllClientsExcept(new ChatMessageNotification(client.PlayerData!.Username, "Joined the chat."), client);;
         
         _netServer.RegisterMessageHandler<ChatMessage>(OnChatMessageReceived);
     }

@@ -14,11 +14,42 @@ internal static class Program
         Console.Title = "COV Client";
 
         (string address, int port) = GetAddressAndPort(args);
-
-        GameClient client = new(address, port);
         
-        // Start the blocking client loop
-        client.Run();
+        const int clientCount = 999;
+        List<GameClient> clients = [];
+        
+        Thread.Sleep(3000);
+        
+        // Create
+        for (int i = 0; i < clientCount; i++)
+        {
+            GameClient client = new(address, port);
+            clients.Add(client);
+        }
+        
+        // Connect
+        foreach (GameClient client in clients)
+            client.Connect();
+        
+        // Wait for all clients to connect and authenticate
+        for (int i = 0; i < clients.Count; i++)
+        {
+            GameClient c = clients[i];
+            while (!c.IsConnected || !c.IsAuthenticated)
+                Thread.SpinWait(0);
+            Console.WriteLine($"Client {i} connected and authenticated.");
+        }
+
+        // Send test messages
+        for (int i = 0; i < clientCount; i++)
+            clients[i].SendTestMessage(i);
+        
+        // Wait for 5 seconds
+        Thread.Sleep(5000);
+        
+        // Disconnect
+        foreach (GameClient client in clients)
+            client.Disconnect();
 
         Logger.LogInfo("Press any key to exit.");
         Console.ReadKey();

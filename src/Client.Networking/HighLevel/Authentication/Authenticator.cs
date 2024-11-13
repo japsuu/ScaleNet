@@ -27,7 +27,7 @@ internal class Authenticator
             return;
         }
         
-        Logger.LogInfo("Enter your username:");
+        /*Logger.LogInfo("Enter your username:");
         string? username = Console.ReadLine();
         
         if (string.IsNullOrEmpty(username))
@@ -43,7 +43,10 @@ internal class Authenticator
         if (username.Length > 24)
             throw new InvalidOperationException("Username is too long.");
         if (password.Length > 24)
-            throw new InvalidOperationException("Password is too long.");
+            throw new InvalidOperationException("Password is too long.");*/
+        
+        string username = $"User-{RandomUtils.RandomString(6)}";
+        string password = SharedConstants.DEVELOPMENT_AUTH_PASSWORD;
         
         // Respond to the server with the password.
         AuthResponseMessage response = new(username, password, SharedConstants.GAME_VERSION);
