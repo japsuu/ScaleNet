@@ -1,4 +1,6 @@
-﻿using System.Collections.Concurrent;
+﻿using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using NetCoreServer;
@@ -149,8 +151,17 @@ public class TcpServerTransport : TcpServer, IServerTransport
             ReadOnlyMemory<byte> buffer = packet.Data;
                 
             Middleware?.HandleOutgoingPacket(ref buffer);
-
-            session.SendAsync(buffer.Span);
+        
+            // Get a pooled buffer, and add the 16-bit packet length prefix.
+            int packetLength = buffer.Length + 2;
+            byte[] data = ArrayPool<byte>.Shared.Rent(packetLength);
+            BinaryPrimitives.WriteUInt16BigEndian(data, (ushort)buffer.Length);
+            buffer.Span.CopyTo(data.AsSpan(2));
+        
+            session.SendAsync(data, 0, packetLength);
+        
+            // Return the buffer to the pool.
+            ArrayPool<byte>.Shared.Return(data);
         }
     }
 
