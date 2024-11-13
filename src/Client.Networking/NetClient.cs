@@ -17,7 +17,7 @@ public class NetClient
     /// <summary>
     /// The current unique client ID.
     /// </summary>
-    public uint ClientId { get; private set; }
+    public ClientUid ClientUid { get; private set; }
     
     /// <summary>
     /// True if the local client is connected to the server.
@@ -169,7 +169,7 @@ public class NetClient
     {
         Logger.LogInfo("Received welcome message from server.");
         
-        ClientId = message.ClientId;
+        ClientUid = new ClientUid(message.ClientId);
 
         // Mark local connection as authenticated.
         IsAuthenticated = true;
