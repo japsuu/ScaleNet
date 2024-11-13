@@ -1,4 +1,5 @@
 ﻿using MessagePack;
+using Shared.Utils;
 
 namespace Shared.Networking.Messages;
 
@@ -6,7 +7,7 @@ public static class NetMessages
 {
     public static byte[] Serialize<T>(T msg) where T : INetMessage
     {
-        byte[] bin = MessagePackSerializer.Serialize(msg);
+        byte[] bin = MessagePackSerializer.Serialize<INetMessage>(msg);
         
         return bin;
     }
@@ -20,8 +21,9 @@ public static class NetMessages
 
             return msg;
         }
-        catch
+        catch (Exception e)
         {
+            Logger.LogError($"Failed to deserialize message: {bin.AsStringBits()}:\n{e}");
             return null;
         }
     }
