@@ -36,7 +36,9 @@ public class TcpNetClientTransport(string address, int port) : TcpClient(address
     {
         _middleware?.HandleOutgoingPacket(ref buffer);
         
-        base.SendAsync(buffer.Span);
+        bool success = base.SendAsync(buffer.Span);
+        
+        Logger.LogInfo($"TCP transport sent {buffer.Length} bytes: {success}");
     }
 
 

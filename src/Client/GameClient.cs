@@ -45,7 +45,12 @@ internal class GameClient
             
             ConsoleUtils.ClearPreviousConsoleLine();
 
-            _netClient.SendMessageToServer(new ChatMessage(line));
+            //_netClient.SendMessageToServer(new ChatMessage(line));
+
+            for (int i = 0; i < 20; i++)
+            {
+                _netClient.SendMessageToServer(new ChatMessage($"{line} {i}"));
+            }
         }
         
         _netClient.Disconnect();

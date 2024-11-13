@@ -25,6 +25,10 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport) : Tc
         }
         
         ReadOnlyMemory<byte> memory = new(buffer, (int)offset, (int)size);
+        Console.WriteLine("receive:");
+        Console.WriteLine(memory.AsStringBits());
+        Console.WriteLine(MessagePack.MessagePackSerializer.ConvertToJson(memory));
+        Console.WriteLine(memory.Length);
         
         transport.Middleware?.HandleIncomingPacket(ref memory);
         

@@ -126,6 +126,10 @@ public class NetClient
         }
         
         ReadOnlyMemory<byte> buffer = new(bytes, 0, bytes.Length);
+        Console.WriteLine("sending:");
+        Console.WriteLine(buffer.AsStringBits());
+        Console.WriteLine(MessagePack.MessagePackSerializer.ConvertToJson(buffer));
+        Console.WriteLine(buffer.Length);
 
         // Send the packet.
         _transport.SendAsync(buffer);
