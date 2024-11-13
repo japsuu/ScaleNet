@@ -1,4 +1,6 @@
+using System.Buffers.Binary;
 using System.Net.Sockets;
+using NetStack.Buffers;
 using Shared.Networking;
 using Shared.Utils;
 using TcpClient = NetCoreServer.TcpClient;
@@ -36,9 +38,16 @@ public class TcpNetClientTransport(string address, int port) : TcpClient(address
     {
         _middleware?.HandleOutgoingPacket(ref buffer);
         
-        bool success = base.SendAsync(buffer.Span);
+        // Get a pooled buffer, and add the 16-bit packet length prefix.
+        int packetLength = buffer.Length + 2;
+        byte[] data = ArrayPool<byte>.Shared.Rent(packetLength);
+        BinaryPrimitives.WriteUInt16BigEndian(data, (ushort)buffer.Length);
+        buffer.Span.CopyTo(data.AsSpan(2));
         
-        Logger.LogInfo($"TCP transport sent {buffer.Length} bytes: {success}");
+        base.SendAsync(data.AsSpan(0, packetLength));
+        
+        // Return the buffer to the pool.
+        ArrayPool<byte>.Shared.Return(data);
     }
 
 
