@@ -7,9 +7,8 @@ using TcpClient = NetCoreServer.TcpClient;
 
 namespace Client.Networking.LowLevel.Transport;
 
-public class TcpNetClientTransport(string address, int port) : TcpClient(address, port), INetClientTransport
+public class TcpNetClientTransport(string address, int port, IPacketMiddleware? middleware = null) : TcpClient(address, port), INetClientTransport
 {
-    private IPacketMiddleware? _middleware;
     private ConnectionState _connectionState = ConnectionState.Disconnected;
     
     public event Action<ConnectionStateArgs>? ConnectionStateChanged;
@@ -36,7 +35,7 @@ public class TcpNetClientTransport(string address, int port) : TcpClient(address
 
     void INetClientTransport.SendAsync(ReadOnlyMemory<byte> buffer)
     {
-        _middleware?.HandleOutgoingPacket(ref buffer);
+        middleware?.HandleOutgoingPacket(ref buffer);
         
         // Get a pooled buffer, and add the 16-bit packet length prefix.
         int packetLength = buffer.Length + 2;
@@ -54,12 +53,6 @@ public class TcpNetClientTransport(string address, int port) : TcpClient(address
     void INetClientTransport.IterateIncomingPackets()
     {
         ReceiveAsync();
-    }
-
-
-    void INetClientTransport.SetPacketMiddleware(IPacketMiddleware? middleware)
-    {
-        _middleware = middleware;
     }
 
 
@@ -103,7 +96,7 @@ public class TcpNetClientTransport(string address, int port) : TcpClient(address
     {
         ReadOnlyMemory<byte> p = new(buffer, (int)offset, (int)size);
         
-        _middleware?.HandleIncomingPacket(ref p);
+        middleware?.HandleIncomingPacket(ref p);
         
         Packet packet = new(p);
         

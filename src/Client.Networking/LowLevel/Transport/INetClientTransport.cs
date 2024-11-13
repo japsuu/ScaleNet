@@ -1,6 +1,4 @@
-﻿using Shared.Networking;
-
-namespace Client.Networking.LowLevel.Transport;
+﻿namespace Client.Networking.LowLevel.Transport;
 
 public interface INetClientTransport
 {
@@ -21,11 +19,6 @@ public interface INetClientTransport
     /// Iterates the incoming packets.
     /// </summary>
     public void IterateIncomingPackets();
-    
-    /// <summary>
-    /// Sets the middleware used for incoming and outgoing packets.
-    /// </summary>
-    public void SetPacketMiddleware(IPacketMiddleware? middleware);
     
     /// <summary>
     /// Called after the local client connection state changes.
