@@ -6,6 +6,6 @@
 /// </summary>
 public interface IPacketMiddleware
 {
-    public void HandleIncomingPacket(ref ReadOnlyMemory<byte> buffer);
+    public void HandleIncomingPacket(ref byte[] buffer);
     public void HandleOutgoingPacket(ref ReadOnlyMemory<byte> buffer);
 }
