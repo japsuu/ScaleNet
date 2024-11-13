@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Diagnostics;
 using Server.Networking.Authentication;
 using Server.Networking.HighLevel;
 using Server.Networking.LowLevel;
@@ -28,7 +27,12 @@ public class NetServer
     /// <summary>
     /// Called after the server state changes.
     /// </summary>
-    public event Action<ServerStateArgs>? StateChanged;
+    public event Action<ServerStateArgs>? ServerStateChanged;
+    
+    /// <summary>
+    /// Called after a client's state changes.
+    /// </summary>
+    public event Action<ClientStateArgs>? ClientStateChanged;
 
 
     public NetServer(IServerTransport transport)
@@ -37,12 +41,12 @@ public class NetServer
         _clientManager = new ClientManager(this);
         _messageHandlers = new ConcurrentDictionary<Type, MessageHandler>();
         
-        _authenticator = new Authenticator(this, SharedConstants.DEVELOPMENT_AUTH_PASSWORD);
-        _authenticator.AuthenticationResultConcluded += OnAuthenticatorResultConcluded;
+        _authenticator = new Authenticator(this, new DefaultAuthenticationResolver(SharedConstants.DEVELOPMENT_AUTH_PASSWORD));
+        _authenticator.ClientAuthSuccess += OnClientAuthenticated;
         
         Transport.ServerStateChanged += OnServerStateChanged;
         Transport.SessionStateChanged += OnSessionStateChanged;
-        Transport.HandlePacket += OnPacketReceived;
+        Transport.HandleMessage += OnMessageReceived;
     }
 
     
@@ -57,7 +61,7 @@ public class NetServer
         if (gracefully)
         {
             Transport.RejectNewConnections = true;
-            Transport.RejectNewPackets = true;
+            Transport.RejectNewMessages = true;
 
             foreach (Client session in _clientManager.Clients)
             {
@@ -66,6 +70,12 @@ public class NetServer
         }
         
         Transport.Stop();
+    }
+
+    public void Update()
+    {
+        Transport.HandleIncomingMessages();
+        Transport.HandleOutgoingMessages();
     }
     
 
@@ -98,7 +108,7 @@ public class NetServer
 
         if (requireAuthenticated && !client.IsAuthenticated)
         {
-            Logger.LogWarning($"Cannot send message {message} to client {client.Id} because they are not authenticated.");
+            Logger.LogWarning($"Cannot send message {message} to client {client.SessionId} because they are not authenticated.");
             return;
         }
 
@@ -109,7 +119,7 @@ public class NetServer
     /// <summary>
     /// Sends a message to all clients.
     /// </summary>
-    /// <param name="message">Packet data being sent.</param>
+    /// <param name="message">Message to send.</param>
     /// <param name="requireAuthenticated">True if the client must be authenticated to receive this message.</param>
     /// <typeparam name="T">The type of message to send.</typeparam>
     public void SendMessageToAllClients<T>(T message, bool requireAuthenticated = true) where T : INetMessage
@@ -180,67 +190,36 @@ public class NetServer
 #endregion
 
 
-#region Packet processing
-
-    public void Update()
-    {
-        //BUG: Iterate transport
-        Transport.IterateIncoming();
-        Transport.IterateOutgoing();
-        
-        //TODO: Parallelize
-        foreach (Client session in _clientManager.Clients)
-        {
-            session.IterateIncoming();
-            session.IterateOutgoing();
-        }
-    }
+#region Message processing
     
-    
-    private void OnPacketReceived(SessionId sessionId, Packet packet)
+    private void OnMessageReceived(SessionId sessionId, INetMessage msg)
     {
         if (!_clientManager.TryGetClient(sessionId, out Client? client))
         {
-            Logger.LogWarning($"Received a packet from an unknown client {sessionId}. Ignoring.");
-            return;
-        }
-        
-        if (packet.Data.Length > SharedConstants.MAX_PACKET_SIZE_BYTES)
-        {
-            Logger.LogWarning($"Received a packet that exceeds the maximum size. Kicking client {client.Id} immediately.");
-            client.Kick(DisconnectReason.OversizedPacket);
-            return;
-        }
-        
-        INetMessage? msg = NetMessages.Deserialize(packet.Data);
-        
-        if (msg == null)
-        {
-            Logger.LogWarning($"Received a packet that could not be deserialized. Kicking client {client.Id} immediately.");
-            client.Kick(DisconnectReason.MalformedData);
+            Logger.LogWarning($"Received a message from an unknown client {sessionId}. Ignoring.");
             return;
         }
         
         Type messageId = msg.GetType();
         
-        Logger.LogDebug($"Received message {messageId} from client {client.Id}.");
+        Logger.LogDebug($"Received message {messageId} from client {client.SessionId}.");
 
         // Get handler.
-        if (!_messageHandlers.TryGetValue(messageId, out MessageHandler? packetHandler))
+        if (!_messageHandlers.TryGetValue(messageId, out MessageHandler? messageHandler))
         {
             Logger.LogWarning($"No handler is registered for {messageId}. Ignoring.");
             return;
         }
 
-        if (packetHandler.RequiresAuthentication && !client.IsAuthenticated)
+        if (messageHandler.RequiresAuthentication && !client.IsAuthenticated)
         {
-            Logger.LogWarning($"Client {client.Id} sent a message of type {messageId} without being authenticated. Kicking.");
+            Logger.LogWarning($"Client {client.SessionId} sent a message of type {messageId} without being authenticated. Kicking.");
             client.Kick(DisconnectReason.ExploitAttempt);
             return;
         }
         
         // Invoke handler with message.
-        packetHandler.Invoke(client, msg);
+        messageHandler.Invoke(client, msg);
     }
 
 #endregion
@@ -255,7 +234,7 @@ public class NetServer
 
         Logger.LogInfo($"Server is {state.ToString().ToLower()}");
 
-        StateChanged?.Invoke(args);
+        ServerStateChanged?.Invoke(args);
     }
 
 #endregion
@@ -265,47 +244,64 @@ public class NetServer
 
     private void OnSessionStateChanged(SessionStateArgs sessionStateArgs)
     {
-        ClientConnection connection = sessionStateArgs.SessionId;
-        Client? session;
+        SessionId sessionId = sessionStateArgs.SessionId;
+        Client? client;
         
-        Logger.LogDebug($"Client {connection.Id} is {sessionStateArgs.State.ToString().ToLower()}");
+        Logger.LogInfo($"Session {sessionId} is {sessionStateArgs.State.ToString().ToLower()}");
         
         switch (sessionStateArgs.State)
         {
             case SessionState.Connecting:
             {
-                session = _clientManager.AddClient(connection);
+                if (!_clientManager.TryAddClient(sessionId, out client))
+                {
+                    Logger.LogWarning($"Client for session {sessionId} already exists. Kicking.");
+                    Transport.DisconnectSession(sessionId, DisconnectReason.DuplicateSession);
+                    return;
+                }
                 
-                Logger.LogInfo($"Player with session Id {session.Id} connecting!");
-
                 if (_authenticator != null)
-                    _authenticator.OnNewSession(session);
+                    _authenticator.OnNewClientConnected(client);
                 else
-                    OnClientAuthenticated(session);
+                    OnClientAuthenticated(client);
+                
                 break;
             }
             case SessionState.Connected:
             {
-                Debug.Assert(_clientManager.HasClient(connection.Id), "Client connected but session was not created.");
+                if (!_clientManager.TryGetClient(sessionId, out client))
+                {
+                    Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
+                    return;
+                }
+                
                 break;
             }
             case SessionState.Disconnecting:
             {
-                _clientManager.RemoveClient(connection.Id, out session);
+                if (!_clientManager.TryGetClient(sessionId, out client))
+                {
+                    Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
+                    return;
+                }
                 
-                Logger.LogInfo($"Player with session Id {session!.Id} disconnecting!");
-
-                // Only authenticated sessions have player data.
-                if (session.IsAuthenticated)
-                    SendMessageToAllClientsExcept(new ChatMessageNotification(session.PlayerData!.Username, "Left the chat."), session);
                 break;
             }
             case SessionState.Disconnected:
             {
-                Debug.Assert(!_clientManager.HasClient(connection.Id), "Client disconnected but session was not removed.");
+                if (!_clientManager.TryRemoveClient(sessionId, out client))
+                {
+                    Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
+                    return;
+                }
+                
                 break;
             }
+            default:
+                throw new InvalidOperationException($"Unknown session state {sessionStateArgs.State}");
         }
+                
+        ClientStateChanged?.Invoke(new ClientStateArgs(client, sessionStateArgs.State));
     }
 
 #endregion
@@ -314,33 +310,19 @@ public class NetServer
 #region Authentication
 
     /// <summary>
-    /// Called when the authenticator has concluded a result for a connection.
-    /// </summary>
-    /// <param name="session">The connection that was authenticated.</param>
-    /// <param name="success">True if authentication passed, false if failed.</param>
-    private void OnAuthenticatorResultConcluded(Client session, bool success)
-    {
-        if (success)
-            OnClientAuthenticated(session);
-        else
-            session.Kick(DisconnectReason.AuthenticationFailed);
-    }
-
-
-    /// <summary>
     /// Called when a remote client authenticates with the server.
     /// </summary>
     private void OnClientAuthenticated(Client session)
     {
-        Logger.LogInfo($"Client {session.Id} authenticated!");
+        Logger.LogInfo($"Client {session.SessionId} authenticated!");
         
         // Send the client a welcome message.
-        session.QueueSend(new WelcomeMessage(session.Id.Value));
+        session.QueueSend(new WelcomeMessage(session.SessionId.Value));
         
         // Load user data.
         if (!session.LoadPlayerData())
         {
-            Logger.LogWarning($"Client {session.Id} player data could not be loaded.");
+            Logger.LogWarning($"Client {session.SessionId} player data could not be loaded.");
             session.Kick(DisconnectReason.CorruptPlayerData);
             return;
         }

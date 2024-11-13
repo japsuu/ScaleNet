@@ -8,19 +8,24 @@ namespace Server.Networking.Authentication;
 internal class Authenticator
 {
     private readonly NetServer _server;
-    private readonly string _password;
+    private readonly IAuthenticationResolver _resolver;
     
     /// <summary>
-    /// Called when authenticator has concluded a result for a connection. Boolean is true if authentication passed, false if failed.
-    /// The Server listens to this event automatically.
+    /// Called when authenticator has concluded that a client is authenticated.
     /// </summary>
-    public event Action<Client, bool>? AuthenticationResultConcluded;
+    public event Action<Client>? ClientAuthSuccess;
+    
+    /// <summary>
+    /// Called when authenticator has concluded that a client failed to authenticate.
+    /// The client will be kicked after this event is invoked.
+    /// </summary>
+    public event Action<Client>? ClientAuthFailure;
 
 
-    public Authenticator(NetServer server, string password)
+    public Authenticator(NetServer server, IAuthenticationResolver resolver)
     {
         _server = server;
-        _password = password;
+        _resolver = resolver;
         
         server.RegisterMessageHandler<AuthResponseMessage>(OnReceiveAuthResponsePacket, false);
     }
@@ -29,44 +34,43 @@ internal class Authenticator
     /// <summary>
     /// Called on the server immediately after a client connects. Can be used to send data to the client for authentication.
     /// </summary>
-    /// <param name="session">Connection which is not yet authenticated.</param>
-    public void OnNewSession(Client session)
+    /// <param name="client">Connection which is not yet authenticated.</param>
+    public void OnNewClientConnected(Client client)
     {
-        // Send the client a authentication request.
-        _server.SendMessageToClient(session, new AuthRequestMessage(AuthenticationMethod.UsernamePassword), false);
+        // Send the client an authentication request.
+        _server.SendMessageToClient(client, new AuthRequestMessage(AuthenticationMethod.UsernamePassword), false);
     }
 
 
-    private void OnReceiveAuthResponsePacket(Client session, AuthResponseMessage netMessage)
+    private void OnReceiveAuthResponsePacket(Client client, AuthResponseMessage netMessage)
     {
         /* If a client is already authenticated, this could be an attack. Sessions
          * are removed when a client disconnects, so there is no reason they should
          * already be considered authenticated. */
-        if (session.IsAuthenticated)
+        if (client.IsAuthenticated)
         {
-            session.Kick(DisconnectReason.ExploitAttempt);
+            client.Kick(DisconnectReason.ExploitAttempt);
             return;
         }
 
         if (netMessage.Version != SharedConstants.GAME_VERSION)
         {
-            session.Kick(DisconnectReason.OutdatedVersion);
+            client.Kick(DisconnectReason.OutdatedVersion);
             return;
         }
 
-        bool validName = !string.IsNullOrWhiteSpace(netMessage.Username);
-        bool isCorrectPassword = netMessage.Password == _password;
-        bool isAuthSuccess = validName && isCorrectPassword;
-
-        if (isAuthSuccess)
+        if (_resolver.TryAuthenticate(netMessage.Username, netMessage.Password, out ClientUid uid))
         {
-            // TODO: Fetch the player's personal ID from the database, based on the credentials.
-            string pId = netMessage.Username;
+            client.SetAuthenticated(uid);
             
-            session.SetAuthenticated(pId);
+            // Invoke result. This is handled internally to complete the connection or kick client.
+            ClientAuthSuccess?.Invoke(client);
         }
-        
-        // Invoke result. This is handled internally to complete the connection or kick client.
-        AuthenticationResultConcluded?.Invoke(session, isAuthSuccess);
+        else
+        {
+            ClientAuthFailure?.Invoke(client);
+            
+            client.Kick(DisconnectReason.AuthenticationFailed);
+        }
     }
 }

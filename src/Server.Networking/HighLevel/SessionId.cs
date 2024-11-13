@@ -1,7 +1,8 @@
 ﻿namespace Server.Networking.HighLevel;
 
 /// <summary>
-/// A unique identifier for a client session.
+/// ID of a client session/connection.
+/// Changes when the client reconnects.
 /// </summary>
 public readonly struct SessionId(uint value) : IEquatable<SessionId>
 {

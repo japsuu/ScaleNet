@@ -3,106 +3,163 @@ using System.Net;
 using System.Net.Sockets;
 using NetCoreServer;
 using Server.Networking.HighLevel;
+using Shared;
 using Shared.Networking;
+using Shared.Networking.Messages;
 using Shared.Utils;
 
 namespace Server.Networking.LowLevel.Transport;
 
-internal class TcpClientSession(SessionId id, TcpServerTransport transport, IPacketMiddleware? middleware) : TcpSession(transport)
-{
-    private readonly IPacketMiddleware? _middleware = middleware;
-    public readonly SessionId SessionId = id;
-    
-    // Packets need to be stored per-session, to, for example, allow sending all queued packets before disconnecting.
-    public readonly ConcurrentQueue<Packet> OutgoingPackets = new();
-    public readonly ConcurrentQueue<Packet> IncomingPackets = new();
-
-
-    protected override void OnReceived(byte[] buffer, long offset, long size)
-    {
-        ReadOnlyMemory<byte> memory = new(buffer, (int)offset, (int)size);
-        
-        _middleware?.HandleIncomingPacket(ref memory);
-        
-        Packet packet = new(SessionId, memory);
-        IncomingPackets.Enqueue(packet);
-    }
-
-
-    protected override void OnError(SocketError error)
-    {
-        Logger.LogError($"TCP session with Id {Id} caught an error: {error}");
-    }
-}
-
 public class TcpServerTransport : TcpServer, IServerTransport
 {
+    /// <summary>
+    /// A raw packet of data.
+    /// </summary>
+    internal readonly struct Packet
+    {
+        public readonly ReadOnlyMemory<byte> Data;
+
+
+        public Packet(byte[] buffer, int offset, int size)
+        {
+            Data = new ReadOnlyMemory<byte>(buffer, offset, size);
+        }
+    
+
+        public Packet(ReadOnlyMemory<byte> buffer)
+        {
+            Data = buffer;
+        }
+    }
+    
     private readonly ConcurrentBag<uint> _availableSessionIds = [];
     private readonly ConcurrentDictionary<SessionId, TcpClientSession> _sessions = new();
-    private readonly IPacketMiddleware? _middleware;
     
     private ServerState _serverState = ServerState.Stopped;
 
+    public readonly IPacketMiddleware? Middleware;
     public int MaxConnections { get; }
     public bool RejectNewConnections { get; set; }
-    public bool RejectNewPackets { get; set; }
+    public bool RejectNewMessages { get; set; }
     
     public event Action<ServerStateArgs>? ServerStateChanged;
     public event Action<SessionStateArgs>? SessionStateChanged;
-    public event Action<Packet>? HandlePacket;
+    public event Action<SessionId, INetMessage>? HandleMessage;
 
 
     public TcpServerTransport(IPAddress address, int port, int maxConnections, IPacketMiddleware? middleware = null) : base(address, port)
     {
         MaxConnections = maxConnections;
-        _middleware = middleware;
+        Middleware = middleware;
 
         // Fill the available session IDs bag.
         for (uint i = 1; i < uint.MaxValue; i++)
             _availableSessionIds.Add(i);
     }
-    
-    
-    public void HandleIncomingPackets()
+
+
+    public void HandleIncomingMessages()
     {
+        if (RejectNewMessages)
+            return;
+        
         //TODO: Parallelize.
+        //NOTE: Sessions that are iterated first have packet priority.
         foreach (TcpClientSession session in _sessions.Values)
         {
             while (session.IncomingPackets.TryDequeue(out Packet packet))
-                HandlePacket?.Invoke(packet);
-        }
-    }
-    
-    
-    public void HandleOutgoingPackets()
-    {
-        //TODO: Parallelize.
-        // Sessions that are iterated first have packet priority.
-        foreach (TcpClientSession session in _sessions.Values)
-        {
-            while (session.OutgoingPackets.TryDequeue(out Packet packet))
             {
-                ReadOnlyMemory<byte> buffer = packet.Data;
+                if (packet.Data.Length > SharedConstants.MAX_PACKET_SIZE_BYTES)
+                {
+                    Logger.LogWarning($"Received a packet that exceeds the maximum size. Kicking session {session.SessionId} immediately.");
+                    DisconnectSession(session, DisconnectReason.OversizedPacket);
+                    return;
+                }
+        
+                INetMessage? msg = NetMessages.Deserialize(packet.Data);
+        
+                if (msg == null)
+                {
+                    Logger.LogWarning($"Received a packet that could not be deserialized. Kicking session {session.SessionId} immediately.");
+                    DisconnectSession(session, DisconnectReason.MalformedData);
+                    return;
+                }
                 
-                _middleware?.HandleOutgoingPacket(ref buffer);
-
-                session.SendAsync(buffer.Span);
+                HandleMessage?.Invoke(session.SessionId, msg);
             }
         }
     }
-
     
-    public void QueueSendAsync(Packet packet)
+    
+    public void HandleOutgoingMessages()
     {
-        SessionId sessionId = packet.SessionId;
-        
+        //TODO: Parallelize.
+        //NOTE: Sessions that are iterated first have packet priority.
+        foreach (TcpClientSession session in _sessions.Values)
+        {
+            SendOutgoingPackets(session);
+        }
+    }
+
+
+    public void QueueSendAsync<T>(SessionId sessionId, T message) where T : INetMessage
+    {
         if (!_sessions.TryGetValue(sessionId, out TcpClientSession? session))
         {
             Logger.LogWarning($"Tried to send a packet to a non-existent/disconnected session with ID {sessionId}");
             return;
         }
+
+        QueueSendAsync(session, message);
+    }
+
+
+    private static void QueueSendAsync<T>(TcpClientSession session, T message) where T : INetMessage
+    {
+        // Write to buffer.
+        byte[] bytes = NetMessages.Serialize(message);
         
-        session.OutgoingPackets.Enqueue(packet);
+        // Enqueue the packet.
+        Packet p = new(bytes, 0, bytes.Length);
+        
+        session.OutgoingPackets.Enqueue(p);
+    }
+
+
+    public void DisconnectSession(SessionId sessionId, DisconnectReason reason, bool iterateOutgoing = true)
+    {
+        if (!_sessions.TryGetValue(sessionId, out TcpClientSession? session))
+        {
+            Logger.LogWarning($"Tried to disconnect a non-existent/disconnected session with ID {sessionId}");
+            return;
+        }
+        
+        DisconnectSession(session, reason, iterateOutgoing);
+    }
+
+
+    internal void DisconnectSession(TcpClientSession session, DisconnectReason reason, bool iterateOutgoing = true)
+    {
+        if (iterateOutgoing)
+        {
+            QueueSendAsync(session, new DisconnectMessage(reason));
+            SendOutgoingPackets(session);
+        }
+        
+        session.Disconnect();
+    }
+
+
+    private void SendOutgoingPackets(TcpClientSession session)
+    {
+        while (session.OutgoingPackets.TryDequeue(out Packet packet))
+        {
+            ReadOnlyMemory<byte> buffer = packet.Data;
+                
+            Middleware?.HandleOutgoingPacket(ref buffer);
+
+            session.SendAsync(buffer.Span);
+        }
     }
 
 
@@ -117,7 +174,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
         
         SessionId id = new(uId);
 
-        TcpClientSession session = new(id, this, _middleware);
+        TcpClientSession session = new(id, this);
         _sessions.TryAdd(id, session);
         
         return session;
@@ -209,6 +266,6 @@ public class TcpServerTransport : TcpServer, IServerTransport
 
     protected override void OnError(SocketError error)
     {
-        Logger.LogError($"Chat TCP server caught an error with code {error}");
+        Logger.LogError($"TCP server caught an error: {error}");
     }
 }

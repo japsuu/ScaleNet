@@ -4,7 +4,7 @@ namespace Shared.Networking.Messages;
 
 public static class NetMessages
 {
-    public static byte[] Serialize(INetMessage msg)
+    public static byte[] Serialize<T>(T msg) where T : INetMessage
     {
         byte[] bin = MessagePackSerializer.Serialize(msg);
         
@@ -33,7 +33,8 @@ public static class NetMessages
 /// 
 /// <remarks>
 /// Implementations must be thread safe.<br/>
-/// Any constructors will be skipped when deserializing, so don't rely on them being called.
+/// Implementations must be immutable.<br/>
+/// Any constructors may be skipped when deserializing.
 /// </remarks>
 [Union(0, typeof(AuthRequestMessage))]
 [Union(1, typeof(AuthResponseMessage))]

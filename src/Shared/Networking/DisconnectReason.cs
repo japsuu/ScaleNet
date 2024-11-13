@@ -31,5 +31,6 @@ public enum DisconnectReason : byte
     OutdatedVersion,
     OversizedPacket,
     CorruptPlayerData,
-    TooManyPackets
+    TooManyPackets,
+    DuplicateSession
 }
