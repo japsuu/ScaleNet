@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Net.Sockets;
 using NetCoreServer;
+using Shared;
 using Shared.Networking;
 using Shared.Utils;
 
@@ -21,6 +22,13 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport) : Tc
         {
             Logger.LogWarning($"Session {SessionId} is sending too many packets. Kicking immediately.");
             transport.DisconnectSession(this, DisconnectReason.TooManyPackets);
+            return;
+        }
+        
+        if (size > SharedConstants.MAX_PACKET_SIZE_BYTES)
+        {
+            Logger.LogWarning($"Session {SessionId} is sending oversized packets. Kicking immediately.");
+            transport.DisconnectSession(this, DisconnectReason.OversizedPacket);
             return;
         }
         

@@ -68,13 +68,6 @@ public class TcpServerTransport : TcpServer, IServerTransport
         {
             while (session.IncomingPackets.TryDequeue(out Packet packet))
             {
-                if (packet.Data.Length > SharedConstants.MAX_PACKET_SIZE_BYTES)
-                {
-                    Logger.LogWarning($"Received a packet that exceeds the maximum size. Kicking session {session.SessionId} immediately.");
-                    DisconnectSession(session, DisconnectReason.OversizedPacket);
-                    return;
-                }
-        
                 INetMessage? msg = NetMessages.Deserialize(packet.Data);
         
                 if (msg == null)
