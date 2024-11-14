@@ -16,10 +16,10 @@ internal class GameServer
     private readonly NetServer _netServer;
 
 
-    public GameServer(IPAddress address, int port)
+    public GameServer(IPAddress address, int port, int maxConnections)
     {
         _netServer = new NetServer(
-            new TcpServerTransport(address, port, ServerConstants.MAX_CONNECTIONS),
+            new TcpServerTransport(address, port, maxConnections),
             new DefaultAuthenticationResolver(SharedConstants.DEVELOPMENT_AUTH_PASSWORD));
         
         _netServer.ClientStateChanged += OnClientStateChanged;
