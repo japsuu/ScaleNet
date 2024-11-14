@@ -7,8 +7,6 @@ public interface IServerTransport
 {
     public int Port { get; }
     public int MaxConnections { get; }
-    public bool RejectNewConnections { get; set; }
-    public bool RejectNewMessages { get; set; }
 
     public event Action<ServerStateChangeArgs>? ServerStateChanged;
 
@@ -57,7 +55,7 @@ public interface IServerTransport
     /// Stops the server.
     /// </summary>
     /// <returns>True if the server was stopped, false if it was already stopped.</returns>
-    public bool Stop();
+    public bool Stop(bool gracefully = true);
 
 
     /// <summary>

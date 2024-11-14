@@ -63,18 +63,7 @@ public class NetServer
 
     public void Stop(bool gracefully = true)
     {
-        if (gracefully)
-        {
-            Transport.RejectNewConnections = true;
-            Transport.RejectNewMessages = true;
-
-            foreach (Client session in _clientManager.Clients)
-            {
-                session.Kick(DisconnectReason.ServerShutdown);
-            }
-        }
-        
-        Transport.Stop();
+        Transport.Stop(gracefully);
     }
 
     public void Update()

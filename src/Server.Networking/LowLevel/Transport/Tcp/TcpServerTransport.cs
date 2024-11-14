@@ -37,11 +37,11 @@ public class TcpServerTransport : TcpServer, IServerTransport
     private readonly ConcurrentDictionary<SessionId, TcpClientSession> _sessions = new();
     
     private ServerState _serverState = ServerState.Stopped;
+    private bool _rejectNewConnections;
+    private bool _rejectNewMessages;
 
     public readonly IPacketMiddleware? Middleware;
     public int MaxConnections { get; }
-    public bool RejectNewConnections { get; set; }
-    public bool RejectNewMessages { get; set; }
     
     public event Action<ServerStateChangeArgs>? ServerStateChanged;
     public event Action<SessionStateChangeArgs>? SessionStateChanged;
@@ -57,11 +57,49 @@ public class TcpServerTransport : TcpServer, IServerTransport
         for (uint i = 1; i < maxConnections; i++)
             _availableSessionIds.Add(i);
     }
+    
+    
+    bool IServerTransport.Start()
+    {
+        Logger.LogInfo($"Starting TCP transport on {Address}:{Port}...");
+
+        bool started = Start();
+        
+        if (started)
+            Logger.LogInfo("TCP transport started successfully.");
+        else
+            Logger.LogError("Failed to start TCP transport.");
+        
+        return started;
+    }
+    
+    
+    bool IServerTransport.Stop(bool gracefully)
+    {
+        Logger.LogInfo("Stopping TCP transport...");
+        _rejectNewConnections = true;
+        _rejectNewMessages = true;
+        
+        if (gracefully)
+        {
+            foreach (TcpClientSession session in _sessions.Values)
+                DisconnectSession(session, DisconnectReason.ServerShutdown);
+        }
+        
+        bool stopped = Stop();
+        
+        if (stopped)
+            Logger.LogInfo("TCP transport stopped successfully.");
+        else
+            Logger.LogError("Failed to stop TCP transport.");
+        
+        return stopped;
+    }
 
 
     public void HandleIncomingMessages()
     {
-        if (RejectNewMessages)
+        if (_rejectNewMessages)
             return;
         
         //TODO: Parallelize.
@@ -206,7 +244,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
         SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.Connected));
         
         //TODO: Figure out an way to reject new connections earlier.
-        if (RejectNewConnections || _sessions.Count >= MaxConnections)
+        if (_rejectNewConnections || _sessions.Count >= MaxConnections)
             session.Disconnect();
     }
 

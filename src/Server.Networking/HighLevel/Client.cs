@@ -29,7 +29,6 @@ public class Client(SessionId sessionId, NetServer server)
     public readonly SessionId SessionId = sessionId;
     
     public bool IsAuthenticated { get; private set; }
-    public bool IsDisconnecting { get; private set; }
 
     public AuthenticationData? AuthData { get; private set; }
     public PlayerData? PlayerData { get; private set; }
@@ -37,7 +36,6 @@ public class Client(SessionId sessionId, NetServer server)
 
     public void SetAuthenticated(ClientUid clientUid)
     {
-        Debug.Assert(!IsDisconnecting, "Cannot authenticate a disconnecting client.");
         Debug.Assert(!IsAuthenticated, "Cannot authenticate a client that is already authenticated.");
 
         IsAuthenticated = true;
@@ -47,7 +45,6 @@ public class Client(SessionId sessionId, NetServer server)
 
     public bool LoadPlayerData()
     {
-        Debug.Assert(!IsDisconnecting, "Cannot load player data for a disconnecting client.");
         Debug.Assert(IsAuthenticated, "Cannot load player data for an unauthenticated client.");
 
         if (AuthData == null)
@@ -79,20 +76,14 @@ public class Client(SessionId sessionId, NetServer server)
     /// </remarks>
     public void Kick(DisconnectReason reason, bool iterateOutgoing = true)
     {
-        Debug.Assert(!IsDisconnecting, "Cannot disconnect a client that is already disconnecting.");
-
         Logger.LogDebug($"Disconnecting client {SessionId} with reason {reason}.");
         
         server.Transport.DisconnectSession(SessionId, reason, iterateOutgoing);
-        
-        IsDisconnecting = true;
     }
 
 
     public void QueueSend<T>(T message) where T : INetMessage
     {
-        Debug.Assert(!IsDisconnecting, "Cannot send messages to a disconnecting client.");
-        
         Logger.LogDebug($"Queue message {message} to client.");
         
         server.Transport.QueueSendAsync(SessionId, message);

@@ -15,8 +15,6 @@ internal static class Program
         int port = SharedConstants.SERVER_PORT;
         if (args.Length > 0)
             port = int.Parse(args[0]);
-
-        Logger.LogInfo($"Using TCP port {port}\n");
         
         // Start the server
         GameServer server = new GameServer(IPAddress.Any, port);
