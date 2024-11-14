@@ -1,5 +1,4 @@
-﻿using Client.Networking.HighLevel;
-using Client.Networking.HighLevel.Authentication;
+﻿using Client.Networking.HighLevel.Authentication;
 using Client.Networking.LowLevel;
 using Client.Networking.LowLevel.Transport;
 using Shared;

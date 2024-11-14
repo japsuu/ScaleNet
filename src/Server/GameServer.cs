@@ -1,9 +1,7 @@
 ﻿using System.Net;
 using Server.Networking;
-using Server.Networking.Authentication;
 using Server.Networking.Authentication.Resolvers;
 using Server.Networking.HighLevel;
-using Server.Networking.LowLevel.Transport;
 using Server.Networking.LowLevel.Transport.Tcp;
 using Shared;
 using Shared.Networking.Messages;
