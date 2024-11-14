@@ -99,12 +99,12 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport) : Tc
 
     private void OnReceiveFullPacket(byte[] data, int length)
     {
-        /*if (IncomingPackets.Count > ServerConstants.MAX_PACKETS_PER_TICK)
+        if (IncomingPackets.Count > ServerConstants.MAX_PACKETS_PER_TICK)
         {
             Logger.LogWarning($"Session {SessionId} is sending too many packets. Kicking immediately.");
             transport.DisconnectSession(this, DisconnectReason.TooManyPackets);
             return;
-        }*/
+        }
         
         /*Console.WriteLine("receive:");
         Console.WriteLine(data.AsStringBits());
