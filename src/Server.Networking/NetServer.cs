@@ -4,7 +4,6 @@ using Server.Networking.Authentication.Resolvers;
 using Server.Networking.HighLevel;
 using Server.Networking.LowLevel;
 using Server.Networking.LowLevel.Transport;
-using Shared;
 using Shared.Networking;
 using Shared.Networking.Messages;
 using Shared.Utils;

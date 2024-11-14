@@ -3,7 +3,6 @@ using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
 using NetCoreServer;
-using Shared;
 using Shared.Networking;
 using Shared.Utils;
 
@@ -67,7 +66,7 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport) : Tc
             }
 
             // Create a packet and enqueue it
-            OnReceiveFullPacket(packetData, packetLength);
+            OnReceiveFullPacket(packetData.AsMemory());
 
             // Position is naturally incremented, no manual reset required here
         }
@@ -97,7 +96,7 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport) : Tc
     }
 
 
-    private void OnReceiveFullPacket(byte[] data, int length)
+    private void OnReceiveFullPacket(Memory<byte> data)
     {
         if (IncomingPackets.Count > ServerConstants.MAX_PACKETS_PER_TICK)
         {
@@ -112,7 +111,7 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport) : Tc
         
         transport.Middleware?.HandleIncomingPacket(ref data);
         
-        TcpServerTransport.Packet packet = new(data, 0, length);
+        TcpServerTransport.Packet packet = new(data);
         IncomingPackets.Enqueue(packet);
     }
 

@@ -4,7 +4,6 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using NetCoreServer;
-using Shared;
 using Shared.Networking;
 using Shared.Networking.Messages;
 using Shared.Utils;
@@ -18,18 +17,18 @@ public class TcpServerTransport : TcpServer, IServerTransport
     /// </summary>
     internal readonly struct Packet
     {
-        public readonly ReadOnlyMemory<byte> Data;
+        public readonly Memory<byte> Data;
 
 
         public Packet(byte[] buffer, int offset, int size)
         {
-            Data = new ReadOnlyMemory<byte>(buffer, offset, size);
+            Data = new Memory<byte>(buffer, offset, size);
         }
-    
-
-        public Packet(ReadOnlyMemory<byte> buffer)
+        
+        
+        public Packet(Memory<byte> span)
         {
-            Data = buffer;
+            Data = span;
         }
     }
     
@@ -186,7 +185,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
     {
         while (session.OutgoingPackets.TryDequeue(out Packet packet))
         {
-            ReadOnlyMemory<byte> buffer = packet.Data;
+            Memory<byte> buffer = packet.Data;
                 
             Middleware?.HandleOutgoingPacket(ref buffer);
         

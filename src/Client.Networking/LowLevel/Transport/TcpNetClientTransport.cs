@@ -41,7 +41,7 @@ public class TcpNetClientTransport(string address, int port, IPacketMiddleware? 
     }
 
 
-    void INetClientTransport.SendAsync(ReadOnlyMemory<byte> buffer)
+    void INetClientTransport.SendAsync(Memory<byte> buffer)
     {
         middleware?.HandleOutgoingPacket(ref buffer);
         
@@ -141,7 +141,7 @@ public class TcpNetClientTransport(string address, int port, IPacketMiddleware? 
             }
 
             // Create a packet and enqueue it
-            OnReceiveFullPacket(packetData, packetLength);
+            OnReceiveFullPacket(packetData.AsMemory());
 
             // Position is naturally incremented, no manual reset required here
         }
@@ -171,14 +171,14 @@ public class TcpNetClientTransport(string address, int port, IPacketMiddleware? 
     }
 
 
-    private void OnReceiveFullPacket(byte[] data, int length)
+    private void OnReceiveFullPacket(Memory<byte> data)
     {
         /*Console.WriteLine("receive:");
         Console.WriteLine(data.AsStringBits());
         Console.WriteLine(MessagePack.MessagePackSerializer.ConvertToJson(data));*/
 
         middleware?.HandleIncomingPacket(ref data);
-        Packet packet = new(data, 0, length);
+        Packet packet = new(data);
         PacketReceived?.Invoke(packet);
     }
 

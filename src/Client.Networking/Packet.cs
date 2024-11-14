@@ -5,16 +5,16 @@
 /// </summary>
 public readonly struct Packet
 {
-    public readonly ReadOnlyMemory<byte> Data;
+    public readonly Memory<byte> Data;
 
 
     public Packet(byte[] buffer, int offset, int size)
     {
-        Data = new ReadOnlyMemory<byte>(buffer, offset, size);
+        Data = new Memory<byte>(buffer, offset, size);
     }
     
 
-    public Packet(ReadOnlyMemory<byte> buffer)
+    public Packet(Memory<byte> buffer)
     {
         Data = buffer;
     }

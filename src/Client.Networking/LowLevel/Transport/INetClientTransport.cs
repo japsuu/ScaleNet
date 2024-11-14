@@ -13,7 +13,7 @@ public interface INetClientTransport
     /// Sends the given buffer to the server asynchronously.
     /// </summary>
     /// <param name="buffer">The buffer to send. Contents are copied internally.</param>
-    public void SendAsync(ReadOnlyMemory<byte> buffer);
+    public void SendAsync(Memory<byte> buffer);
     
     /// <summary>
     /// Called after the local client connection state changes.
