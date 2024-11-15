@@ -6,62 +6,41 @@ using Shared.Utils;
 
 namespace Server.Networking.HighLevel;
 
-public class PlayerData(string username)
-{
-    public readonly string Username = username;
-}
-
-public class AuthenticationData(ClientUid clientUid)
-{
-    /// <summary>
-    /// Unique ID of the client.
-    /// Never changes, assigned on account creation.
-    /// </summary>
-    public readonly ClientUid ClientId = clientUid;
-}
-
 public class Client(SessionId sessionId, NetServer server)
 {
+    private AccountUID _accountId;
+    
     /// <summary>
     /// ID of the session/connection.
     /// Changes when the client reconnects.
     /// </summary>
     public readonly SessionId SessionId = sessionId;
-    
+
     public bool IsAuthenticated { get; private set; }
 
-    public AuthenticationData? AuthData { get; private set; }
-    public PlayerData? PlayerData { get; private set; }
+    /// <summary>
+    /// Unique ID of the account.
+    /// Never changes, assigned on account creation.
+    /// </summary>
+    public AccountUID AccountId
+    {
+        get
+        {
+            Debug.Assert(IsAuthenticated, "Cannot get account ID for an unauthenticated client.");
+            return _accountId;
+        }
+        private set => _accountId = value;
+    }
+
+    public PlayerData? PlayerData { get; internal set; }
 
 
-    public void SetAuthenticated(ClientUid clientUid)
+    internal void SetAuthenticated(AccountUID accountUid)
     {
         Debug.Assert(!IsAuthenticated, "Cannot authenticate a client that is already authenticated.");
 
         IsAuthenticated = true;
-        AuthData = new AuthenticationData(clientUid);
-    }
-
-
-    public bool LoadPlayerData()
-    {
-        Debug.Assert(IsAuthenticated, "Cannot load player data for an unauthenticated client.");
-
-        if (AuthData == null)
-        {
-            Logger.LogError("Cannot load player data for an unauthenticated client.");
-            return false;
-        }
-        
-        //TODO: Load user data from a real database based on the client ID.
-        if (!InMemoryMockDatabase.TryGetUsername(AuthData.ClientId, out string? username))
-        {
-            Logger.LogError("Failed to load username for client.");
-            return false;
-        }
-
-        PlayerData = new PlayerData(username);
-        return true;
+        AccountId = accountUid;
     }
     
     

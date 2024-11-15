@@ -38,15 +38,109 @@ public static class NetMessages
 /// Implementations must be immutable.<br/>
 /// Any constructors may be skipped when deserializing.
 /// </remarks>
-[Union(0, typeof(AuthRequestMessage))]
-[Union(1, typeof(AuthResponseMessage))]
-[Union(2, typeof(WelcomeMessage))]
-[Union(3, typeof(DisconnectMessage))]
-[Union(4, typeof(ChatMessage))]
-[Union(5, typeof(ChatMessageNotification))]
+
+// Framework messages
+[Union(0, typeof(DisconnectMessage))]
+[Union(1, typeof(AuthenticationInfoMessage))]
+[Union(2, typeof(RegisterRequestMessage))]
+[Union(3, typeof(RegisterResponseMessage))]
+[Union(4, typeof(AuthenticationRequestMessage))]
+[Union(5, typeof(AuthenticationResponseMessage))]
+
+// Application messages
+[Union(64, typeof(ChatMessage))]
+[Union(65, typeof(ChatMessageNotification))]
 public interface INetMessage;
 
-/// <summary>
+
+[MessagePackObject]
+public readonly struct DisconnectMessage(DisconnectReason reason) : INetMessage
+{
+    [Key(0)]
+    public readonly DisconnectReason Reason = reason;
+}
+
+
+[MessagePackObject]
+public readonly struct AuthenticationInfoMessage(bool registrationAllowed, uint serverVersion) : INetMessage
+{
+    [Key(0)]
+    public readonly bool RegistrationAllowed = registrationAllowed;
+    
+    [Key(1)]
+    public readonly uint ServerVersion = serverVersion;
+}
+
+
+#region Account register
+
+[MessagePackObject]
+public readonly struct RegisterRequestMessage(string username, string password) : INetMessage
+{
+    [Key(0)]
+    public readonly string Username = username;
+    
+    [Key(1)]
+    public readonly string Password = password;
+}
+
+[MessagePackObject]
+public readonly struct RegisterResponseMessage(AccountCreationResult result) : INetMessage
+{
+    [Key(0)]
+    public readonly AccountCreationResult Result = result;
+}
+
+#endregion
+
+
+#region Account authentication
+
+[MessagePackObject]
+public readonly struct AuthenticationRequestMessage(string username, string password) : INetMessage
+{
+    [Key(0)]
+    public readonly string Username = username;
+    
+    [Key(1)]
+    public readonly string Password = password;
+}
+
+[MessagePackObject]
+public readonly struct AuthenticationResponseMessage(AuthenticationResult result, uint clientUid) : INetMessage
+{
+    [Key(0)]
+    public readonly AuthenticationResult Result = result;
+    
+    [Key(1)]
+    public readonly uint ClientUid = clientUid;
+}
+
+#endregion
+
+
+#region Chat
+
+[MessagePackObject]
+public readonly struct ChatMessage(string message) : INetMessage
+{
+    [Key(0)]
+    public readonly string Message = message;
+}
+
+[MessagePackObject]
+public readonly struct ChatMessageNotification(string user, string message) : INetMessage
+{
+    [Key(0)]
+    public readonly string User = user;
+    
+    [Key(1)]
+    public readonly string Message = message;
+}
+
+#endregion
+
+/*/// <summary>
 /// Sent by the server to request authentication from the client.
 /// </summary>
 ///
@@ -107,37 +201,4 @@ public readonly struct WelcomeMessage(uint clientId) : INetMessage
 {
     [Key(0)]
     public readonly uint ClientId = clientId;
-}
-
-/// <summary>
-/// Sent from the client to the server,
-/// when the client wants to send a chat message.
-/// </summary>
-///
-/// <remarks>
-/// Client -&gt; Server
-/// </remarks>
-[MessagePackObject]
-public readonly struct ChatMessage(string message) : INetMessage
-{
-    [Key(0)]
-    public readonly string Message = message;
-}
-
-/// <summary>
-/// Sent from the server to the client,
-/// when the server wants to notify the client about a chat message.
-/// </summary>
-///
-/// <remarks>
-/// Server -&gt; Client
-/// </remarks>
-[MessagePackObject]
-public readonly struct ChatMessageNotification(string user, string message) : INetMessage
-{
-    [Key(0)]
-    public readonly string User = user;
-    
-    [Key(1)]
-    public readonly string Message = message;
-}
+}*/

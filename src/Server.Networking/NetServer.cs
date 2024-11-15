@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using Server.Networking.Authentication;
 using Server.Networking.Authentication.Resolvers;
+using Server.Networking.Database;
 using Server.Networking.HighLevel;
 using Server.Networking.LowLevel;
 using Server.Networking.LowLevel.Transport;
@@ -13,10 +14,11 @@ namespace Server.Networking;
 public class NetServer
 {
     private readonly MessageHandlerManager _messageHandlerManager;
-    private readonly Authenticator? _authenticator;
+    private readonly Authenticator _authenticator;
     private readonly ClientManager _clientManager;
     
     public readonly IServerTransport Transport;
+    public readonly IDatabaseAccess DatabaseAccess;
     
     /// <summary>
     /// True if the server is started and listening for incoming connections.
@@ -39,13 +41,14 @@ public class NetServer
     public event Action<Client>? ClientAuthenticated;
 
 
-    public NetServer(IServerTransport transport, IAuthenticationResolver authenticationResolver)
+    public NetServer(IServerTransport transport, IAuthenticationResolver authenticationResolver, IDatabaseAccess databaseAccess, bool allowRegistration)
     {
         Transport = transport;
+        DatabaseAccess = databaseAccess;
         _messageHandlerManager = new MessageHandlerManager();
         _clientManager = new ClientManager(this);
         
-        _authenticator = new Authenticator(this, authenticationResolver);
+        _authenticator = new Authenticator(this, authenticationResolver, allowRegistration);
         _authenticator.ClientAuthSuccess += OnClientAuthenticated;
         
         Transport.ServerStateChanged += OnServerStateChanged;
@@ -232,14 +235,11 @@ public class NetServer
                 if (!_clientManager.TryAddClient(sessionId, out client))
                 {
                     Logger.LogWarning($"Client for session {sessionId} already exists. Kicking.");
-                    Transport.DisconnectSession(sessionId, DisconnectReason.DuplicateSession);
+                    Transport.DisconnectSession(sessionId, DisconnectReason.UnexpectedProblem);
                     return;
                 }
                 
-                if (_authenticator != null)
-                    _authenticator.OnNewClientConnected(client);
-                else
-                    OnClientAuthenticated(client);
+                _authenticator.OnNewClientConnected(client);
                 
                 break;
             }
@@ -292,18 +292,18 @@ public class NetServer
     {
         Debug.Assert(client.IsAuthenticated, "Client is not authenticated.");
         
-        Logger.LogInfo($"Session {client.SessionId} authenticated!");
+        AccountUID accountId = client.AccountId;
+        Logger.LogInfo($"Session {client.SessionId} authenticated as account {accountId}.");
         
         // Load user data.
-        if (!client.LoadPlayerData())
+        if (!DatabaseAccess.TryGetPlayerData(accountId, out PlayerData? playerData))
         {
             Logger.LogWarning($"Session {client.SessionId} player data could not be loaded.");
             client.Kick(DisconnectReason.CorruptPlayerData);
             return;
         }
         
-        // Send the client a welcome message.
-        client.QueueSend(new WelcomeMessage(client.AuthData!.ClientId.Value));
+        client.PlayerData = playerData;
         
         ClientAuthenticated?.Invoke(client);
     }

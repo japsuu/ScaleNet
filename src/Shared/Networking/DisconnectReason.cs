@@ -25,12 +25,9 @@ public enum DisconnectReason : byte
     /// </summary>
     UnexpectedProblem,
     
-    AuthenticationFailed,
-    
     ServerShutdown,
     OutdatedVersion,
     OversizedPacket,
     CorruptPlayerData,
-    TooManyPackets,
-    DuplicateSession
+    TooManyPackets
 }

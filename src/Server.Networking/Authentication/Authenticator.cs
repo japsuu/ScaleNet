@@ -10,6 +10,7 @@ internal class Authenticator
 {
     private readonly NetServer _server;
     private readonly IAuthenticationResolver _resolver;
+    private readonly bool _allowAccountRegistration;
     
     /// <summary>
     /// Called when authenticator has concluded that a client is authenticated.
@@ -18,17 +19,23 @@ internal class Authenticator
     
     /// <summary>
     /// Called when authenticator has concluded that a client failed to authenticate.
-    /// The client will be kicked after this event is invoked.
     /// </summary>
     public event Action<Client>? ClientAuthFailure;
+    
+    /// <summary>
+    /// Called when a client has successfully registered an account.
+    /// </summary>
+    public event Action<Client>? ClientRegistered;
 
 
-    public Authenticator(NetServer server, IAuthenticationResolver resolver)
+    public Authenticator(NetServer server, IAuthenticationResolver resolver, bool allowAccountRegistration)
     {
         _server = server;
         _resolver = resolver;
-        
-        server.RegisterMessageHandler<AuthResponseMessage>(OnReceiveAuthResponsePacket, false);
+        _allowAccountRegistration = allowAccountRegistration;
+
+        server.RegisterMessageHandler<AuthenticationRequestMessage>(OnReceiveAuthRequest, false);
+        server.RegisterMessageHandler<RegisterRequestMessage>(OnReceiveRegisterRequest, false);
     }
 
 
@@ -38,12 +45,12 @@ internal class Authenticator
     /// <param name="client">Connection which is not yet authenticated.</param>
     public void OnNewClientConnected(Client client)
     {
-        // Send the client an authentication request.
-        _server.SendMessageToClient(client, new AuthRequestMessage(AuthenticationMethod.UsernamePassword), false);
+        // Send the client the authentication info.
+        _server.SendMessageToClient(client, new AuthenticationInfoMessage(_allowAccountRegistration, SharedConstants.GAME_VERSION), false);
     }
 
 
-    private void OnReceiveAuthResponsePacket(Client client, AuthResponseMessage netMessage)
+    private void OnReceiveAuthRequest(Client client, AuthenticationRequestMessage msg)
     {
         /* If a client is already authenticated, this could be an attack. Sessions
          * are removed when a client disconnects, so there is no reason they should
@@ -54,13 +61,9 @@ internal class Authenticator
             return;
         }
 
-        if (netMessage.Version != SharedConstants.GAME_VERSION)
-        {
-            client.Kick(DisconnectReason.OutdatedVersion);
-            return;
-        }
-
-        if (_resolver.TryAuthenticate(netMessage.Username, netMessage.Password, out ClientUid uid))
+        AuthenticationResult result = _resolver.TryAuthenticate(msg.Username, msg.Password, out AccountUID uid);
+        
+        if (result == AuthenticationResult.Success)
         {
             client.SetAuthenticated(uid);
             
@@ -70,8 +73,26 @@ internal class Authenticator
         else
         {
             ClientAuthFailure?.Invoke(client);
-            
-            client.Kick(DisconnectReason.AuthenticationFailed);
         }
+        
+        _server.SendMessageToClient(client, new AuthenticationResponseMessage(result, uid.Value));
+    }
+
+
+    private void OnReceiveRegisterRequest(Client client, RegisterRequestMessage msg)
+    {
+        // If a client is already authenticated, this could be an attack.
+        if (client.IsAuthenticated)
+        {
+            client.Kick(DisconnectReason.ExploitAttempt);
+            return;
+        }
+
+        AccountCreationResult result = _resolver.TryCreateAccount(msg.Username, msg.Password);
+        
+        if (result == AccountCreationResult.Success)
+            ClientRegistered?.Invoke(client);
+        
+        _server.SendMessageToClient(client, new RegisterResponseMessage(result));
     }
 }

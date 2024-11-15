@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using Server.Networking;
 using Server.Networking.Authentication.Resolvers;
+using Server.Networking.Database;
 using Server.Networking.HighLevel;
 using Server.Networking.LowLevel.Transport.Tcp;
 using Shared;
@@ -14,11 +15,14 @@ internal class GameServer
     private readonly NetServer _netServer;
 
 
-    public GameServer(IPAddress address, int port, int maxConnections)
+    public GameServer(IPAddress address, int port, int maxConnections, bool allowAccountRegistration)
     {
+        InMemoryDatabase db = new();
         _netServer = new NetServer(
             new TcpServerTransport(address, port, maxConnections),
-            new DefaultAuthenticationResolver(SharedConstants.DEVELOPMENT_AUTH_PASSWORD));
+            new DatabaseAuthenticationResolver(db),
+            db,
+            allowAccountRegistration);
         
         _netServer.ClientStateChanged += OnClientStateChanged;
         _netServer.ClientAuthenticated += client => _netServer.SendMessageToAllClientsExcept(new ChatMessageNotification(client.PlayerData!.Username, "Joined the chat."), client);;

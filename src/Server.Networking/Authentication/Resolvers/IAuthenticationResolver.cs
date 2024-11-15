@@ -7,5 +7,6 @@ namespace Server.Networking.Authentication.Resolvers;
 /// </summary>
 public interface IAuthenticationResolver
 {
-    public bool TryAuthenticate(string username, string password, out ClientUid clientUid);
+    public AuthenticationResult TryAuthenticate(string username, string password, out AccountUID accountUid);
+    public AccountCreationResult TryCreateAccount(string username, string password);
 }

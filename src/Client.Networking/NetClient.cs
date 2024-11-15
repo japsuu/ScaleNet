@@ -13,11 +13,12 @@ public class NetClient
     private readonly INetClientTransport _transport;
     private readonly Authenticator _authenticator;
     private readonly MessageHandlerManager _messageHandlerManager;
-    
+    private bool _serverAllowsRegistration;
+
     /// <summary>
     /// The current unique client ID.
     /// </summary>
-    public ClientUid ClientUid { get; private set; }
+    public AccountUID AccountUid { get; private set; }
     
     /// <summary>
     /// True if the local client is connected to the server.
@@ -35,7 +36,7 @@ public class NetClient
     public event Action<ConnectionStateArgs>? ConnectionStateChanged;
 
     /// <summary>
-    /// Called after the local client has authenticated (when a <see cref="WelcomeMessage"/> is received from the server).
+    /// Called after the local client has authenticated (when a <see cref="AuthenticationResponseMessage"/> with <see cref="AuthenticationResult.Success"/> is received from the server).
     /// </summary>
     public event Action? Authenticated;
 
@@ -48,12 +49,14 @@ public class NetClient
         _transport.PacketReceived += OnPacketReceived;
         
         _authenticator = new Authenticator(this);
+        _authenticator.AuthenticationResultReceived += OnAuthenticationResultReceived;
+        _authenticator.AccountCreationResultReceived += OnAccountCreationResultReceived;
         
-        RegisterMessageHandler<WelcomeMessage>(OnWelcomeReceived);
+        RegisterMessageHandler<AuthenticationInfoMessage>(OnReceiveAuthInfo);
         RegisterMessageHandler<DisconnectMessage>(OnDisconnectReceived);
     }
-    
-    
+
+
     public void Connect()
     {
         Logger.LogInfo($"Connecting to {_transport.Address}:{_transport.Port}...");
@@ -75,6 +78,16 @@ public class NetClient
     {
         Logger.LogInfo("Disconnecting...");
         _transport.Disconnect();
+    }
+    
+    
+    internal void SetAuthenticated(AccountUID accountUid)
+    {
+        Logger.LogDebug("Local client is now authenticated.");
+        
+        IsAuthenticated = true;
+        AccountUid = accountUid;
+        Authenticated?.Invoke();
     }
     
 
@@ -156,23 +169,135 @@ public class NetClient
     }
 
 
-    private void OnWelcomeReceived(WelcomeMessage message)
-    {
-        Logger.LogInfo("Received welcome message from server.");
-        
-        ClientUid = new ClientUid(message.ClientId);
-
-        // Mark local connection as authenticated.
-        IsAuthenticated = true;
-        Authenticated?.Invoke();
-    }
-
-
     private void OnDisconnectReceived(DisconnectMessage message)
     {
         Logger.LogWarning($"Received disconnect message from server: {message.Reason}");
         
         // Disconnect the local client.
         Disconnect();
+    }
+
+
+    private void OnReceiveAuthInfo(AuthenticationInfoMessage msg)
+    {
+        if (msg.ServerVersion != SharedConstants.GAME_VERSION)
+        {
+            Logger.LogError($"The client version ({SharedConstants.GAME_VERSION}) does not match the server version ({msg.ServerVersion}). Please update the client.");
+            Disconnect();
+            return;
+        }
+        
+        _serverAllowsRegistration = msg.RegistrationAllowed;
+
+        TryAuthenticate();
+    }
+
+
+    private void OnAuthenticationResultReceived(AuthenticationResult result)
+    {
+        Logger.LogInfo($"Received authentication result: {result}");
+
+        if (result == AuthenticationResult.Success)
+            return;
+        
+        Logger.LogError("Authentication failed.");
+        TryAuthenticate();
+    }
+
+
+    private void OnAccountCreationResultReceived(AccountCreationResult result)
+    {
+        Logger.LogInfo($"Received account creation result: {result}");
+        TryAuthenticate();
+    }
+
+
+    private void TryAuthenticate()
+    {
+        // Ask user if they want to log in or register.
+        bool login;
+        if (_serverAllowsRegistration)
+        {
+            while (true)
+            {
+                Logger.LogInfo("Do you want to login or register? (login/register)");
+                string? input = Console.ReadLine();
+                if (string.IsNullOrWhiteSpace(input))
+                {
+                    Logger.LogError("Please enter 'login' or 'register'.");
+                    continue;
+                }
+
+                if (input.Equals("login", StringComparison.OrdinalIgnoreCase))
+                {
+                    login = true;
+                    break;
+                }
+
+                if (input.Equals("register", StringComparison.OrdinalIgnoreCase))
+                {
+                    login = false;
+                    break;
+                }
+
+                Logger.LogError("Please enter 'login' or 'register'.");
+            }
+        }
+        else
+        {
+            Logger.LogInfo("Registration is disabled by server. You can currently only login.");
+            login = true;
+        }
+        
+        // Ask user for username and password.
+        string username;
+        string password;
+        while (true)
+        {
+            (string? user, string? pass) = RequestCredentials();
+            if (string.IsNullOrWhiteSpace(user) || string.IsNullOrWhiteSpace(pass))
+            {
+                Logger.LogError("Username and password cannot be empty.");
+                continue;
+            }
+            
+            if (user.Length < SharedConstants.MIN_USERNAME_LENGTH || user.Length > SharedConstants.MAX_USERNAME_LENGTH)
+            {
+                Logger.LogError($"Username must be between {SharedConstants.MIN_USERNAME_LENGTH} and {SharedConstants.MAX_USERNAME_LENGTH} characters.");
+                continue;
+            }
+        
+            if (pass.Length < SharedConstants.MIN_PASSWORD_LENGTH || pass.Length > SharedConstants.MAX_PASSWORD_LENGTH)
+            {
+                Logger.LogError($"Password must be between {SharedConstants.MIN_PASSWORD_LENGTH} and {SharedConstants.MAX_PASSWORD_LENGTH} characters.");
+                continue;
+            }
+            
+            username = user;
+            password = pass;
+
+            break;
+        }
+
+        if (login)
+        {
+            _authenticator.Login(username, password);
+        }
+        else
+        {
+            _authenticator.Register(username, password);
+        }
+    }
+    
+    
+    private static (string?, string?) RequestCredentials()
+    {
+        Logger.LogInfo("Enter your username:");
+        string? username = Console.ReadLine();
+        
+        Logger.LogInfo("Enter your password:");
+        string? password = Console.ReadLine();
+        
+        return (username, password);
     }
 }

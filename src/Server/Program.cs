@@ -20,7 +20,8 @@ internal static class Program
         GameServer server = new(
             IPAddress.Any,
             SharedConstants.SERVER_PORT,
-            ConfigManager.CurrentConfiguration.MaxConnections);
+            ConfigManager.CurrentConfiguration.MaxConnections,
+            ConfigManager.CurrentConfiguration.AllowAccountRegistration);
         Console.WriteLine("startup");
         
         // Start the blocking server loop
