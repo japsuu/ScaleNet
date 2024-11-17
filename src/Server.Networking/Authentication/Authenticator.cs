@@ -75,7 +75,7 @@ internal class Authenticator
             ClientAuthFailure?.Invoke(client);
         }
         
-        _server.SendMessageToClient(client, new AuthenticationResponseMessage(result, uid.Value));
+        _server.SendMessageToClient(client, new AuthenticationResponseMessage(result, uid.Value), false);
     }
 
 
@@ -93,6 +93,6 @@ internal class Authenticator
         if (result == AccountCreationResult.Success)
             ClientRegistered?.Invoke(client);
         
-        _server.SendMessageToClient(client, new RegisterResponseMessage(result));
+        _server.SendMessageToClient(client, new RegisterResponseMessage(result), false);
     }
 }
