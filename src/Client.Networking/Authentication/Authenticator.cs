@@ -1,7 +1,6 @@
 using Shared.Networking;
-using Shared.Networking.Messages;
 
-namespace Client.Networking.HighLevel.Authentication;
+namespace Client.Networking.Authentication;
 
 internal class Authenticator
 {

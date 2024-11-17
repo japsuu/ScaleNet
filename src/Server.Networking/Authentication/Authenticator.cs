@@ -1,8 +1,6 @@
 using Server.Networking.Authentication.Resolvers;
-using Server.Networking.HighLevel;
 using Shared;
 using Shared.Networking;
-using Shared.Networking.Messages;
 
 namespace Server.Networking.Authentication;
 

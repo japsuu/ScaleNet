@@ -1,5 +1,4 @@
-﻿using Server.Networking.HighLevel;
-using Shared.Networking.Messages;
+﻿using Shared.Networking;
 
 namespace Server.Networking.LowLevel;
 

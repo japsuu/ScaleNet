@@ -1,7 +1,7 @@
 ﻿using MessagePack;
 using Shared.Utils;
 
-namespace Shared.Networking.Messages;
+namespace Shared.Networking;
 
 public static class NetMessages
 {

@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Server.Networking.HighLevel;
+namespace Server.Networking;
 
 internal class ClientManager(NetServer server)
 {

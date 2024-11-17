@@ -1,6 +1,6 @@
 ﻿using Client.Networking;
 using Client.Networking.LowLevel.Transport;
-using Shared.Networking.Messages;
+using Shared.Networking;
 using Shared.Utils;
 
 namespace Client;

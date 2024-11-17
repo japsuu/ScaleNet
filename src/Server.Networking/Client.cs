@@ -1,10 +1,9 @@
 ﻿using System.Diagnostics;
 using Server.Networking.Database;
 using Shared.Networking;
-using Shared.Networking.Messages;
 using Shared.Utils;
 
-namespace Server.Networking.HighLevel;
+namespace Server.Networking;
 
 public class Client(SessionId sessionId, NetServer server)
 {

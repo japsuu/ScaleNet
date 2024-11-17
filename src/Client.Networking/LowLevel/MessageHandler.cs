@@ -1,4 +1,4 @@
-﻿using Shared.Networking.Messages;
+﻿using Shared.Networking;
 
 namespace Client.Networking.LowLevel;
 

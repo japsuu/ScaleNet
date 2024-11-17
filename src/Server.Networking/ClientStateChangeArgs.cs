@@ -1,4 +1,4 @@
-﻿namespace Server.Networking.HighLevel;
+﻿namespace Server.Networking;
 
 public readonly struct ClientStateChangeArgs(Client client, ConnectionState newState)
 {

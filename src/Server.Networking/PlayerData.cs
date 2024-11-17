@@ -1,4 +1,4 @@
-﻿namespace Server.Networking.Database;
+﻿namespace Server.Networking;
 
 public sealed class PlayerData
 {

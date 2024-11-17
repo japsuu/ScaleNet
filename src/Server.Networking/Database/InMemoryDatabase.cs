@@ -61,6 +61,8 @@ public class InMemoryDatabase : IDatabaseAccess
                     accountUid = uid;
                     return AuthenticationResult.Success;
                 }
+                
+                // Invalid password.
             }
             else
             {
@@ -68,6 +70,8 @@ public class InMemoryDatabase : IDatabaseAccess
                 Logger.LogWarning($"Account with username '{username}' has an {nameof(AccountUID)} but no {nameof(AccountData)}.");
             }
         }
+        
+        // Invalid username or password.
 
         accountUid = AccountUID.Invalid;
         return AuthenticationResult.InvalidCredentials;

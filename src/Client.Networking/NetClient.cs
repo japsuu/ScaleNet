@@ -1,9 +1,8 @@
-﻿using Client.Networking.HighLevel.Authentication;
+﻿using Client.Networking.Authentication;
 using Client.Networking.LowLevel;
 using Client.Networking.LowLevel.Transport;
 using Shared;
 using Shared.Networking;
-using Shared.Networking.Messages;
 using Shared.Utils;
 
 namespace Client.Networking;

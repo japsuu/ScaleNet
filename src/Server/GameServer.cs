@@ -2,10 +2,9 @@
 using Server.Networking;
 using Server.Networking.Authentication.Resolvers;
 using Server.Networking.Database;
-using Server.Networking.HighLevel;
 using Server.Networking.LowLevel.Transport.Tcp;
 using Shared;
-using Shared.Networking.Messages;
+using Shared.Networking;
 using Shared.Utils;
 
 namespace Server;
