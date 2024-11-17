@@ -62,9 +62,11 @@ public class InMemoryDatabase : IDatabaseAccess
                     return AuthenticationResult.Success;
                 }
             }
-            
-            // This should never happen.
-            Logger.LogWarning($"Account with username '{username}' has an {nameof(AccountUID)} but no {nameof(AccountData)}.");
+            else
+            {
+                // This should never happen.
+                Logger.LogWarning($"Account with username '{username}' has an {nameof(AccountUID)} but no {nameof(AccountData)}.");
+            }
         }
 
         accountUid = AccountUID.Invalid;
