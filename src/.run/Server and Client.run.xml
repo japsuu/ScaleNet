@@ -19,11 +19,6 @@
             <option name="type" value="afterPreviousFinished" />
           </ConditionSnapshot>
         </option>
-        <option name="executable">
-          <ExecutableSnapshot>
-            <option name="id" value="runConfig:.NET Project.Server" />
-          </ExecutableSnapshot>
-        </option>
       </ExecutableRowSnapshot>
       <ExecutableRowSnapshot>
         <option name="condition">
@@ -33,11 +28,6 @@
             </attributes>
             <option name="type" value="waitPortOpened" />
           </ConditionSnapshot>
-        </option>
-        <option name="executable">
-          <ExecutableSnapshot>
-            <option name="id" value="runConfig:.NET Project.Client" />
-          </ExecutableSnapshot>
         </option>
       </ExecutableRowSnapshot>
     </rows>
