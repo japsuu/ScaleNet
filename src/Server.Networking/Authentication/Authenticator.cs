@@ -81,6 +81,12 @@ internal class Authenticator
 
     private void OnReceiveRegisterRequest(Client client, RegisterRequestMessage msg)
     {
+        if (!_allowAccountRegistration)
+        {
+            client.Kick(DisconnectReason.ExploitAttempt);
+            return;
+        }
+        
         // If a client is already authenticated, this could be an attack.
         if (client.IsAuthenticated)
         {
