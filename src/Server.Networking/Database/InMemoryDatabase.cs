@@ -33,7 +33,7 @@ public class InMemoryDatabase : IDatabaseAccess
         if (password.Length < SharedConstants.MIN_PASSWORD_LENGTH || password.Length > SharedConstants.MAX_PASSWORD_LENGTH)
             return AccountCreationResult.InvalidPassword;
         
-        if (!_accountUidTable.ContainsKey(username))
+        if (_accountUidTable.ContainsKey(username))
             return AccountCreationResult.UsernameTaken;
         
         AccountUID accountUid = new(_nextClientUid);
