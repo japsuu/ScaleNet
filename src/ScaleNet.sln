@@ -2,9 +2,9 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared", "Shared\Shared.csproj", "{648EF40E-A9BC-45FE-A642-44FA32E944F7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client.Networking", "Client.Networking\Client.Networking.csproj", "{6C44082C-EA25-40DF-9E7B-3488D60C5200}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Client\Client.csproj", "{6C44082C-EA25-40DF-9E7B-3488D60C5200}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server.Networking", "Server.Networking\Server.Networking.csproj", "{A314004D-009C-4F10-A117-C06645690016}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server", "Server\Server.csproj", "{A314004D-009C-4F10-A117-C06645690016}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
