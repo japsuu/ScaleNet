@@ -75,7 +75,7 @@ The server and client code are separated into different projects in the `/src` d
 
 Please check out the provided example projects to see how to use ScaleNet:
 
-- [TCP Chat](src/examples/Chat) - A simple chat server and client using the default TCP transport layer
+- [TCP Chat](examples/Chat) - A simple chat server and client using the default TCP transport layer
 
 ---
 
