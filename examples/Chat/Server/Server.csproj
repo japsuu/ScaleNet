@@ -8,8 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Server.Networking\Server.Networking.csproj" />
-      <ProjectReference Include="..\Shared\Shared.csproj" />
+      <ProjectReference Include="..\..\..\src\Server.Networking\Server.Networking.csproj" />
+      <ProjectReference Include="..\..\..\src\Shared\Shared.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -25,7 +25,7 @@
         <DefineConstants>TRACE</DefineConstants>
         <Optimize>false</Optimize>
         <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
-        <OutputPath>..\..\Build\Debug\</OutputPath>
+        <OutputPath>..\Build\Debug\</OutputPath>
     </PropertyGroup>
 
     <!-- Release configuration -->
@@ -33,7 +33,7 @@
         <DefineConstants>TRACE</DefineConstants>
         <Optimize>true</Optimize>
         <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
-        <OutputPath>..\..\Build\Release\</OutputPath>
+        <OutputPath>..\Build\Release\</OutputPath>
         <DebugType>none</DebugType>
     </PropertyGroup>
 

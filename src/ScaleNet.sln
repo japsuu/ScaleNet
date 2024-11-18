@@ -1,9 +1,5 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server", "Server\Server.csproj", "{17CF5D5C-E813-42AC-9BC0-EE436631BD4A}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Client\Client.csproj", "{8CE379B9-B42F-4217-B835-8E701490FF8C}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared", "Shared\Shared.csproj", "{648EF40E-A9BC-45FE-A642-44FA32E944F7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client.Networking", "Client.Networking\Client.Networking.csproj", "{6C44082C-EA25-40DF-9E7B-3488D60C5200}"
@@ -16,14 +12,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{17CF5D5C-E813-42AC-9BC0-EE436631BD4A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{17CF5D5C-E813-42AC-9BC0-EE436631BD4A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{17CF5D5C-E813-42AC-9BC0-EE436631BD4A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{17CF5D5C-E813-42AC-9BC0-EE436631BD4A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8CE379B9-B42F-4217-B835-8E701490FF8C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8CE379B9-B42F-4217-B835-8E701490FF8C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8CE379B9-B42F-4217-B835-8E701490FF8C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8CE379B9-B42F-4217-B835-8E701490FF8C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{648EF40E-A9BC-45FE-A642-44FA32E944F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{648EF40E-A9BC-45FE-A642-44FA32E944F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{648EF40E-A9BC-45FE-A642-44FA32E944F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
