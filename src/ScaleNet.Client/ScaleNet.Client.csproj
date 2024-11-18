@@ -14,7 +14,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Shared\Shared.csproj" />
+      <ProjectReference Include="..\ScaleNet\ScaleNet.csproj" />
     </ItemGroup>
 
     <!-- Debug configuration -->
