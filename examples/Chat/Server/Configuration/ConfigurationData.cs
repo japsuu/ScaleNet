@@ -1,4 +1,4 @@
-﻿using Shared.Utils;
+﻿using ScaleNet.Utils;
 using YamlDotNet.Serialization;
 
 namespace Server.Configuration;

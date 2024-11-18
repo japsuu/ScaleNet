@@ -1,11 +1,10 @@
 ﻿using System.Net;
-using Server.Networking;
-using Server.Networking.Authentication.Resolvers;
-using Server.Networking.Database;
-using Server.Networking.LowLevel.Transport.Tcp;
-using Shared;
-using Shared.Networking;
-using Shared.Utils;
+using ScaleNet.Networking;
+using ScaleNet.Server;
+using ScaleNet.Server.Authentication.Resolvers;
+using ScaleNet.Server.Database;
+using ScaleNet.Server.LowLevel.Transport.Tcp;
+using ScaleNet.Utils;
 
 namespace Server;
 

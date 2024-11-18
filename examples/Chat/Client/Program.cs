@@ -1,5 +1,5 @@
-﻿using Shared;
-using Shared.Utils;
+﻿using ScaleNet;
+using ScaleNet.Utils;
 
 namespace Client;
 

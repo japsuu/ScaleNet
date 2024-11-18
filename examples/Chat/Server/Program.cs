@@ -1,7 +1,7 @@
 ﻿using System.Net;
+using ScaleNet;
+using ScaleNet.Utils;
 using Server.Configuration;
-using Shared;
-using Shared.Utils;
 
 namespace Server;
 

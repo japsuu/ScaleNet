@@ -1,7 +1,7 @@
-﻿using Client.Networking;
-using Client.Networking.LowLevel.Transport;
-using Shared.Networking;
-using Shared.Utils;
+﻿using ScaleNet.Client;
+using ScaleNet.Client.LowLevel.Transport;
+using ScaleNet.Networking;
+using ScaleNet.Utils;
 
 namespace Client;
 

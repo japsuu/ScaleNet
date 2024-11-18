@@ -1,10 +1,10 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client.Networking", "..\src\Client.Networking\Client.Networking.csproj", "{1E24DA33-981F-4FCD-A18F-0DE23C4463A4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScaleNet", "..\src\ScaleNet\ScaleNet.csproj", "{BD14D7AE-3C43-441D-BC44-CA2963D138A0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared", "..\src\Shared\Shared.csproj", "{BD14D7AE-3C43-441D-BC44-CA2963D138A0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScaleNet.Client", "..\src\ScaleNet.Client\ScaleNet.Client.csproj", "{1E24DA33-981F-4FCD-A18F-0DE23C4463A4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server.Networking", "..\src\Server.Networking\Server.Networking.csproj", "{B300843B-F59C-4E80-9A5D-6A840BAE4DEA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScaleNet.Server", "..\src\ScaleNet.Server\ScaleNet.Server.csproj", "{B300843B-F59C-4E80-9A5D-6A840BAE4DEA}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Chat", "Chat", "{837337C3-81B5-477F-BA4D-D1AFF3E56041}"
 EndProject
