@@ -4,10 +4,10 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using NetCoreServer;
-using Shared.Networking;
-using Shared.Utils;
+using ScaleNet.Networking;
+using ScaleNet.Utils;
 
-namespace Server.LowLevel.Transport.Tcp;
+namespace ScaleNet.Server.LowLevel.Transport.Tcp;
 
 public class TcpServerTransport : TcpServer, IServerTransport
 {

@@ -1,6 +1,6 @@
-﻿using Shared.Networking;
+﻿using ScaleNet.Networking;
 
-namespace Server.Authentication.Resolvers;
+namespace ScaleNet.Server.Authentication.Resolvers;
 
 /// <summary>
 /// Interface for classes that can authenticate clients.

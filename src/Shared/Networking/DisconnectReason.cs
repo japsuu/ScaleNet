@@ -1,4 +1,4 @@
-﻿namespace Shared.Networking;
+﻿namespace ScaleNet.Networking;
 
 /// <summary>
 /// The reason for a client's disconnection.

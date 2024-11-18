@@ -1,6 +1,6 @@
-using Shared.Networking;
+using ScaleNet.Networking;
 
-namespace Client.Authentication;
+namespace ScaleNet.Client.Authentication;
 
 internal class Authenticator
 {

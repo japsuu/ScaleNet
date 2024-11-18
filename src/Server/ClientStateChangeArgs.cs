@@ -1,4 +1,4 @@
-﻿namespace Server;
+﻿namespace ScaleNet.Server;
 
 public readonly struct ClientStateChangeArgs(Client client, ConnectionState newState)
 {

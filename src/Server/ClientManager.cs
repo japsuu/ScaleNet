@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Server;
+namespace ScaleNet.Server;
 
 internal class ClientManager(NetServer server)
 {

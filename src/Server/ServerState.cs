@@ -1,4 +1,4 @@
-namespace Server;
+namespace ScaleNet.Server;
 
 /// <summary>
 /// States a server can be in.

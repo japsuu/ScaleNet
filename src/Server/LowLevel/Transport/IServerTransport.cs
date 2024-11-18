@@ -1,6 +1,6 @@
-﻿using Shared.Networking;
+﻿using ScaleNet.Networking;
 
-namespace Server.LowLevel.Transport;
+namespace ScaleNet.Server.LowLevel.Transport;
 
 public interface IServerTransport
 {

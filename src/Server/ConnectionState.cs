@@ -1,4 +1,4 @@
-namespace Server;
+namespace ScaleNet.Server;
 
 /// <summary>
 /// States a remove network connection can be in.

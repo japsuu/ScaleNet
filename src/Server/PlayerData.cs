@@ -1,4 +1,4 @@
-﻿namespace Server;
+﻿namespace ScaleNet.Server;
 
 public sealed class PlayerData
 {

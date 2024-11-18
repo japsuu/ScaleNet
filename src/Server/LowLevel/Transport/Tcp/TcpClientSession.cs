@@ -3,11 +3,10 @@ using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
 using NetCoreServer;
-using Shared;
-using Shared.Networking;
-using Shared.Utils;
+using ScaleNet.Networking;
+using ScaleNet.Utils;
 
-namespace Server.LowLevel.Transport.Tcp;
+namespace ScaleNet.Server.LowLevel.Transport.Tcp;
 
 internal class TcpClientSession(SessionId id, TcpServerTransport transport) : TcpSession(transport)
 {

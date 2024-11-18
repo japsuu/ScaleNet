@@ -1,4 +1,4 @@
-﻿namespace Shared;
+﻿namespace ScaleNet;
 
 public static class SharedConstants
 {

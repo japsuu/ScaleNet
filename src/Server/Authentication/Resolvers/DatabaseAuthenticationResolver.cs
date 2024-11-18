@@ -1,7 +1,7 @@
-﻿using Server.Database;
-using Shared.Networking;
+﻿using ScaleNet.Networking;
+using ScaleNet.Server.Database;
 
-namespace Server.Authentication.Resolvers;
+namespace ScaleNet.Server.Authentication.Resolvers;
 
 public class DatabaseAuthenticationResolver(IDatabaseAccess databaseAccess) : IAuthenticationResolver
 {

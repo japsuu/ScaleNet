@@ -1,4 +1,4 @@
-﻿namespace Shared.Utils;
+﻿namespace ScaleNet.Utils;
 
 public static class RandomUtils
 {

@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using Shared.Networking;
+using ScaleNet.Networking;
 
-namespace Server.Database;
+namespace ScaleNet.Server.Database;
 
 /// <summary>
 /// Represents a database access object that can be used to interact with the database.

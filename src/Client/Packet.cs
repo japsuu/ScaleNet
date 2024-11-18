@@ -1,4 +1,4 @@
-﻿namespace Client;
+﻿namespace ScaleNet.Client;
 
 /// <summary>
 /// A raw packet of data.

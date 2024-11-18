@@ -1,7 +1,7 @@
 ﻿using MessagePack;
-using Shared.Utils;
+using ScaleNet.Utils;
 
-namespace Shared.Networking;
+namespace ScaleNet.Networking;
 
 public static class NetMessages
 {

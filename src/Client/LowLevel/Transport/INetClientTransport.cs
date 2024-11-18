@@ -1,4 +1,4 @@
-﻿namespace Client.LowLevel.Transport;
+﻿namespace ScaleNet.Client.LowLevel.Transport;
 
 public interface INetClientTransport
 {

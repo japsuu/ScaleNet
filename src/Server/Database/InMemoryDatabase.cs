@@ -1,10 +1,9 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
-using Shared;
-using Shared.Networking;
-using Shared.Utils;
+using ScaleNet.Networking;
+using ScaleNet.Utils;
 
-namespace Server.Database;
+namespace ScaleNet.Server.Database;
 
 public class InMemoryDatabase : IDatabaseAccess
 {

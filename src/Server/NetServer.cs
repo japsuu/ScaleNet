@@ -1,13 +1,13 @@
 ﻿using System.Diagnostics;
-using Server.Authentication;
-using Server.Authentication.Resolvers;
-using Server.Database;
-using Server.LowLevel;
-using Server.LowLevel.Transport;
-using Shared.Networking;
-using Shared.Utils;
+using ScaleNet.Networking;
+using ScaleNet.Server.Authentication;
+using ScaleNet.Server.Authentication.Resolvers;
+using ScaleNet.Server.Database;
+using ScaleNet.Server.LowLevel;
+using ScaleNet.Server.LowLevel.Transport;
+using ScaleNet.Utils;
 
-namespace Server;
+namespace ScaleNet.Server;
 
 public class NetServer
 {

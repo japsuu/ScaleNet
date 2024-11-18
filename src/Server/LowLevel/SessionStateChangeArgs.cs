@@ -1,4 +1,4 @@
-namespace Server.LowLevel;
+namespace ScaleNet.Server.LowLevel;
 
 public readonly struct SessionStateChangeArgs(SessionId sessionId, ConnectionState newState)
 {

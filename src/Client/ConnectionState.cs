@@ -1,4 +1,4 @@
-namespace Client;
+namespace ScaleNet.Client;
 
 /// <summary>
 /// States a network connection can be in.

@@ -1,4 +1,4 @@
-namespace Server;
+namespace ScaleNet.Server;
 
 public readonly struct ServerStateChangeArgs(ServerState newState, ServerState oldState)
 {

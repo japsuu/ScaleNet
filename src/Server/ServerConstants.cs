@@ -1,4 +1,4 @@
-﻿namespace Server;
+﻿namespace ScaleNet.Server;
 
 /// <summary>
 /// Constants only used on the server.

@@ -1,11 +1,11 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Net.Sockets;
-using Shared.Networking;
-using Shared.Utils;
+using ScaleNet.Networking;
+using ScaleNet.Utils;
 using TcpClient = NetCoreServer.TcpClient;
 
-namespace Client.LowLevel.Transport;
+namespace ScaleNet.Client.LowLevel.Transport;
 
 public class TcpNetClientTransport(string address, int port, IPacketMiddleware? middleware = null) : TcpClient(address, port), INetClientTransport
 {

@@ -1,4 +1,4 @@
-namespace Client;
+namespace ScaleNet.Client;
 
 public readonly struct ConnectionStateArgs(ConnectionState newConnectionState, ConnectionState oldConnectionState)
 {

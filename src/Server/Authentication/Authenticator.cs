@@ -1,8 +1,7 @@
-using Server.Authentication.Resolvers;
-using Shared;
-using Shared.Networking;
+using ScaleNet.Networking;
+using ScaleNet.Server.Authentication.Resolvers;
 
-namespace Server.Authentication;
+namespace ScaleNet.Server.Authentication;
 
 internal class Authenticator
 {

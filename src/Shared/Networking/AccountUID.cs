@@ -1,4 +1,4 @@
-﻿namespace Shared.Networking;
+﻿namespace ScaleNet.Networking;
 
 /// <summary>
 /// A unique identifier for a specific account, assigned on account creation.

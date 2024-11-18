@@ -1,9 +1,8 @@
 ﻿using System.Diagnostics;
-using Server.Database;
-using Shared.Networking;
-using Shared.Utils;
+using ScaleNet.Networking;
+using ScaleNet.Utils;
 
-namespace Server;
+namespace ScaleNet.Server;
 
 public class Client(SessionId sessionId, NetServer server)
 {

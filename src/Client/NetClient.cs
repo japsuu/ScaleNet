@@ -1,11 +1,10 @@
-﻿using Client.Authentication;
-using Client.LowLevel;
-using Client.LowLevel.Transport;
-using Shared;
-using Shared.Networking;
-using Shared.Utils;
+﻿using ScaleNet.Client.Authentication;
+using ScaleNet.Client.LowLevel;
+using ScaleNet.Client.LowLevel.Transport;
+using ScaleNet.Networking;
+using ScaleNet.Utils;
 
-namespace Client;
+namespace ScaleNet.Client;
 
 public class NetClient
 {

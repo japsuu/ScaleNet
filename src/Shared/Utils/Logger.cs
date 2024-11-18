@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace Shared.Utils;
+namespace ScaleNet.Utils;
 
 public static class Logger
 {

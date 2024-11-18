@@ -1,7 +1,7 @@
-﻿using Shared.Networking;
-using Shared.Utils;
+﻿using ScaleNet.Networking;
+using ScaleNet.Utils;
 
-namespace Server.LowLevel;
+namespace ScaleNet.Server.LowLevel;
 
 /// <summary>
 /// Maintains a collection of message handlers, tied to specific message types.
