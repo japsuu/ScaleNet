@@ -10,8 +10,6 @@
     <ItemGroup>
       <ProjectReference Include="..\..\..\src\ScaleNet.Server\ScaleNet.Server.csproj" />
       <ProjectReference Include="..\..\..\src\ScaleNet\ScaleNet.csproj" />
-      <ProjectReference Include="..\..\..\src\Server.Networking\Server.Networking.csproj" />
-      <ProjectReference Include="..\..\..\src\Shared\Shared.csproj" />
     </ItemGroup>
 
     <ItemGroup>
