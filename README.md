@@ -6,6 +6,11 @@ ScaleNet is a networking library for C# that is specifically designed around hig
 It is transport-layer agnostic, meaning that you can implement your own transport layer if you want to.
 A default TCP transport layer is provided, which is sufficient for most use cases.
 
+ScaleNet targets .NET Standard 2.1 with special optimizations for .NET 8, making it compatible with most recent .NET runtimes, including Unity 2018.3 and later.
+
+> [!NOTE]  
+> If you are planning on using ScaleNet with Unity, please read the [Unity Compatibility](#unity-compatibility) section.
+
 **This is a personal project that I am working on in my free time.
 This project was created to serve a specific need that I had, since I couldn't find any networking libraries that met my requirements.
 I am sharing this project in the hope that it will be useful to others.**
@@ -50,26 +55,63 @@ ScaleNet provides basic client management features, such as:
 
 ---
 
+## Unity Compatibility
+
+> [!WARNING]
+> Please note that the library is not yet optimized for Unity and **may** require some modifications to work correctly.
+
+ScaleNet is compatible with Unity 2018.3 and later, but there are some caveats:
+
+### MessagePack
+
+ScaleNet uses MessagePack for serialization.
+MessagePack serializes custom objects by generating IL on the fly at runtime to create custom highly tuned formatters for each message type.
+
+**When using Unity, this dynamic code generation only works when targeting .NET Framework 4.x + mono runtime. For all other Unity targets, manual AOT code generation is required.**
+
+MessagePack provides a tool called `mpc` (MessagePackCompiler) that can generate AOT code for Unity. You can find more information about this in the [MessagePack for C# documentation](https://github.com/MessagePack-CSharp/MessagePack-CSharp?tab=readme-ov-file#aot-code-generation-support-for-unityxamarin).
+
+Here's the quick guide to generate AOT code for Unity:
+
+1. Acquire `mpc` as a dotnet tool.
+    Install as global tool:
+    ```bash
+    dotnet tool install --global MessagePack.Generator
+    ```
+    or install as local tool. This allows you to include the tools and versions that you use in your source control system. Run these commands in the root of your repo:
+    ```bash
+    dotnet new tool-manifest
+    dotnet tool install MessagePack.Generator
+    ```
+    If installed as a local tool, on another machine you can "restore" your tool using the `dotnet tool restore` command.
+   
+2. Generate AOT code for your project:
+    ```bash
+    dotnet mpc -i "..\src\Sandbox.Shared.csproj" -o "MessagePackGenerated.cs"
+    ```
+   
+3. Add the generated file to your Unity project.
+
+4. In Unity, add the `SCALENET_AOT` symbol to your project settings.
+
+---
+
 ## Getting Started
-
-### Prerequisites
-
-- .NET 8.0 SDK or later
 
 ### Installation
 
-> [!NOTE]  
-> This project is still in development and is not yet available on NuGet.
-
 Currently, the preferred way to use ScaleNet is to clone the repository and manually copy the source files into your project.
+ScaleNet includes platform-specific #ifdefs and workarounds for Unity, thus it is not available precompiled.
 
 ```bash
 git clone https://github.com/japsuu/ScaleNet
 ```
 
 The server and client code are separated into different projects in the `/src` directory, so you need to copy the correct files into your project:
-- For your server project, you should copy the `ScaleNet.Server` and `ScaleNet` folders into your project.
-- For your client project, you should copy the `ScaleNet.Client` and `ScaleNet` folders into your project.
+- For server, you should copy `ScaleNet.Server` and `ScaleNet` folders into your project.
+- For client, you should copy `ScaleNet.Client` and `ScaleNet` folders into your project.
+
+If you do not care about separating the server and client code, you can copy the entire `src` folder into your project.
 
 ### Usage
 
