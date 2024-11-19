@@ -1,6 +1,4 @@
-﻿using ScaleNet.Networking;
-
-namespace ScaleNet.Server.LowLevel;
+﻿namespace ScaleNet.Server.LowLevel;
 
 internal abstract class MessageHandler
 {

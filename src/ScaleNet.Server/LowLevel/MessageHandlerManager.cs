@@ -1,5 +1,4 @@
-﻿using ScaleNet.Networking;
-using ScaleNet.Utils;
+﻿using ScaleNet.Utils;
 
 namespace ScaleNet.Server.LowLevel;
 

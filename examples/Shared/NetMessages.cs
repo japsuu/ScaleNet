@@ -1,6 +1,6 @@
 ﻿using System;
 using MessagePack;
-using ScaleNet.Networking;
+using ScaleNet;
 
 namespace Shared
 {

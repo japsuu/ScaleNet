@@ -6,7 +6,7 @@ using System.Reflection;
 using MessagePack;
 using ScaleNet.Utils;
 
-namespace ScaleNet.Networking
+namespace ScaleNet
 {
     public readonly struct DeserializedNetMessage
     {

@@ -1,5 +1,4 @@
-﻿using ScaleNet.Networking;
-using ScaleNet.Server.Database;
+﻿using ScaleNet.Server.Database;
 
 namespace ScaleNet.Server.Authentication.Resolvers;
 

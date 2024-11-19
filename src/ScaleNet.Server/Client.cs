@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using ScaleNet.Networking;
 
 namespace ScaleNet.Server;
 
