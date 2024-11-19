@@ -3,6 +3,7 @@ using ScaleNet.Client.LowLevel.Transport;
 using ScaleNet.Client.LowLevel.Transport.Tcp;
 using ScaleNet.Networking;
 using ScaleNet.Utils;
+using Shared;
 
 namespace Client;
 

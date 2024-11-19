@@ -5,4 +5,12 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="MessagePack.Annotations" Version="3.0.238-rc.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\src\ScaleNet\ScaleNet.csproj" />
+    </ItemGroup>
+
 </Project>
