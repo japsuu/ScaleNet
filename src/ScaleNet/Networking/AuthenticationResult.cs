@@ -1,4 +1,6 @@
-﻿namespace ScaleNet.Networking
+﻿using System;
+
+namespace ScaleNet.Networking
 {
     public enum AuthenticationResult : byte
     {

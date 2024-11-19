@@ -1,4 +1,5 @@
-﻿using System.Buffers;
+﻿using System;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Net;
@@ -16,18 +17,14 @@ public class TcpServerTransport : TcpServer, IServerTransport
     /// </summary>
     internal readonly struct Packet
     {
-        public readonly Memory<byte> Data;
+        public readonly ushort TypeID;
+        public readonly byte[] Data;
 
 
-        public Packet(byte[] buffer, int offset, int size)
+        public Packet(ushort typeID, byte[] data)
         {
-            Data = new Memory<byte>(buffer, offset, size);
-        }
-        
-        
-        public Packet(Memory<byte> span)
-        {
-            Data = span;
+            TypeID = typeID;
+            Data = data;
         }
     }
     
@@ -43,7 +40,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
     
     public event Action<ServerStateChangeArgs>? ServerStateChanged;
     public event Action<SessionStateChangeArgs>? SessionStateChanged;
-    public event Action<SessionId, INetMessage>? HandleMessage;
+    public event Action<SessionId, DeserializedNetMessage>? MessageReceived;
 
 
     public TcpServerTransport(IPAddress address, int port, int maxConnections, IPacketMiddleware? middleware = null) : base(address, port)
@@ -106,16 +103,14 @@ public class TcpServerTransport : TcpServer, IServerTransport
         {
             while (session.IncomingPackets.TryDequeue(out Packet packet))
             {
-                INetMessage? msg = NetMessages.Deserialize(packet.Data);
-        
-                if (msg == null)
+                if (!NetMessages.TryDeserialize(packet.TypeID, packet.Data, out DeserializedNetMessage msg))
                 {
                     Logger.LogWarning($"Received a packet that could not be deserialized. Kicking session {session.SessionId} immediately.");
                     DisconnectSession(session, DisconnectReason.MalformedData);
                     return;
                 }
                 
-                HandleMessage?.Invoke(session.SessionId, msg);
+                MessageReceived?.Invoke(session.SessionId, msg);
             }
         }
     }
@@ -146,11 +141,17 @@ public class TcpServerTransport : TcpServer, IServerTransport
 
     private static void QueueSendAsync<T>(TcpClientSession session, T message) where T : INetMessage
     {
+        if (!NetMessages.TryGetMessageId(message.GetType(), out ushort id))
+        {
+            Logger.LogError($"Cannot send: failed to get the ID of message {message.GetType()}.");
+            return;
+        }
+        
         // Write to buffer.
         byte[] bytes = NetMessages.Serialize(message);
         
         // Enqueue the packet.
-        Packet p = new(bytes, 0, bytes.Length);
+        Packet p = new(id, bytes);
         
         session.OutgoingPackets.Enqueue(p);
     }
@@ -184,20 +185,29 @@ public class TcpServerTransport : TcpServer, IServerTransport
     {
         while (session.OutgoingPackets.TryDequeue(out Packet packet))
         {
-            Memory<byte> buffer = packet.Data;
+            byte[] bytes = packet.Data;
                 
-            Middleware?.HandleOutgoingPacket(ref buffer);
+            Middleware?.HandleOutgoingPacket(ref bytes);
+            
+            // Get a pooled buffer to add the length prefix and message id.
+            int messageLength = bytes.Length;
+            int packetLength = messageLength + 4;
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(packetLength);
+            
+            // Add the 16-bit packet length prefix.
+            BinaryPrimitives.WriteUInt16LittleEndian(buffer, (ushort)messageLength);
+            
+            // Add the 16-bit message type ID.
+            ushort typeId = packet.TypeID;
+            BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan(2), typeId);
+            
+            // Copy the message data to the buffer.
+            bytes.CopyTo(buffer.AsSpan(4));
         
-            // Get a pooled buffer, and add the 16-bit packet length prefix.
-            int packetLength = buffer.Length + 2;
-            byte[] data = ArrayPool<byte>.Shared.Rent(packetLength);
-            BinaryPrimitives.WriteUInt16LittleEndian(data, (ushort)buffer.Length);
-            buffer.Span.CopyTo(data.AsSpan(2));
-        
-            session.SendAsync(data, 0, packetLength);
+            session.SendAsync(buffer, 0, packetLength);
         
             // Return the buffer to the pool.
-            ArrayPool<byte>.Shared.Return(data);
+            ArrayPool<byte>.Shared.Return(buffer);
         }
     }
 

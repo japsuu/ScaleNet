@@ -1,3 +1,4 @@
+using System;
 using ScaleNet.Networking;
 
 namespace ScaleNet.Client.Authentication

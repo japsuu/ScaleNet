@@ -1,4 +1,5 @@
-﻿using ScaleNet;
+﻿using System;
+using ScaleNet;
 using ScaleNet.Utils;
 
 namespace Client;

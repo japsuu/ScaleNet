@@ -1,4 +1,7 @@
-﻿namespace ScaleNet.Utils
+﻿using System;
+using System.Linq;
+
+namespace ScaleNet.Utils
 {
     public static class RandomUtils
     {

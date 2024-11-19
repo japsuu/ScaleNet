@@ -1,4 +1,6 @@
-﻿namespace ScaleNet.Utils
+﻿using System;
+
+namespace ScaleNet.Utils
 {
     public static class ConsoleUtils
     {

@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using ScaleNet.Networking;
 using ScaleNet.Server.Authentication;
 using ScaleNet.Server.Authentication.Resolvers;
@@ -41,6 +43,8 @@ public class NetServer
 
     public NetServer(IServerTransport transport, IAuthenticationResolver authenticationResolver, IDatabaseAccess databaseAccess, bool allowRegistration)
     {
+        NetMessages.Initialize();
+
         Transport = transport;
         DatabaseAccess = databaseAccess;
         _messageHandlerManager = new MessageHandlerManager();
@@ -51,7 +55,7 @@ public class NetServer
         
         Transport.ServerStateChanged += OnServerStateChanged;
         Transport.SessionStateChanged += OnSessionStateChanged;
-        Transport.HandleMessage += OnMessageReceived;
+        Transport.MessageReceived += OnMessageReceived;
     }
 
     
@@ -186,7 +190,7 @@ public class NetServer
 
 #region Message processing
     
-    private void OnMessageReceived(SessionId sessionId, INetMessage msg)
+    private void OnMessageReceived(SessionId sessionId, DeserializedNetMessage msg)
     {
         if (!_clientManager.TryGetClient(sessionId, out Client? client))
         {
