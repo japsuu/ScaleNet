@@ -30,7 +30,11 @@ namespace ScaleNet.Networking
     }
 
     /// <summary>
-    /// Represents a message (packet) that can be sent over the network.<br/>
+    /// Represents a message that can be sent over the network.<br/>
+    /// Inherit from this interface to create custom messages,
+    /// and create a partial class to add Union attributes for MessagePack.<br/>
+    /// Union attributes are used to map the message type to a unique integer.<br/>
+    /// Union keys 0-64 are reserved for the framework, and should not be used by custom messages.
     /// </summary>
     /// 
     /// <remarks>
@@ -46,11 +50,7 @@ namespace ScaleNet.Networking
     [Union(3, typeof(RegisterResponseMessage))]
     [Union(4, typeof(AuthenticationRequestMessage))]
     [Union(5, typeof(AuthenticationResponseMessage))]
-
-    // Application messages
-    [Union(64, typeof(ChatMessage))]
-    [Union(65, typeof(ChatMessageNotification))]
-    public interface INetMessage { }
+    public partial interface INetMessage { }
 
 
     [MessagePackObject]
@@ -153,41 +153,6 @@ namespace ScaleNet.Networking
         {
             Result = result;
             ClientUid = clientUid;
-        }
-    }
-
-#endregion
-
-
-#region Chat
-
-    [MessagePackObject]
-    public readonly struct ChatMessage : INetMessage
-    {
-        [Key(0)]
-        public readonly string Message;
-
-
-        public ChatMessage(string message)
-        {
-            Message = message;
-        }
-    }
-
-    [MessagePackObject]
-    public readonly struct ChatMessageNotification : INetMessage
-    {
-        [Key(0)]
-        public readonly string User;
-    
-        [Key(1)]
-        public readonly string Message;
-
-
-        public ChatMessageNotification(string user, string message)
-        {
-            User = user;
-            Message = message;
         }
     }
 
