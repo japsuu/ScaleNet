@@ -1,4 +1,6 @@
-﻿using ScaleNet.Networking;
+﻿using System;
+using System.Collections.Generic;
+using ScaleNet.Networking;
 using ScaleNet.Utils;
 
 namespace ScaleNet.Client.LowLevel
@@ -45,9 +47,9 @@ namespace ScaleNet.Client.LowLevel
         /// </summary>
         /// <param name="msg">The message to handle.</param>
         /// <returns>True if the message was handled, false otherwise.</returns>
-        public void TryHandleMessage(INetMessage msg)
+        public void TryHandleMessage(DeserializedNetMessage msg)
         {
-            Type messageId = msg.GetType();
+            Type messageId = msg.Type;
         
             // Try to get a handler.
             if (!_messageHandlers.TryGetValue(messageId, out MessageHandler? packetHandler))
@@ -57,7 +59,7 @@ namespace ScaleNet.Client.LowLevel
             }
 
             // Invoke handler with message.
-            packetHandler.Invoke(msg);
+            packetHandler.Invoke(msg.Message);
         }
     }
 }

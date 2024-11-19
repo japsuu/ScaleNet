@@ -1,6 +1,8 @@
-﻿using System.Buffers;
+﻿using System;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Net.Sockets;
 using NetCoreServer;
 using ScaleNet.Networking;
@@ -27,23 +29,22 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport) : Tc
 
         while (true)
         {
-            // Check if we have at least 2 bytes for the length prefix
-            if (_receiveBuffer.Length - _receiveBuffer.Position < 2)
+            // Check if we have at least 4 bytes for the length and type prefix
+            if (_receiveBuffer.Length - _receiveBuffer.Position < 4)
                 break;
 
-            // Read the length prefix
-            byte[] lengthPrefix = new byte[2];
-            int rCount = _receiveBuffer.Read(lengthPrefix, 0, 2);
-            
-            if (rCount != 2)
+            // Read the length and type prefix
+            byte[] header = new byte[4];
+            int rCount = _receiveBuffer.Read(header, 0, 4);
+        
+            if (rCount != 4)
             {
-                Logger.LogWarning("Failed to read the packet length prefix.");
+                Logger.LogWarning("Failed to read the packet header.");
                 break;
             }
 
             // Interpret the length using little-endian
-            ushort packetLength = BinaryPrimitives.ReadUInt16LittleEndian(lengthPrefix);
-            
+            ushort packetLength = BinaryPrimitives.ReadUInt16LittleEndian(header);
             if (packetLength <= 0)
                 Logger.LogWarning("Received a packet with a length of 0.");
 
@@ -51,22 +52,25 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport) : Tc
             if (_receiveBuffer.Length - _receiveBuffer.Position < packetLength)
             {
                 // Not enough data, rewind to just after the last full read for appending more data later
-                _receiveBuffer.Position -= 2; // Rewind to the start of the length prefix
+                _receiveBuffer.Position -= 4; // Rewind to the start of the header
                 break;
             }
 
-            // Extract the packet data (excluding the length prefix)
+            // Extract the packet data (excluding the header)
             byte[] packetData = new byte[packetLength];
             rCount = _receiveBuffer.Read(packetData, 0, packetLength);
-            
+        
             if (rCount != packetLength)
             {
                 Logger.LogWarning("Failed to read the full packet data.");
                 break;
             }
+            
+            // Interpret the type using little-endian
+            ushort typeId = BinaryPrimitives.ReadUInt16LittleEndian(header.AsSpan(2));
 
             // Create a packet and enqueue it
-            OnReceiveFullPacket(packetData.AsMemory());
+            OnReceiveFullPacket(typeId, packetData);
 
             // Position is naturally incremented, no manual reset required here
         }
@@ -78,14 +82,14 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport) : Tc
             byte[] remainingBytes = ArrayPool<byte>.Shared.Rent(leftoverData);
 
             int rCount = _receiveBuffer.Read(remainingBytes, 0, leftoverData);
-            
+        
             if (rCount != leftoverData)
             {
                 Logger.LogWarning("Failed to read the leftover data.");
                 ArrayPool<byte>.Shared.Return(remainingBytes);
                 return;
             }
-            
+        
             _receiveBuffer.SetLength(0);
             _receiveBuffer.Write(remainingBytes, 0, leftoverData);
 
@@ -96,7 +100,7 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport) : Tc
     }
 
 
-    private void OnReceiveFullPacket(Memory<byte> data)
+    private void OnReceiveFullPacket(ushort typeId, byte[] data)
     {
         if (IncomingPackets.Count > ServerConstants.MAX_PACKETS_PER_TICK)
         {
@@ -118,7 +122,7 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport) : Tc
         
         transport.Middleware?.HandleIncomingPacket(ref data);
         
-        TcpServerTransport.Packet packet = new(data);
+        TcpServerTransport.Packet packet = new(typeId, data);
         IncomingPackets.Enqueue(packet);
     }
 

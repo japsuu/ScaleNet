@@ -6,7 +6,7 @@ namespace Shared
 {
 #region Chat
 
-    [NetMessage(64)]
+    [NetMessage(0)]
     [MessagePackObject]
     public readonly struct ChatMessage : INetMessage
     {
@@ -20,7 +20,7 @@ namespace Shared
         }
     }
 
-    [NetMessage(65)]
+    [NetMessage(1)]
     [MessagePackObject]
     public readonly struct ChatMessageNotification : INetMessage
     {

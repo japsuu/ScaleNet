@@ -1,4 +1,5 @@
-﻿using ScaleNet.Networking;
+﻿using System;
+using ScaleNet.Networking;
 
 namespace ScaleNet.Server.LowLevel.Transport;
 
@@ -18,7 +19,7 @@ public interface IServerTransport
     /// Called to handle incoming messages.<br/>
     /// Implementations are required to be thread-safe, as this event may be raised from multiple threads.
     /// </summary>
-    public event Action<SessionId, INetMessage>? HandleMessage;
+    public event Action<SessionId, DeserializedNetMessage>? MessageReceived;
 
 
     /// <summary>
@@ -58,7 +59,7 @@ public interface IServerTransport
 
 
     /// <summary>
-    /// Handles incoming packets, calling <see cref="HandleMessage"/> for each received message.
+    /// Handles incoming packets, calling <see cref="MessageReceived"/> for each received message.
     /// </summary>
     public void HandleIncomingMessages();
 

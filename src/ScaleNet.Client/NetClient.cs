@@ -1,4 +1,5 @@
-﻿using ScaleNet.Client.Authentication;
+﻿using System;
+using ScaleNet.Client.Authentication;
 using ScaleNet.Client.LowLevel;
 using ScaleNet.Client.LowLevel.Transport;
 using ScaleNet.Networking;
@@ -8,7 +9,7 @@ namespace ScaleNet.Client
 {
     public class NetClient
     {
-        private readonly INetClientTransport _transport;
+        private readonly IClientTransport _transport;
         private readonly Authenticator _authenticator;
         private readonly MessageHandlerManager _messageHandlerManager;
         private bool _serverAllowsRegistration;
@@ -39,12 +40,14 @@ namespace ScaleNet.Client
         public event Action? Authenticated;
 
 
-        public NetClient(INetClientTransport transport)
+        public NetClient(IClientTransport transport)
         {
+            NetMessages.Initialize();
+            
             _messageHandlerManager = new MessageHandlerManager();
             _transport = transport;
             _transport.ConnectionStateChanged += OnConnectionStateChanged;
-            _transport.PacketReceived += OnPacketReceived;
+            _transport.MessageReceived += OnMessageReceived;
         
             _authenticator = new Authenticator(this);
             _authenticator.AuthenticationResultReceived += OnAuthenticationResultReceived;
@@ -119,17 +122,9 @@ namespace ScaleNet.Client
             }
         
             Logger.LogDebug($"Sending message {message} to server.");
-        
-            byte[] bytes = NetMessages.Serialize(message);
-        
-            if (bytes.Length > SharedConstants.MAX_PACKET_SIZE_BYTES)
-            {
-                Logger.LogError($"Message {message} exceeds maximum packet size of {SharedConstants.MAX_PACKET_SIZE_BYTES} bytes. Skipping.");
-                return;
-            }
 
-            // Send the packet.
-            _transport.SendAsync(bytes);
+            // Send the message.
+            _transport.SendAsync(message);
         }
     
     
@@ -149,18 +144,8 @@ namespace ScaleNet.Client
         }
 
 
-        private void OnPacketReceived(Packet packet)
+        private void OnMessageReceived(DeserializedNetMessage msg)
         {
-            // Create a message instance.
-            INetMessage? msg = NetMessages.Deserialize(packet.Data);
-        
-            if (msg == null)
-            {
-                Logger.LogWarning("Could not deserialize message from packet. Ignoring.");
-                throw new NotImplementedException();
-                return;
-            }
-        
             Logger.LogDebug($"Received message {msg} from server.");
 
             _messageHandlerManager.TryHandleMessage(msg);

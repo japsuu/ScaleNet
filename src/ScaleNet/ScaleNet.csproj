@@ -1,24 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
         <LangVersion>9</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <AssemblyName>ScaleNet</AssemblyName>
         <RootNamespace>ScaleNet</RootNamespace>
-        <TargetFramework>netstandard2.1</TargetFramework>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-      <DefineConstants>NET_STANDARD_2_0;NETSTACK_SPAN;NETSTACK_BUFFERS_LOG;TRACE</DefineConstants>
+      <DefineConstants>NET_STANDARD_2_0;TRACE</DefineConstants>
         <Optimize>false</Optimize>
         <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
         <OutputPath>..\Build\Debug\</OutputPath>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-      <DefineConstants>NET_STANDARD_2_0;NETSTACK_SPAN;TRACE</DefineConstants>
+      <DefineConstants>NET_STANDARD_2_0;TRACE</DefineConstants>
         <Optimize>true</Optimize>
         <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
         <OutputPath>..\Build\Release\</OutputPath>

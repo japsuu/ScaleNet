@@ -1,4 +1,6 @@
-﻿namespace ScaleNet.Server;
+﻿using System;
+
+namespace ScaleNet.Server;
 
 /// <summary>
 /// ID of a client session/connection.

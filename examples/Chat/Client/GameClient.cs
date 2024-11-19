@@ -1,7 +1,6 @@
-﻿using ScaleNet.Client;
-using ScaleNet.Client.LowLevel.Transport;
+﻿using System;
+using ScaleNet.Client;
 using ScaleNet.Client.LowLevel.Transport.Tcp;
-using ScaleNet.Networking;
 using ScaleNet.Utils;
 using Shared;
 
@@ -14,7 +13,7 @@ internal class GameClient
 
     public GameClient(string address, int port)
     {
-        _netClient = new NetClient(new TcpNetClientTransport(address, port));
+        _netClient = new NetClient(new TcpClientTransport(address, port));
         
         _netClient.RegisterMessageHandler<ChatMessageNotification>(msg => Logger.LogInfo($"[Chat] {msg.User}: {msg.Message}"));
     }
