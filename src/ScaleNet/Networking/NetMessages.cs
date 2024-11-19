@@ -34,7 +34,7 @@ namespace ScaleNet.Networking
     /// Inherit from this interface to create custom messages,
     /// and create a partial class to add Union attributes for MessagePack.<br/>
     /// Union attributes are used to map the message type to a unique integer.<br/>
-    /// Union keys 0-64 are reserved for the framework, and should not be used by custom messages.
+    /// Union keys 0-63 are reserved for the framework, and should not be used by custom messages.
     /// </summary>
     /// 
     /// <remarks>

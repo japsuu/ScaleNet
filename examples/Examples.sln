@@ -12,6 +12,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server", "Chat\Server\Serve
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Chat\Client\Client.csproj", "{2B5ABF9F-8945-4CD7-97C5-9AD44F28C496}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared", "Shared\Shared.csproj", "{E67C1394-9605-4062-A2D9-2B0286690587}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,9 +40,14 @@ Global
 		{2B5ABF9F-8945-4CD7-97C5-9AD44F28C496}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2B5ABF9F-8945-4CD7-97C5-9AD44F28C496}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2B5ABF9F-8945-4CD7-97C5-9AD44F28C496}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E67C1394-9605-4062-A2D9-2B0286690587}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E67C1394-9605-4062-A2D9-2B0286690587}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E67C1394-9605-4062-A2D9-2B0286690587}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E67C1394-9605-4062-A2D9-2B0286690587}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{141F458E-484B-4905-B327-5C718AECAD15} = {837337C3-81B5-477F-BA4D-D1AFF3E56041}
 		{2B5ABF9F-8945-4CD7-97C5-9AD44F28C496} = {837337C3-81B5-477F-BA4D-D1AFF3E56041}
+		{E67C1394-9605-4062-A2D9-2B0286690587} = {837337C3-81B5-477F-BA4D-D1AFF3E56041}
 	EndGlobalSection
 EndGlobal
