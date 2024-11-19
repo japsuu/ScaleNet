@@ -1,4 +1,4 @@
-﻿namespace ScaleNet.Networking
+﻿namespace ScaleNet
 {
     public enum AccountCreationResult : byte
     {

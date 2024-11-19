@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using ScaleNet.Networking;
 
 namespace ScaleNet.Server.Database;
 

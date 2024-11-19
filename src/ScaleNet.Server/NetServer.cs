@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using ScaleNet.Networking;
+﻿using System.Diagnostics;
 using ScaleNet.Server.Authentication;
 using ScaleNet.Server.Authentication.Resolvers;
 using ScaleNet.Server.Database;
 using ScaleNet.Server.LowLevel;
 using ScaleNet.Server.LowLevel.Transport;
-using ScaleNet.Utils;
 
 namespace ScaleNet.Server;
 
@@ -16,7 +12,7 @@ public class NetServer
     private readonly MessageHandlerManager _messageHandlerManager;
     private readonly Authenticator _authenticator;
     private readonly ClientManager _clientManager;
-    
+
     public readonly IServerTransport Transport;
     public readonly IDatabaseAccess DatabaseAccess;
     
@@ -43,7 +39,8 @@ public class NetServer
 
     public NetServer(IServerTransport transport, IAuthenticationResolver authenticationResolver, IDatabaseAccess databaseAccess, bool allowRegistration)
     {
-        NetMessages.Initialize();
+        if(!Networking.IsInitialized)
+            throw new InvalidOperationException("Networking.Initialize() must be called before creating a server.");
 
         Transport = transport;
         DatabaseAccess = databaseAccess;
@@ -100,13 +97,13 @@ public class NetServer
     {
         if (!IsStarted)
         {
-            Logger.LogWarning("Cannot send message to client because server is not active.");
+            Networking.Logger.LogWarning("Cannot send message to client because server is not active.");
             return;
         }
 
         if (requireAuthenticated && !client.IsAuthenticated)
         {
-            Logger.LogWarning($"Cannot send message {message} to client {client.SessionId} because they are not authenticated.");
+            Networking.Logger.LogWarning($"Cannot send message {message} to client {client.SessionId} because they are not authenticated.");
             return;
         }
 
@@ -124,7 +121,7 @@ public class NetServer
     {
         if (!IsStarted)
         {
-            Logger.LogWarning("Cannot send message to clients because server is not active.");
+            Networking.Logger.LogWarning("Cannot send message to clients because server is not active.");
             return;
         }
 
@@ -145,7 +142,7 @@ public class NetServer
     {
         if (!IsStarted)
         {
-            Logger.LogWarning("Cannot send message to clients because server is not active.");
+            Networking.Logger.LogWarning("Cannot send message to clients because server is not active.");
             return;
         }
 
@@ -169,7 +166,7 @@ public class NetServer
     {
         if (!IsStarted)
         {
-            Logger.LogWarning("Cannot send message to clients because server is not active.");
+            Networking.Logger.LogWarning("Cannot send message to clients because server is not active.");
             return;
         }
 
@@ -194,11 +191,11 @@ public class NetServer
     {
         if (!_clientManager.TryGetClient(sessionId, out Client? client))
         {
-            Logger.LogWarning($"Received a message from an unknown session {sessionId}. Ignoring.");
+            Networking.Logger.LogWarning($"Received a message from an unknown session {sessionId}. Ignoring.");
             return;
         }
         
-        Logger.LogDebug($"Received message {msg.GetType()} from client {client.SessionId}.");
+        Networking.Logger.LogDebug($"Received message {msg.GetType()} from client {client.SessionId}.");
         
         _messageHandlerManager.TryHandleMessage(client, msg);
     }
@@ -213,7 +210,7 @@ public class NetServer
         ServerState state = args.NewState;
         IsStarted = state == ServerState.Started;
 
-        Logger.LogInfo($"Server is {state.ToString().ToLower()}");
+        Networking.Logger.LogInfo($"Server is {state.ToString().ToLower()}");
 
         ServerStateChanged?.Invoke(args);
     }
@@ -228,7 +225,7 @@ public class NetServer
         SessionId sessionId = sessionStateChangeArgs.SessionId;
         Client? client;
         
-        Logger.LogInfo($"Session {sessionId} is {sessionStateChangeArgs.NewState.ToString().ToLower()}");
+        Networking.Logger.LogInfo($"Session {sessionId} is {sessionStateChangeArgs.NewState.ToString().ToLower()}");
         
         switch (sessionStateChangeArgs.NewState)
         {
@@ -236,7 +233,7 @@ public class NetServer
             {
                 if (!_clientManager.TryAddClient(sessionId, out client))
                 {
-                    Logger.LogWarning($"Client for session {sessionId} already exists. Kicking.");
+                    Networking.Logger.LogWarning($"Client for session {sessionId} already exists. Kicking.");
                     Transport.DisconnectSession(sessionId, DisconnectReason.UnexpectedProblem);
                     return;
                 }
@@ -249,7 +246,7 @@ public class NetServer
             {
                 if (!_clientManager.TryGetClient(sessionId, out client))
                 {
-                    Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
+                    Networking.Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
                     return;
                 }
                 
@@ -259,7 +256,7 @@ public class NetServer
             {
                 if (!_clientManager.TryGetClient(sessionId, out client))
                 {
-                    Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
+                    Networking.Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
                     return;
                 }
                 
@@ -269,7 +266,7 @@ public class NetServer
             {
                 if (!_clientManager.TryRemoveClient(sessionId, out client))
                 {
-                    Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
+                    Networking.Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
                     return;
                 }
                 
@@ -295,12 +292,12 @@ public class NetServer
         Debug.Assert(client.IsAuthenticated, "Client is not authenticated.");
         
         AccountUID accountId = client.AccountId;
-        Logger.LogInfo($"Session {client.SessionId} authenticated as account {accountId}.");
+        Networking.Logger.LogInfo($"Session {client.SessionId} authenticated as account {accountId}.");
         
         // Load user data.
         if (!DatabaseAccess.TryGetPlayerData(accountId, out PlayerData? playerData))
         {
-            Logger.LogWarning($"Session {client.SessionId} player data could not be loaded.");
+            Networking.Logger.LogWarning($"Session {client.SessionId} player data could not be loaded.");
             client.Kick(DisconnectReason.CorruptPlayerData);
             return;
         }

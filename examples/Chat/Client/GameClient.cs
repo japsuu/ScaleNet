@@ -1,4 +1,5 @@
 ﻿using System;
+using ScaleNet;
 using ScaleNet.Client;
 using ScaleNet.Client.LowLevel.Transport.Tcp;
 using ScaleNet.Utils;
@@ -13,9 +14,11 @@ internal class GameClient
 
     public GameClient(string address, int port)
     {
+        Networking.Initialize();
+        
         _netClient = new NetClient(new TcpClientTransport(address, port));
         
-        _netClient.RegisterMessageHandler<ChatMessageNotification>(msg => Logger.LogInfo($"[Chat] {msg.User}: {msg.Message}"));
+        _netClient.RegisterMessageHandler<ChatMessageNotification>(msg => Networking.Logger.LogInfo($"[Chat] {msg.User}: {msg.Message}"));
     }
 
 
@@ -23,7 +26,7 @@ internal class GameClient
     {
         _netClient.Connect();
 
-        Logger.LogInfo("'!' to exit");
+        Networking.Logger.LogInfo("'!' to exit");
 
         while (_netClient.IsConnected)
         {

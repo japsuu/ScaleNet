@@ -1,5 +1,4 @@
-﻿using ScaleNet.Utils;
-using YamlDotNet.Serialization;
+﻿using YamlDotNet.Serialization;
 
 namespace Server.Configuration;
 

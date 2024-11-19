@@ -1,9 +1,7 @@
-using System;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
 
-namespace NetCoreServer
+namespace ScaleNet.Server.LowLevel.Transport.Tcp
 {
     /// <summary>
     /// TCP session is used to read and write data from the connected TCP client

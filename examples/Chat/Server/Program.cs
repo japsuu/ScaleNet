@@ -1,7 +1,5 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
 using ScaleNet;
-using ScaleNet.Utils;
 using Server.Configuration;
 
 namespace Server;
@@ -13,7 +11,7 @@ internal static class Program
         Console.Title = "COV Server";
         if (!ConfigManager.TryLoadConfiguration())
         {
-            Logger.LogError("Failed to load configuration.");
+            Console.WriteLine("Failed to load configuration.");
             return;
         }
         

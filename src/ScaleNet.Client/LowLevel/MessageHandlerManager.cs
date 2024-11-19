@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using ScaleNet.Networking;
-using ScaleNet.Utils;
 
 namespace ScaleNet.Client.LowLevel
 {
@@ -47,19 +45,17 @@ namespace ScaleNet.Client.LowLevel
         /// </summary>
         /// <param name="msg">The message to handle.</param>
         /// <returns>True if the message was handled, false otherwise.</returns>
-        public void TryHandleMessage(DeserializedNetMessage msg)
+        public bool TryHandleMessage(DeserializedNetMessage msg)
         {
             Type messageId = msg.Type;
         
             // Try to get a handler.
             if (!_messageHandlers.TryGetValue(messageId, out MessageHandler? packetHandler))
-            {
-                Logger.LogWarning($"No handler is registered for {msg}. Ignoring.");
-                return;
-            }
+                return false;
 
             // Invoke handler with message.
             packetHandler.Invoke(msg.Message);
+            return true;
         }
     }
 }

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using ScaleNet.Networking;
-using ScaleNet.Utils;
-
-namespace ScaleNet.Server.LowLevel;
+﻿namespace ScaleNet.Server.LowLevel;
 
 /// <summary>
 /// Maintains a collection of message handlers, tied to specific message types.
@@ -60,13 +55,13 @@ internal class MessageHandlerManager
         // Try to get a handler.
         if (!_messageHandlers.TryGetValue(msgType, out MessageHandler? messageHandler))
         {
-            Logger.LogWarning($"No handler is registered for {msgType}. Ignoring.");
+            Networking.Logger.LogWarning($"No handler is registered for {msgType}. Ignoring.");
             return;
         }
 
         if (messageHandler.RequiresAuthentication && !client.IsAuthenticated)
         {
-            Logger.LogWarning($"Session {client.SessionId} sent a message of type {msgType} without being authenticated. Kicking.");
+            Networking.Logger.LogWarning($"Session {client.SessionId} sent a message of type {msgType} without being authenticated. Kicking.");
             client.Kick(DisconnectReason.ExploitAttempt);
             return;
         }

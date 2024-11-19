@@ -1,8 +1,7 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text;
 
-namespace NetCoreServer
+namespace ScaleNet.Server.LowLevel.Transport.Tcp
 {
     /// <summary>
     /// Dynamic byte buffer

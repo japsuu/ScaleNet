@@ -1,6 +1,5 @@
 ﻿using System;
 using ScaleNet;
-using ScaleNet.Utils;
 
 namespace Client;
 
@@ -21,7 +20,7 @@ internal static class Program
         // Start the blocking client loop
         client.Run();
 
-        Logger.LogInfo("Press any key to exit.");
+        Console.WriteLine("Press any key to exit.");
         Console.ReadKey();
     }
 
@@ -44,7 +43,7 @@ internal static class Program
         
         if (string.IsNullOrEmpty(address))
         {
-            Logger.LogInfo("Enter the server address:");
+            Console.WriteLine("Enter the server address:");
             address = Console.ReadLine();
         }
         if (string.IsNullOrEmpty(address))
@@ -52,7 +51,7 @@ internal static class Program
 
         if (string.IsNullOrEmpty(portStr))
         {
-            Logger.LogInfo("Enter the server port:");
+            Console.WriteLine("Enter the server port:");
             portStr = Console.ReadLine();
         }
         if (string.IsNullOrEmpty(portStr) || !int.TryParse(portStr, out int port))
