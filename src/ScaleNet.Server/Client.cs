@@ -51,7 +51,7 @@ public class Client(SessionId sessionId, NetServer server)
     /// </remarks>
     public void Kick(DisconnectReason reason, bool iterateOutgoing = true)
     {
-        server.Logger.LogDebug($"Disconnecting client {SessionId} with reason {reason}.");
+        Networking.Logger.LogDebug($"Disconnecting client {SessionId} with reason {reason}.");
         
         server.Transport.DisconnectSession(SessionId, reason, iterateOutgoing);
     }
@@ -59,7 +59,7 @@ public class Client(SessionId sessionId, NetServer server)
 
     public void QueueSend<T>(T message) where T : INetMessage
     {
-        server.Logger.LogDebug($"Queue message {message} to client.");
+        Networking.Logger.LogDebug($"Queue message {message} to client.");
         
         server.Transport.QueueSendAsync(SessionId, message);
     }

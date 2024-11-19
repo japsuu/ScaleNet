@@ -3,8 +3,6 @@ using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
-using NetCoreServer;
-using ScaleNet.Utils;
 
 namespace ScaleNet.Server.LowLevel.Transport.Tcp;
 
@@ -33,7 +31,6 @@ public class TcpServerTransport : TcpServer, IServerTransport
     private bool _rejectNewConnections;
     private bool _rejectNewMessages;
 
-    public readonly ILogger Logger;
     public readonly IPacketMiddleware? Middleware;
     public int MaxConnections { get; }
     
@@ -42,10 +39,9 @@ public class TcpServerTransport : TcpServer, IServerTransport
     public event Action<SessionId, DeserializedNetMessage>? MessageReceived;
 
 
-    public TcpServerTransport(ILogger logger, IPAddress address, int port, int maxConnections, IPacketMiddleware? middleware = null) : base(address, port)
+    public TcpServerTransport(IPAddress address, int port, int maxConnections, IPacketMiddleware? middleware = null) : base(address, port)
     {
         MaxConnections = maxConnections;
-        Logger = logger;
         Middleware = middleware;
 
         // Fill the available session IDs bag.
@@ -56,14 +52,14 @@ public class TcpServerTransport : TcpServer, IServerTransport
     
     bool IServerTransport.Start()
     {
-        Logger.LogInfo($"Starting TCP transport on {Address}:{Port}...");
+        Networking.Logger.LogInfo($"Starting TCP transport on {Address}:{Port}...");
 
         bool started = Start();
         
         if (started)
-            Logger.LogInfo("TCP transport started successfully.");
+            Networking.Logger.LogInfo("TCP transport started successfully.");
         else
-            Logger.LogError("Failed to start TCP transport.");
+            Networking.Logger.LogError("Failed to start TCP transport.");
         
         return started;
     }
@@ -71,7 +67,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
     
     bool IServerTransport.Stop(bool gracefully)
     {
-        Logger.LogInfo("Stopping TCP transport...");
+        Networking.Logger.LogInfo("Stopping TCP transport...");
         _rejectNewConnections = true;
         _rejectNewMessages = true;
         
@@ -84,9 +80,9 @@ public class TcpServerTransport : TcpServer, IServerTransport
         bool stopped = Stop();
         
         if (stopped)
-            Logger.LogInfo("TCP transport stopped successfully.");
+            Networking.Logger.LogInfo("TCP transport stopped successfully.");
         else
-            Logger.LogError("Failed to stop TCP transport.");
+            Networking.Logger.LogError("Failed to stop TCP transport.");
         
         return stopped;
     }
@@ -105,7 +101,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
             {
                 if (!NetMessages.TryDeserialize(packet.TypeID, packet.Data, out DeserializedNetMessage msg))
                 {
-                    Logger.LogWarning($"Received a packet that could not be deserialized. Kicking session {session.SessionId} immediately.");
+                    Networking.Logger.LogWarning($"Received a packet that could not be deserialized. Kicking session {session.SessionId} immediately.");
                     DisconnectSession(session, DisconnectReason.MalformedData);
                     return;
                 }
@@ -131,7 +127,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
     {
         if (!_sessions.TryGetValue(sessionId, out TcpClientSession? session))
         {
-            Logger.LogWarning($"Tried to send a packet to a non-existent/disconnected session with ID {sessionId}");
+            Networking.Logger.LogWarning($"Tried to send a packet to a non-existent/disconnected session with ID {sessionId}");
             return;
         }
 
@@ -143,7 +139,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
     {
         if (!NetMessages.TryGetMessageId(message.GetType(), out ushort id))
         {
-            Logger.LogError($"Cannot send: failed to get the ID of message {message.GetType()}.");
+            Networking.Logger.LogError($"Cannot send: failed to get the ID of message {message.GetType()}.");
             return;
         }
         
@@ -161,7 +157,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
     {
         if (!_sessions.TryGetValue(sessionId, out TcpClientSession? session))
         {
-            Logger.LogWarning($"Tried to disconnect a non-existent/disconnected session with ID {sessionId}");
+            Networking.Logger.LogWarning($"Tried to disconnect a non-existent/disconnected session with ID {sessionId}");
             return;
         }
         
@@ -315,6 +311,6 @@ public class TcpServerTransport : TcpServer, IServerTransport
 
     protected override void OnError(SocketError error)
     {
-        Logger.LogError($"TCP server caught an error: {error}");
+        Networking.Logger.LogError($"TCP server caught an error: {error}");
     }
 }

@@ -2,13 +2,11 @@
 using ScaleNet.Client.Authentication;
 using ScaleNet.Client.LowLevel;
 using ScaleNet.Client.LowLevel.Transport;
-using ScaleNet.Utils;
 
 namespace ScaleNet.Client
 {
     public class NetClient
     {
-        private readonly ILogger _logger;
         private readonly IClientTransport _transport;
         private readonly Authenticator _authenticator;
         private readonly MessageHandlerManager _messageHandlerManager;
@@ -40,11 +38,11 @@ namespace ScaleNet.Client
         public event Action? Authenticated;
 
 
-        public NetClient(ILogger logger, IClientTransport transport)
+        public NetClient(IClientTransport transport)
         {
-            NetMessages.Initialize(logger);
-            
-            _logger = logger;
+            if(!Networking.IsInitialized)
+                throw new InvalidOperationException("Networking.Initialize() must be called before creating a server.");
+
             _messageHandlerManager = new MessageHandlerManager();
             _transport = transport;
             _transport.ConnectionStateChanged += OnConnectionStateChanged;
@@ -61,14 +59,14 @@ namespace ScaleNet.Client
 
         public void Connect()
         {
-            _logger.LogInfo($"Connecting to {_transport.Address}:{_transport.Port}...");
+            Networking.Logger.LogInfo($"Connecting to {_transport.Address}:{_transport.Port}...");
             _transport.Connect();
         }
 
 
         public void Reconnect()
         {
-            _logger.LogInfo("Reconnecting...");
+            Networking.Logger.LogInfo("Reconnecting...");
             _transport.Reconnect();
         }
 
@@ -78,14 +76,14 @@ namespace ScaleNet.Client
         /// </summary>
         public void Disconnect()
         {
-            _logger.LogInfo("Disconnecting...");
+            Networking.Logger.LogInfo("Disconnecting...");
             _transport.Disconnect();
         }
     
     
         internal void SetAuthenticated(AccountUID accountUid)
         {
-            _logger.LogDebug("Local client is now authenticated.");
+            Networking.Logger.LogDebug("Local client is now authenticated.");
         
             IsAuthenticated = true;
             AccountUid = accountUid;
@@ -118,11 +116,11 @@ namespace ScaleNet.Client
         {
             if (!IsConnected)
             {
-                _logger.LogError($"Local connection is not started, cannot send message of type {message}.");
+                Networking.Logger.LogError($"Local connection is not started, cannot send message of type {message}.");
                 return;
             }
         
-            _logger.LogDebug($"Sending message {message} to server.");
+            Networking.Logger.LogDebug($"Sending message {message} to server.");
 
             // Send the message.
             _transport.SendAsync(message);
@@ -139,7 +137,7 @@ namespace ScaleNet.Client
             IsConnected = state == ConnectionState.Connected;
             IsAuthenticated = false;
 
-            _logger.LogInfo($"Local client is {state.ToString().ToLower()}.");
+            Networking.Logger.LogInfo($"Local client is {state.ToString().ToLower()}.");
 
             ConnectionStateChanged?.Invoke(args);
         }
@@ -147,16 +145,16 @@ namespace ScaleNet.Client
 
         private void OnMessageReceived(DeserializedNetMessage msg)
         {
-            _logger.LogDebug($"Received message {msg} from server.");
+            Networking.Logger.LogDebug($"Received message {msg} from server.");
 
             if (!_messageHandlerManager.TryHandleMessage(msg))
-                _logger.LogWarning($"No handler is registered for {msg}. Ignoring.");
+                Networking.Logger.LogWarning($"No handler is registered for {msg}. Ignoring.");
         }
 
 
         private void OnDisconnectReceived(DisconnectMessage message)
         {
-            _logger.LogWarning($"Received disconnect message from server: {message.Reason}");
+            Networking.Logger.LogWarning($"Received disconnect message from server: {message.Reason}");
         
             // Disconnect the local client.
             Disconnect();
@@ -167,7 +165,7 @@ namespace ScaleNet.Client
         {
             if (msg.ServerVersion != SharedConstants.GAME_VERSION)
             {
-                _logger.LogError($"The client version ({SharedConstants.GAME_VERSION}) does not match the server version ({msg.ServerVersion}). Please update the client.");
+                Networking.Logger.LogError($"The client version ({SharedConstants.GAME_VERSION}) does not match the server version ({msg.ServerVersion}). Please update the client.");
                 Disconnect();
                 return;
             }
@@ -180,19 +178,19 @@ namespace ScaleNet.Client
 
         private void OnAuthenticationResultReceived(AuthenticationResult result)
         {
-            _logger.LogInfo($"Received authentication result: {result}");
+            Networking.Logger.LogInfo($"Received authentication result: {result}");
 
             if (result == AuthenticationResult.Success)
                 return;
         
-            _logger.LogError("Authentication failed.");
+            Networking.Logger.LogError("Authentication failed.");
             TryAuthenticate();
         }
 
 
         private void OnAccountCreationResultReceived(AccountCreationResult result)
         {
-            _logger.LogInfo($"Received account creation result: {result}");
+            Networking.Logger.LogInfo($"Received account creation result: {result}");
             TryAuthenticate();
         }
 
@@ -205,11 +203,11 @@ namespace ScaleNet.Client
             {
                 while (true)
                 {
-                    _logger.LogInfo("Do you want to login or register? (login/register)");
+                    Networking.Logger.LogInfo("Do you want to login or register? (login/register)");
                     string? input = Console.ReadLine();
                     if (string.IsNullOrWhiteSpace(input))
                     {
-                        _logger.LogError("Please enter 'login' or 'register'.");
+                        Networking.Logger.LogError("Please enter 'login' or 'register'.");
                         continue;
                     }
 
@@ -225,12 +223,12 @@ namespace ScaleNet.Client
                         break;
                     }
 
-                    _logger.LogError("Please enter 'login' or 'register'.");
+                    Networking.Logger.LogError("Please enter 'login' or 'register'.");
                 }
             }
             else
             {
-                _logger.LogInfo("Registration is disabled by server. You can currently only login.");
+                Networking.Logger.LogInfo("Registration is disabled by server. You can currently only login.");
                 login = true;
             }
         
@@ -242,19 +240,19 @@ namespace ScaleNet.Client
                 (string? user, string? pass) = RequestCredentials();
                 if (string.IsNullOrWhiteSpace(user) || string.IsNullOrWhiteSpace(pass))
                 {
-                    _logger.LogError("Username and password cannot be empty.");
+                    Networking.Logger.LogError("Username and password cannot be empty.");
                     continue;
                 }
             
                 if (user.Length < SharedConstants.MIN_USERNAME_LENGTH || user.Length > SharedConstants.MAX_USERNAME_LENGTH)
                 {
-                    _logger.LogError($"Username must be between {SharedConstants.MIN_USERNAME_LENGTH} and {SharedConstants.MAX_USERNAME_LENGTH} characters.");
+                    Networking.Logger.LogError($"Username must be between {SharedConstants.MIN_USERNAME_LENGTH} and {SharedConstants.MAX_USERNAME_LENGTH} characters.");
                     continue;
                 }
         
                 if (pass.Length < SharedConstants.MIN_PASSWORD_LENGTH || pass.Length > SharedConstants.MAX_PASSWORD_LENGTH)
                 {
-                    _logger.LogError($"Password must be between {SharedConstants.MIN_PASSWORD_LENGTH} and {SharedConstants.MAX_PASSWORD_LENGTH} characters.");
+                    Networking.Logger.LogError($"Password must be between {SharedConstants.MIN_PASSWORD_LENGTH} and {SharedConstants.MAX_PASSWORD_LENGTH} characters.");
                     continue;
                 }
             
@@ -277,10 +275,10 @@ namespace ScaleNet.Client
     
         private (string?, string?) RequestCredentials()
         {
-            _logger.LogInfo("Enter your username:");
+            Networking.Logger.LogInfo("Enter your username:");
             string? username = Console.ReadLine();
         
-            _logger.LogInfo("Enter your password:");
+            Networking.Logger.LogInfo("Enter your password:");
             string? password = Console.ReadLine();
         
             return (username, password);

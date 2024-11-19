@@ -1,5 +1,4 @@
-﻿using ScaleNet.Utils;
-using YamlDotNet.Serialization;
+﻿using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
 namespace Server.Configuration;
@@ -11,15 +10,15 @@ public static class ConfigManager
     public static ConfigurationData CurrentConfiguration { get; private set; } = null!;
 
 
-    public static bool TryLoadConfiguration(ILogger logger)
+    public static bool TryLoadConfiguration()
     {
         Directory.CreateDirectory(Path.GetDirectoryName(CONFIG_PATH)!);
         
         // Check that the config file exists.
         if (!File.Exists(CONFIG_PATH))
         {
-            logger.LogWarning("Configuration file not found, creating default configuration.");
-            CreateDefaultConfiguration(logger);
+            Logger.LogWarning("Configuration file not found, creating default configuration.");
+            CreateDefaultConfiguration();
             return false;
         }
         
@@ -35,22 +34,22 @@ public static class ConfigManager
             if (CurrentConfiguration == null)
                 throw new Exception("Deserialization failed.");
             
-            if (!ConfigurationData.Verify(CurrentConfiguration, logger))
+            if (!ConfigurationData.Verify(CurrentConfiguration))
                 throw new Exception("Configuration verification failed.");
         }
         catch (Exception e)
         {
-            logger.LogError($"Failed to load configuration: {e.Message}");
-            logger.LogWarning("Rename or delete the current config file, to create a new configuration with default values on the next startup.");
+            Logger.LogError($"Failed to load configuration: {e.Message}");
+            Logger.LogWarning("Rename or delete the current config file, to create a new configuration with default values on the next startup.");
             return false;
         }
         
-        logger.LogInfo("Configuration loaded successfully.");
+        Logger.LogInfo("Configuration loaded successfully.");
         return true;
     }
 
 
-    private static void CreateDefaultConfiguration(ILogger logger)
+    private static void CreateDefaultConfiguration()
     {
         ConfigurationData defaultConfig = ConfigurationData.GetDefault();
         
@@ -61,6 +60,6 @@ public static class ConfigManager
         File.WriteAllText(CONFIG_PATH, serializer.Serialize(defaultConfig));
         
         string configPath = Path.GetFullPath(CONFIG_PATH);
-        logger.LogInfo($"Default configuration created. Please edit the configuration file ({configPath}) and restart the server.");
+        Logger.LogInfo($"Default configuration created. Please edit the configuration file ({configPath}) and restart the server.");
     }
 }

@@ -4,7 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
-namespace NetCoreServer
+namespace ScaleNet.Server.LowLevel.Transport.Tcp
 {
     /// <summary>
     /// TCP server is used to connect, disconnect and manage TCP sessions

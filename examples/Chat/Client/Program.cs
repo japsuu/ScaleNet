@@ -1,7 +1,5 @@
 ﻿using System;
 using ScaleNet;
-using ScaleNet.Utils;
-using Shared;
 
 namespace Client;
 
@@ -10,8 +8,6 @@ internal static class Program
     private const string DEFAULT_ADDRESS = "127.0.0.1";
     private const int DEFAULT_PORT = SharedConstants.SERVER_PORT;
     
-    private static ILogger logger = new Logger();
-    
     
     private static void Main(string[] args)
     {
@@ -19,12 +15,12 @@ internal static class Program
 
         (string address, int port) = GetAddressAndPort(args);
 
-        GameClient client = new(address, port, logger);
+        GameClient client = new(address, port);
         
         // Start the blocking client loop
         client.Run();
 
-        logger.LogInfo("Press any key to exit.");
+        Console.WriteLine("Press any key to exit.");
         Console.ReadKey();
     }
 
@@ -47,7 +43,7 @@ internal static class Program
         
         if (string.IsNullOrEmpty(address))
         {
-            logger.LogInfo("Enter the server address:");
+            Console.WriteLine("Enter the server address:");
             address = Console.ReadLine();
         }
         if (string.IsNullOrEmpty(address))
@@ -55,7 +51,7 @@ internal static class Program
 
         if (string.IsNullOrEmpty(portStr))
         {
-            logger.LogInfo("Enter the server port:");
+            Console.WriteLine("Enter the server port:");
             portStr = Console.ReadLine();
         }
         if (string.IsNullOrEmpty(portStr) || !int.TryParse(portStr, out int port))

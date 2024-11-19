@@ -1,26 +1,25 @@
 ﻿using System.Net;
+using ScaleNet;
 using ScaleNet.Server;
 using ScaleNet.Server.Authentication.Resolvers;
 using ScaleNet.Server.Database;
 using ScaleNet.Server.LowLevel.Transport.Tcp;
-using ScaleNet.Utils;
 using Shared;
 
 namespace Server;
 
 internal class GameServer
 {
-    private readonly ILogger _logger;
     private readonly NetServer _netServer;
 
 
-    public GameServer(ILogger logger, IPAddress address, int port, int maxConnections, bool allowAccountRegistration)
+    public GameServer(IPAddress address, int port, int maxConnections, bool allowAccountRegistration)
     {
-        _logger = logger;
-        InMemoryDatabase db = new(logger);
+        Networking.Initialize();
+        
+        InMemoryDatabase db = new();
         _netServer = new NetServer(
-            logger,
-            new TcpServerTransport(logger, address, port, maxConnections),
+            new TcpServerTransport(address, port, maxConnections),
             new DatabaseAuthenticationResolver(db),
             db,
             allowAccountRegistration);
@@ -36,7 +35,7 @@ internal class GameServer
     {
         _netServer.Start();
         
-        _logger.LogInfo("Server started.");
+        Networking.Logger.LogInfo("Server started.");
         
         while (_netServer.IsStarted)
         {
@@ -64,7 +63,7 @@ internal class GameServer
 
     private void OnChatMessageReceived(Client client, ChatMessage msg)
     {
-        _logger.LogInfo($"Received chat message from {client.SessionId}: {msg.Message}");
+        Networking.Logger.LogInfo($"Received chat message from {client.SessionId}: {msg.Message}");
         
         // If the message is empty, ignore it.
         if (string.IsNullOrWhiteSpace(msg.Message))
