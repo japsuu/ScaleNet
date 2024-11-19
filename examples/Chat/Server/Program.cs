@@ -1,8 +1,7 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
 using ScaleNet;
-using ScaleNet.Utils;
 using Server.Configuration;
+using Shared;
 
 namespace Server;
 
@@ -10,15 +9,18 @@ internal static class Program
 {
     private static void Main(string[] args)
     {
+        Logger logger = new();
+        
         Console.Title = "COV Server";
-        if (!ConfigManager.TryLoadConfiguration())
+        if (!ConfigManager.TryLoadConfiguration(logger))
         {
-            Logger.LogError("Failed to load configuration.");
+            logger.LogError("Failed to load configuration.");
             return;
         }
         
         // Create the server
         GameServer server = new(
+            logger,
             IPAddress.Any,
             SharedConstants.SERVER_PORT,
             ConfigManager.CurrentConfiguration.MaxConnections,

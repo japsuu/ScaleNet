@@ -12,7 +12,8 @@ public class InMemoryDatabase : IDatabaseAccess
         public readonly string Username = username;
         public readonly string Password = password;
     }
-    
+
+    private readonly ILogger _logger;
     // Username -> AccountData
     // This is a separate DB to easily check if a username is taken, and possibly allow the user to change their username.
     private readonly ConcurrentDictionary<string, AccountUID> _accountUidTable = new();
@@ -23,7 +24,13 @@ public class InMemoryDatabase : IDatabaseAccess
     
     private uint _nextClientUid = 1;
 
-    
+
+    public InMemoryDatabase(ILogger logger)
+    {
+        _logger = logger;
+    }
+
+
     public AccountCreationResult CreateAccount(string username, string password)
     {
         if (username.Length < SharedConstants.MIN_USERNAME_LENGTH || username.Length > SharedConstants.MAX_USERNAME_LENGTH)
@@ -66,7 +73,7 @@ public class InMemoryDatabase : IDatabaseAccess
             else
             {
                 // This should never happen.
-                Logger.LogWarning($"Account with username '{username}' has an {nameof(AccountUID)} but no {nameof(AccountData)}.");
+                _logger.LogWarning($"Account with username '{username}' has an {nameof(AccountUID)} but no {nameof(AccountData)}.");
             }
         }
         

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using ScaleNet.Networking;
+﻿using ScaleNet.Networking;
 using ScaleNet.Utils;
 
 namespace ScaleNet.Server.LowLevel;
@@ -10,7 +8,14 @@ namespace ScaleNet.Server.LowLevel;
 /// </summary>
 internal class MessageHandlerManager
 {
+    private readonly ILogger _logger;
     private readonly Dictionary<Type, MessageHandler> _messageHandlers = [];
+
+
+    public MessageHandlerManager(ILogger logger)
+    {
+        _logger = logger;
+    }
 
 
     /// <summary>
@@ -60,13 +65,13 @@ internal class MessageHandlerManager
         // Try to get a handler.
         if (!_messageHandlers.TryGetValue(msgType, out MessageHandler? messageHandler))
         {
-            Logger.LogWarning($"No handler is registered for {msgType}. Ignoring.");
+            _logger.LogWarning($"No handler is registered for {msgType}. Ignoring.");
             return;
         }
 
         if (messageHandler.RequiresAuthentication && !client.IsAuthenticated)
         {
-            Logger.LogWarning($"Session {client.SessionId} sent a message of type {msgType} without being authenticated. Kicking.");
+            _logger.LogWarning($"Session {client.SessionId} sent a message of type {msgType} without being authenticated. Kicking.");
             client.Kick(DisconnectReason.ExploitAttempt);
             return;
         }

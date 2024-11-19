@@ -1,5 +1,4 @@
-﻿using System;
-using System.Buffers;
+﻿using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Net;
@@ -35,6 +34,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
     private bool _rejectNewConnections;
     private bool _rejectNewMessages;
 
+    public readonly ILogger Logger;
     public readonly IPacketMiddleware? Middleware;
     public int MaxConnections { get; }
     
@@ -43,9 +43,10 @@ public class TcpServerTransport : TcpServer, IServerTransport
     public event Action<SessionId, DeserializedNetMessage>? MessageReceived;
 
 
-    public TcpServerTransport(IPAddress address, int port, int maxConnections, IPacketMiddleware? middleware = null) : base(address, port)
+    public TcpServerTransport(ILogger logger, IPAddress address, int port, int maxConnections, IPacketMiddleware? middleware = null) : base(address, port)
     {
         MaxConnections = maxConnections;
+        Logger = logger;
         Middleware = middleware;
 
         // Fill the available session IDs bag.
@@ -139,7 +140,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
     }
 
 
-    private static void QueueSendAsync<T>(TcpClientSession session, T message) where T : INetMessage
+    private void QueueSendAsync<T>(TcpClientSession session, T message) where T : INetMessage
     {
         if (!NetMessages.TryGetMessageId(message.GetType(), out ushort id))
         {

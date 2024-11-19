@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using ScaleNet.Networking;
-using ScaleNet.Utils;
 
 namespace ScaleNet.Server;
 
@@ -53,7 +52,7 @@ public class Client(SessionId sessionId, NetServer server)
     /// </remarks>
     public void Kick(DisconnectReason reason, bool iterateOutgoing = true)
     {
-        Logger.LogDebug($"Disconnecting client {SessionId} with reason {reason}.");
+        server.Logger.LogDebug($"Disconnecting client {SessionId} with reason {reason}.");
         
         server.Transport.DisconnectSession(SessionId, reason, iterateOutgoing);
     }
@@ -61,7 +60,7 @@ public class Client(SessionId sessionId, NetServer server)
 
     public void QueueSend<T>(T message) where T : INetMessage
     {
-        Logger.LogDebug($"Queue message {message} to client.");
+        server.Logger.LogDebug($"Queue message {message} to client.");
         
         server.Transport.QueueSendAsync(SessionId, message);
     }

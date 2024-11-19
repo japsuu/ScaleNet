@@ -8,14 +8,16 @@ namespace Client;
 
 internal class GameClient
 {
+    private readonly ILogger _logger;
     private readonly NetClient _netClient;
 
 
-    public GameClient(string address, int port)
+    public GameClient(string address, int port, ILogger logger)
     {
-        _netClient = new NetClient(new TcpClientTransport(address, port));
+        _logger = logger;
+        _netClient = new NetClient(_logger, new TcpClientTransport(address, port, _logger));
         
-        _netClient.RegisterMessageHandler<ChatMessageNotification>(msg => Logger.LogInfo($"[Chat] {msg.User}: {msg.Message}"));
+        _netClient.RegisterMessageHandler<ChatMessageNotification>(msg => _logger.LogInfo($"[Chat] {msg.User}: {msg.Message}"));
     }
 
 
@@ -23,7 +25,7 @@ internal class GameClient
     {
         _netClient.Connect();
 
-        Logger.LogInfo("'!' to exit");
+        _logger.LogInfo("'!' to exit");
 
         while (_netClient.IsConnected)
         {

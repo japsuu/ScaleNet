@@ -1,4 +1,5 @@
 ﻿using ScaleNet.Utils;
+using Shared;
 using YamlDotNet.Serialization;
 
 namespace Server.Configuration;
@@ -24,11 +25,11 @@ public class ConfigurationData
     }
     
     
-    public static bool Verify(ConfigurationData config)
+    public static bool Verify(ConfigurationData config, ILogger logger)
     {
         if (config.MaxConnections < 1 || config.MaxConnections > 10000)
         {
-            Logger.LogError($"Unsupported value: {nameof(MaxConnections)}.");
+            logger.LogError($"Unsupported value: {nameof(MaxConnections)}.");
             return false;
         }
         

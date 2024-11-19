@@ -29,15 +29,17 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         
         // Buffer for accumulating incomplete packet data
         private readonly MemoryStream _receiveBuffer = new();
-        private ConnectionState _connectionState = ConnectionState.Disconnected;
+        private readonly ILogger _logger;
         private readonly IPacketMiddleware? _middleware;
+        private ConnectionState _connectionState = ConnectionState.Disconnected;
     
         public event Action<ConnectionStateArgs>? ConnectionStateChanged;
         public event Action<DeserializedNetMessage>? MessageReceived;
 
 
-        public TcpClientTransport(string address, int port, IPacketMiddleware? middleware = null) : base(address, port)
+        public TcpClientTransport(string address, int port, ILogger logger, IPacketMiddleware? middleware = null) : base(address, port)
         {
+            _logger = logger;
             _middleware = middleware;
         }
 
@@ -46,7 +48,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         {
             if (!base.Connect())
             {
-                Logger.LogError("Failed to connect to the server.");
+                _logger.LogError("Failed to connect to the server.");
                 return;
             }
         
@@ -72,13 +74,13 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         
             if (bytes.Length > SharedConstants.MAX_PACKET_SIZE_BYTES)
             {
-                Logger.LogError($"Message {message} exceeds maximum packet size of {SharedConstants.MAX_PACKET_SIZE_BYTES} bytes. Skipping.");
+                _logger.LogError($"Message {message} exceeds maximum packet size of {SharedConstants.MAX_PACKET_SIZE_BYTES} bytes. Skipping.");
                 return;
             }
             
             if (!NetMessages.TryGetMessageId(message.GetType(), out ushort typeId))
             {
-                Logger.LogError($"Failed to get the ID of message {message.GetType()}. Skipping.");
+                _logger.LogError($"Failed to get the ID of message {message.GetType()}. Skipping.");
                 return;
             }
             
@@ -159,14 +161,14 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
                 if (rCount != 4)
                 {
-                    Logger.LogWarning("Failed to read the packet header.");
+                    _logger.LogWarning("Failed to read the packet header.");
                     break;
                 }
 
                 // Interpret the length using little-endian
                 ushort packetLength = BinaryPrimitives.ReadUInt16LittleEndian(header);
                 if (packetLength <= 0)
-                    Logger.LogWarning("Received a packet with a length of 0.");
+                    _logger.LogWarning("Received a packet with a length of 0.");
 
                 // Check if the entire packet is in the buffer
                 if (_receiveBuffer.Length - _receiveBuffer.Position < packetLength)
@@ -182,7 +184,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
                 if (rCount != packetLength)
                 {
-                    Logger.LogWarning("Failed to read the full packet data.");
+                    _logger.LogWarning("Failed to read the full packet data.");
                     break;
                 }
 
@@ -205,7 +207,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
                 if (rCount != leftoverData)
                 {
-                    Logger.LogWarning("Failed to read the leftover data.");
+                    _logger.LogWarning("Failed to read the leftover data.");
                     ArrayPool<byte>.Shared.Return(remainingBytes);
                     return;
                 }
@@ -230,7 +232,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
             
             if (!NetMessages.TryDeserialize(typeId, data, out DeserializedNetMessage message))
             {
-                Logger.LogError($"Failed to deserialize message with ID {typeId}.");
+                _logger.LogError($"Failed to deserialize message with ID {typeId}.");
                 return;
             }
             
@@ -240,7 +242,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
         protected override void OnError(SocketError error)
         {
-            Logger.LogError($"TCP transport caught an error with code {error}");
+            _logger.LogError($"TCP transport caught an error with code {error}");
         }
     }
 }

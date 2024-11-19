@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using ScaleNet.Networking;
+﻿using ScaleNet.Networking;
 
 namespace ScaleNet.Server.LowLevel;
 

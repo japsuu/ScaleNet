@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Diagnostics;
+using ScaleNet.Utils;
 
-namespace ScaleNet.Utils
+namespace Shared
 {
-    public static class Logger
+    public class Logger : ILogger
     {
         public enum LogLevel : byte
         {
@@ -18,35 +19,35 @@ namespace ScaleNet.Utils
         /// The current log level threshold.
         /// The lower the level, the more messages are logged.
         /// </summary>
-        public static LogLevel CurrentLogLevel { get; set; } = LogLevel.INFO;
+        public LogLevel CurrentLogLevel { get; set; } = LogLevel.INFO;
     
     
         [Conditional("DEBUG")]
-        public static void LogDebug(string message)
+        public void LogDebug(string message)
         {
             WriteColored(LogLevel.DEBUG, message, ConsoleColor.Gray, ConsoleColor.Black);
         }
     
     
-        public static void LogInfo(string message)
+        public void LogInfo(string message)
         {
             WriteColored(LogLevel.INFO, message, ConsoleColor.White, ConsoleColor.Black);
         }
     
     
-        public static void LogWarning(string message)
+        public void LogWarning(string message)
         {
             WriteColored(LogLevel.WARNING, message, ConsoleColor.Yellow, ConsoleColor.Black);
         }
 
 
-        public static void LogError(string message)
+        public void LogError(string message)
         {
             WriteColored(LogLevel.ERROR, message, ConsoleColor.Red, ConsoleColor.Black);
         }
 
 
-        public static void LogException(string message, Exception ex)
+        public void LogException(string message, Exception ex)
         {
             WriteColored(LogLevel.FATAL, message, ConsoleColor.Red, ConsoleColor.Black);
             Console.ForegroundColor = ConsoleColor.Red;
@@ -55,7 +56,7 @@ namespace ScaleNet.Utils
         }
 
 
-        private static void WriteColored(LogLevel level, string message, ConsoleColor foregroundColor, ConsoleColor backgroundColor)
+        private void WriteColored(LogLevel level, string message, ConsoleColor foregroundColor, ConsoleColor backgroundColor)
         {
             if (level < CurrentLogLevel)
                 return;

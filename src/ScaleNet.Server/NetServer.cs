@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ScaleNet.Networking;
 using ScaleNet.Server.Authentication;
 using ScaleNet.Server.Authentication.Resolvers;
@@ -16,7 +14,8 @@ public class NetServer
     private readonly MessageHandlerManager _messageHandlerManager;
     private readonly Authenticator _authenticator;
     private readonly ClientManager _clientManager;
-    
+
+    public readonly ILogger Logger;
     public readonly IServerTransport Transport;
     public readonly IDatabaseAccess DatabaseAccess;
     
@@ -41,13 +40,14 @@ public class NetServer
     public event Action<Client>? ClientAuthenticated;
 
 
-    public NetServer(IServerTransport transport, IAuthenticationResolver authenticationResolver, IDatabaseAccess databaseAccess, bool allowRegistration)
+    public NetServer(ILogger logger, IServerTransport transport, IAuthenticationResolver authenticationResolver, IDatabaseAccess databaseAccess, bool allowRegistration)
     {
-        NetMessages.Initialize();
+        NetMessages.Initialize(logger);
 
+        Logger = logger;
         Transport = transport;
         DatabaseAccess = databaseAccess;
-        _messageHandlerManager = new MessageHandlerManager();
+        _messageHandlerManager = new MessageHandlerManager(logger);
         _clientManager = new ClientManager(this);
         
         _authenticator = new Authenticator(this, authenticationResolver, allowRegistration);
