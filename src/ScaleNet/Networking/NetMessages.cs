@@ -1,204 +1,195 @@
 ﻿using MessagePack;
 using ScaleNet.Utils;
 
-namespace ScaleNet.Networking;
-
-public static class NetMessages
+namespace ScaleNet.Networking
 {
-    public static byte[] Serialize<T>(T msg) where T : INetMessage
+    public static class NetMessages
     {
-        byte[] bin = MessagePackSerializer.Serialize<INetMessage>(msg);
+        public static byte[] Serialize<T>(T msg) where T : INetMessage
+        {
+            byte[] bin = MessagePackSerializer.Serialize<INetMessage>(msg);
         
-        return bin;
+            return bin;
+        }
+
+
+        public static INetMessage? Deserialize(ReadOnlyMemory<byte> bin)
+        {
+            try
+            {
+                INetMessage msg = MessagePackSerializer.Deserialize<INetMessage>(bin);
+
+                return msg;
+            }
+            catch (Exception e)
+            {
+                Logger.LogError($"Failed to deserialize message: {bin.AsStringBits()}:\n{e}");
+                return null;
+            }
+        }
     }
 
+    /// <summary>
+    /// Represents a message (packet) that can be sent over the network.<br/>
+    /// </summary>
+    /// 
+    /// <remarks>
+    /// Implementations must be thread safe.<br/>
+    /// Implementations must be immutable.<br/>
+    /// Any constructors may be skipped when deserializing.
+    /// </remarks>
 
-    public static INetMessage? Deserialize(ReadOnlyMemory<byte> bin)
+    // Framework messages
+    [Union(0, typeof(DisconnectMessage))]
+    [Union(1, typeof(AuthenticationInfoMessage))]
+    [Union(2, typeof(RegisterRequestMessage))]
+    [Union(3, typeof(RegisterResponseMessage))]
+    [Union(4, typeof(AuthenticationRequestMessage))]
+    [Union(5, typeof(AuthenticationResponseMessage))]
+
+    // Application messages
+    [Union(64, typeof(ChatMessage))]
+    [Union(65, typeof(ChatMessageNotification))]
+    public interface INetMessage { }
+
+
+    [MessagePackObject]
+    public readonly struct DisconnectMessage : INetMessage
     {
-        try
-        {
-            INetMessage msg = MessagePackSerializer.Deserialize<INetMessage>(bin);
+        [Key(0)]
+        public readonly DisconnectReason Reason;
 
-            return msg;
-        }
-        catch (Exception e)
+
+        public DisconnectMessage(DisconnectReason reason)
         {
-            Logger.LogError($"Failed to deserialize message: {bin.AsStringBits()}:\n{e}");
-            return null;
+            Reason = reason;
         }
     }
-}
-
-/// <summary>
-/// Represents a message (packet) that can be sent over the network.<br/>
-/// </summary>
-/// 
-/// <remarks>
-/// Implementations must be thread safe.<br/>
-/// Implementations must be immutable.<br/>
-/// Any constructors may be skipped when deserializing.
-/// </remarks>
-
-// Framework messages
-[Union(0, typeof(DisconnectMessage))]
-[Union(1, typeof(AuthenticationInfoMessage))]
-[Union(2, typeof(RegisterRequestMessage))]
-[Union(3, typeof(RegisterResponseMessage))]
-[Union(4, typeof(AuthenticationRequestMessage))]
-[Union(5, typeof(AuthenticationResponseMessage))]
-
-// Application messages
-[Union(64, typeof(ChatMessage))]
-[Union(65, typeof(ChatMessageNotification))]
-public interface INetMessage;
 
 
-[MessagePackObject]
-public readonly struct DisconnectMessage(DisconnectReason reason) : INetMessage
-{
-    [Key(0)]
-    public readonly DisconnectReason Reason = reason;
-}
-
-
-[MessagePackObject]
-public readonly struct AuthenticationInfoMessage(bool registrationAllowed, uint serverVersion) : INetMessage
-{
-    [Key(0)]
-    public readonly bool RegistrationAllowed = registrationAllowed;
+    [MessagePackObject]
+    public readonly struct AuthenticationInfoMessage : INetMessage
+    {
+        [Key(0)]
+        public readonly bool RegistrationAllowed;
     
-    [Key(1)]
-    public readonly uint ServerVersion = serverVersion;
-}
+        [Key(1)]
+        public readonly uint ServerVersion;
+
+
+        public AuthenticationInfoMessage(bool registrationAllowed, uint serverVersion)
+        {
+            RegistrationAllowed = registrationAllowed;
+            ServerVersion = serverVersion;
+        }
+    }
 
 
 #region Account register
 
-[MessagePackObject]
-public readonly struct RegisterRequestMessage(string username, string password) : INetMessage
-{
-    [Key(0)]
-    public readonly string Username = username;
+    [MessagePackObject]
+    public readonly struct RegisterRequestMessage : INetMessage
+    {
+        [Key(0)]
+        public readonly string Username;
     
-    [Key(1)]
-    public readonly string Password = password;
-}
+        [Key(1)]
+        public readonly string Password;
 
-[MessagePackObject]
-public readonly struct RegisterResponseMessage(AccountCreationResult result) : INetMessage
-{
-    [Key(0)]
-    public readonly AccountCreationResult Result = result;
-}
+
+        public RegisterRequestMessage(string username, string password)
+        {
+            Username = username;
+            Password = password;
+        }
+    }
+
+    [MessagePackObject]
+    public readonly struct RegisterResponseMessage : INetMessage
+    {
+        [Key(0)]
+        public readonly AccountCreationResult Result;
+
+
+        public RegisterResponseMessage(AccountCreationResult result)
+        {
+            Result = result;
+        }
+    }
 
 #endregion
 
 
 #region Account authentication
 
-[MessagePackObject]
-public readonly struct AuthenticationRequestMessage(string username, string password) : INetMessage
-{
-    [Key(0)]
-    public readonly string Username = username;
+    [MessagePackObject]
+    public readonly struct AuthenticationRequestMessage : INetMessage
+    {
+        [Key(0)]
+        public readonly string Username;
     
-    [Key(1)]
-    public readonly string Password = password;
-}
+        [Key(1)]
+        public readonly string Password;
 
-[MessagePackObject]
-public readonly struct AuthenticationResponseMessage(AuthenticationResult result, uint clientUid) : INetMessage
-{
-    [Key(0)]
-    public readonly AuthenticationResult Result = result;
+
+        public AuthenticationRequestMessage(string username, string password)
+        {
+            Username = username;
+            Password = password;
+        }
+    }
+
+    [MessagePackObject]
+    public readonly struct AuthenticationResponseMessage : INetMessage
+    {
+        [Key(0)]
+        public readonly AuthenticationResult Result;
     
-    [Key(1)]
-    public readonly uint ClientUid = clientUid;
-}
+        [Key(1)]
+        public readonly uint ClientUid;
+
+
+        public AuthenticationResponseMessage(AuthenticationResult result, uint clientUid)
+        {
+            Result = result;
+            ClientUid = clientUid;
+        }
+    }
 
 #endregion
 
 
 #region Chat
 
-[MessagePackObject]
-public readonly struct ChatMessage(string message) : INetMessage
-{
-    [Key(0)]
-    public readonly string Message = message;
-}
+    [MessagePackObject]
+    public readonly struct ChatMessage : INetMessage
+    {
+        [Key(0)]
+        public readonly string Message;
 
-[MessagePackObject]
-public readonly struct ChatMessageNotification(string user, string message) : INetMessage
-{
-    [Key(0)]
-    public readonly string User = user;
+
+        public ChatMessage(string message)
+        {
+            Message = message;
+        }
+    }
+
+    [MessagePackObject]
+    public readonly struct ChatMessageNotification : INetMessage
+    {
+        [Key(0)]
+        public readonly string User;
     
-    [Key(1)]
-    public readonly string Message = message;
-}
+        [Key(1)]
+        public readonly string Message;
+
+
+        public ChatMessageNotification(string user, string message)
+        {
+            User = user;
+            Message = message;
+        }
+    }
 
 #endregion
-
-/*/// <summary>
-/// Sent by the server to request authentication from the client.
-/// </summary>
-///
-/// <remarks>
-/// Server -&gt; Client
-/// </remarks>
-[MessagePackObject]
-public readonly struct AuthRequestMessage(AuthenticationMethod authenticationMethod) : INetMessage
-{
-    [Key(0)]
-    public readonly AuthenticationMethod AuthenticationMethod = authenticationMethod;
 }
-
-/// <summary>
-/// Sent by the client in response to a <see cref="AuthRequestMessage"/>.
-/// </summary>
-///
-/// <remarks>
-/// Client -&gt; Server
-/// </remarks>
-[MessagePackObject]
-public readonly struct AuthResponseMessage(string username, string password, ushort version) : INetMessage
-{
-    [Key(0)]
-    public readonly string Username = username;
-    [Key(1)]
-    public readonly string Password = password;
-    [Key(2)]
-    public readonly ushort Version = version;
-}
-
-/// <summary>
-/// Sent by either the server or the client.
-/// Contains a reason for the disconnection.
-/// </summary>
-///
-/// <remarks>
-/// Server &lt;-&gt; Client
-/// </remarks>
-[MessagePackObject]
-public readonly struct DisconnectMessage(DisconnectReason reason) : INetMessage
-{
-    [Key(0)]
-    public readonly DisconnectReason Reason = reason;
-}
-
-/// <summary>
-/// Sent from the server to the client,
-/// if the client is accepted as a valid connection.<br/>
-/// Contains the client's unique clientId.
-/// </summary>
-///
-/// <remarks>
-/// Server -&gt; Client
-/// </remarks>
-[MessagePackObject]
-public readonly struct WelcomeMessage(uint clientId) : INetMessage
-{
-    [Key(0)]
-    public readonly uint ClientId = clientId;
-}*/

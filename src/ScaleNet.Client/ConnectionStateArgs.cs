@@ -1,7 +1,15 @@
-namespace ScaleNet.Client;
-
-public readonly struct ConnectionStateArgs(ConnectionState newConnectionState, ConnectionState oldConnectionState)
+namespace ScaleNet.Client
 {
-    public readonly ConnectionState NewConnectionState = newConnectionState;
-    public readonly ConnectionState OldConnectionState = oldConnectionState;
+    public readonly struct ConnectionStateArgs
+    {
+        public readonly ConnectionState NewConnectionState;
+        public readonly ConnectionState OldConnectionState;
+
+
+        public ConnectionStateArgs(ConnectionState newConnectionState, ConnectionState oldConnectionState)
+        {
+            NewConnectionState = newConnectionState;
+            OldConnectionState = oldConnectionState;
+        }
+    }
 }

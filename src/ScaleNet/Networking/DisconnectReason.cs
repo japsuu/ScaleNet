@@ -1,33 +1,34 @@
-﻿namespace ScaleNet.Networking;
-
-/// <summary>
-/// The reason for a client's disconnection.
-/// </summary>
-public enum DisconnectReason : byte
+﻿namespace ScaleNet.Networking
 {
     /// <summary>
-    /// No reason was specified.
+    /// The reason for a client's disconnection.
     /// </summary>
-    None,
+    public enum DisconnectReason : byte
+    {
+        /// <summary>
+        /// No reason was specified.
+        /// </summary>
+        None,
     
-    /// <summary>
-    /// Client performed an action which could only be done if trying to exploit the server.
-    /// </summary>
-    ExploitAttempt,
+        /// <summary>
+        /// Client performed an action which could only be done if trying to exploit the server.
+        /// </summary>
+        ExploitAttempt,
     
-    /// <summary>
-    /// Data received from the client could not be parsed. This rarely indicates an attack.
-    /// </summary>
-    MalformedData,
+        /// <summary>
+        /// Data received from the client could not be parsed. This rarely indicates an attack.
+        /// </summary>
+        MalformedData,
     
-    /// <summary>
-    /// There was a problem with the server that required the client to be kicked.
-    /// </summary>
-    UnexpectedProblem,
+        /// <summary>
+        /// There was a problem with the server that required the client to be kicked.
+        /// </summary>
+        UnexpectedProblem,
     
-    ServerShutdown,
-    OutdatedVersion,
-    OversizedPacket,
-    CorruptPlayerData,
-    TooManyPackets
+        ServerShutdown,
+        OutdatedVersion,
+        OversizedPacket,
+        CorruptPlayerData,
+        TooManyPackets
+    }
 }

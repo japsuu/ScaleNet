@@ -1,21 +1,22 @@
-﻿namespace ScaleNet.Client;
-
-/// <summary>
-/// A raw packet of data.
-/// </summary>
-public readonly struct Packet
+﻿namespace ScaleNet.Client
 {
-    public readonly Memory<byte> Data;
-
-
-    public Packet(byte[] buffer, int offset, int size)
+    /// <summary>
+    /// A raw packet of data.
+    /// </summary>
+    public readonly struct Packet
     {
-        Data = new Memory<byte>(buffer, offset, size);
-    }
+        public readonly Memory<byte> Data;
+
+
+        public Packet(byte[] buffer, int offset, int size)
+        {
+            Data = new Memory<byte>(buffer, offset, size);
+        }
     
 
-    public Packet(Memory<byte> buffer)
-    {
-        Data = buffer;
+        public Packet(Memory<byte> buffer)
+        {
+            Data = buffer;
+        }
     }
 }

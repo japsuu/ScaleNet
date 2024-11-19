@@ -1,27 +1,28 @@
-namespace ScaleNet.Client;
-
-/// <summary>
-/// States a network connection can be in.
-/// </summary>
-public enum ConnectionState : byte
+namespace ScaleNet.Client
 {
     /// <summary>
-    /// Connection is fully stopped.
+    /// States a network connection can be in.
     /// </summary>
-    Disconnected = 0,
+    public enum ConnectionState : byte
+    {
+        /// <summary>
+        /// Connection is fully stopped.
+        /// </summary>
+        Disconnected = 0,
 
-    /// <summary>
-    /// Connection is starting but not yet established.
-    /// </summary>
-    Connecting = 1,
+        /// <summary>
+        /// Connection is starting but not yet established.
+        /// </summary>
+        Connecting = 1,
 
-    /// <summary>
-    /// Connection is established.
-    /// </summary>
-    Connected = 2,
+        /// <summary>
+        /// Connection is established.
+        /// </summary>
+        Connected = 2,
 
-    /// <summary>
-    /// Connection is stopping.
-    /// </summary>
-    Disconnecting = 3
+        /// <summary>
+        /// Connection is stopping.
+        /// </summary>
+        Disconnecting = 3
+    }
 }

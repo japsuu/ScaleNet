@@ -1,17 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <LangVersion>12</LangVersion>
+        <LangVersion>9</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AssemblyName>ScaleNet.Client</AssemblyName>
         <RootNamespace>ScaleNet.Client</RootNamespace>
+        <TargetFramework>netstandard2.1</TargetFramework>
     </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Include="NetCoreServer" Version="8.0.7" />
-    </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\ScaleNet\ScaleNet.csproj" />

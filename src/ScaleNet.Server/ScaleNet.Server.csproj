@@ -10,10 +10,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="NetCoreServer" Version="8.0.7" />
-    </ItemGroup>
-
-    <ItemGroup>
       <ProjectReference Include="..\ScaleNet\ScaleNet.csproj" />
     </ItemGroup>
 

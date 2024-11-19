@@ -1,9 +1,10 @@
-﻿namespace ScaleNet.Networking;
-
-public enum AccountCreationResult : byte
+﻿namespace ScaleNet.Networking
 {
-    Success,
-    UsernameTaken,
-    InvalidUsername,
-    InvalidPassword
+    public enum AccountCreationResult : byte
+    {
+        Success,
+        UsernameTaken,
+        InvalidUsername,
+        InvalidPassword
+    }
 }

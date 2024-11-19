@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <LangVersion>12</LangVersion>
+        <LangVersion>9</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <AssemblyName>ScaleNet</AssemblyName>
         <RootNamespace>ScaleNet</RootNamespace>
+        <TargetFramework>netstandard2.1</TargetFramework>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
