@@ -1,4 +1,6 @@
-﻿namespace ScaleNet.Server.LowLevel;
+﻿using ScaleNet.Common;
+
+namespace ScaleNet.Server.LowLevel;
 
 /// <summary>
 /// Maintains a collection of message handlers, tied to specific message types.

@@ -2,6 +2,7 @@
 using ScaleNet.Client.Authentication;
 using ScaleNet.Client.LowLevel;
 using ScaleNet.Client.LowLevel.Transport;
+using ScaleNet.Common;
 
 namespace ScaleNet.Client
 {

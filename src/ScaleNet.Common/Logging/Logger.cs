@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace ScaleNet.Logging
+namespace ScaleNet.Common.Logging
 {
     /// <summary>
     /// Represents a logger that can be used to log messages at different log levels.

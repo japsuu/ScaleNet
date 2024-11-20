@@ -3,6 +3,7 @@ using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using ScaleNet.Common;
 
 namespace ScaleNet.Server.LowLevel.Transport.Tcp;
 

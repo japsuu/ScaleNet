@@ -1,4 +1,4 @@
-﻿namespace ScaleNet
+﻿namespace ScaleNet.Common
 {
     /// <summary>
     /// Represents a middleware that can pre-process incoming and outgoing packets.<br/>

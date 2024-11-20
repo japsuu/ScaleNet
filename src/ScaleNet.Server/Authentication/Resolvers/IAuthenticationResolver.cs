@@ -1,4 +1,6 @@
-﻿namespace ScaleNet.Server.Authentication.Resolvers;
+﻿using ScaleNet.Common;
+
+namespace ScaleNet.Server.Authentication.Resolvers;
 
 /// <summary>
 /// Interface for classes that can authenticate clients.

@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScaleNet", "ScaleNet\ScaleNet.csproj", "{648EF40E-A9BC-45FE-A642-44FA32E944F7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScaleNet.Common", "ScaleNet.Common\ScaleNet.Common.csproj", "{648EF40E-A9BC-45FE-A642-44FA32E944F7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScaleNet.Client", "ScaleNet.Client\ScaleNet.Client.csproj", "{6C44082C-EA25-40DF-9E7B-3488D60C5200}"
 EndProject

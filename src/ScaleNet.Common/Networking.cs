@@ -1,6 +1,6 @@
-﻿using ScaleNet.Logging;
+﻿using ScaleNet.Common.Logging;
 
-namespace ScaleNet
+namespace ScaleNet.Common
 {
     public static class Networking
     {

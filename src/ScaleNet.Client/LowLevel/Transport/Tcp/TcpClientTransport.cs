@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.IO;
 using System.Net.Sockets;
+using ScaleNet.Common;
 using TcpClient = NetCoreServer.TcpClient;
 
 namespace ScaleNet.Client.LowLevel.Transport.Tcp

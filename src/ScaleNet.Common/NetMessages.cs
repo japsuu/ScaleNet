@@ -4,9 +4,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using MessagePack;
-using ScaleNet.Utils;
+using ScaleNet.Common.Utils;
 
-namespace ScaleNet
+namespace ScaleNet.Common
 {
     public readonly struct DeserializedNetMessage
     {

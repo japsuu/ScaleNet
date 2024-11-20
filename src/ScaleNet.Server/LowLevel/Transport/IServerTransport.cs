@@ -1,4 +1,6 @@
-﻿namespace ScaleNet.Server.LowLevel.Transport;
+﻿using ScaleNet.Common;
+
+namespace ScaleNet.Server.LowLevel.Transport;
 
 public interface IServerTransport
 {

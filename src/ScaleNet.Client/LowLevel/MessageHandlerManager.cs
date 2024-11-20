@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using ScaleNet.Common;
 
 namespace ScaleNet.Client.LowLevel
 {

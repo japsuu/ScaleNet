@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace ScaleNet.Utils
+namespace ScaleNet.Common.Utils
 {
     public static class MemoryDebugUtils
     {

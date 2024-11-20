@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ScaleNet
+namespace ScaleNet.Common
 {
     public enum AuthenticationResult : byte
     {

@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using ScaleNet.Common;
 using ScaleNet.Server.Authentication;
 using ScaleNet.Server.Authentication.Resolvers;
 using ScaleNet.Server.Database;

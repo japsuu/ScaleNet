@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using ScaleNet.Common;
 
 namespace ScaleNet.Server.Database;
 

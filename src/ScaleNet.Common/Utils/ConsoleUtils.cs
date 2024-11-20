@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ScaleNet.Utils
+namespace ScaleNet.Common.Utils
 {
     public static class ConsoleUtils
     {

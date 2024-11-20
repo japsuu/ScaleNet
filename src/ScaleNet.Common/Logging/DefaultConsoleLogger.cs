@@ -1,7 +1,6 @@
 ﻿using System;
-using System.Diagnostics;
 
-namespace ScaleNet.Logging
+namespace ScaleNet.Common.Logging
 {
     internal sealed class DefaultConsoleLogger : Logger
     {

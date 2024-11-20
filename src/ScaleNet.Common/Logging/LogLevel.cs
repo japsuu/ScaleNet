@@ -1,4 +1,4 @@
-﻿namespace ScaleNet.Logging
+﻿namespace ScaleNet.Common.Logging
 {
     public enum LogLevel : byte
     {

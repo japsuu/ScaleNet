@@ -10,7 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\ScaleNet\ScaleNet.csproj" />
+      <ProjectReference Include="..\ScaleNet.Common\ScaleNet.Common.csproj" />
     </ItemGroup>
 
     <!-- Debug configuration -->

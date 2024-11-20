@@ -1,3 +1,4 @@
+using ScaleNet.Common;
 using ScaleNet.Server.Authentication.Resolvers;
 
 namespace ScaleNet.Server.Authentication;
