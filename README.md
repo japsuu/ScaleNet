@@ -95,7 +95,16 @@ Here's the quick guide to generate AOT code for Unity:
    
 3. Add the generated file to your Unity project.
 
-4. In Unity, add the `SCALENET_AOT` symbol to your project settings.
+4. In Unity, in your custom script **before using MessagePack**, register the generated resolver:
+    ```csharp
+    MessagePack.Resolvers.StaticCompositeResolver.Instance.Register(
+        MessagePack.Resolvers.GeneratedResolver.Instance, // Custom AOT-generated resolver
+        MessagePack.Resolvers.StandardResolver.Instance); // Fallback to standard
+    MessagePack.MessagePackSerializerOptions options =
+        MessagePack.MessagePackSerializerOptions.Standard
+        .WithResolver(MessagePack.Resolvers.StaticCompositeResolver.Instance);
+    MessagePack.MessagePackSerializer.DefaultOptions = options;
+    ```
 
 ---
 
@@ -161,6 +170,9 @@ Get the following dependencies in one of the aforementioned ways:
 - [MessagePackCSharp](https://github.com/MessagePack-CSharp/MessagePack-CSharp/releases) (`.unitypackage` recommended)
 
 If you installed MessagePack using the `.unitypackage`, you should also enable MessagePack CodeGen: Unity > Window > MessagePack > CodeGenerator > Install
+
+> [!NOTE]
+> Even if using the code generator, you must remember to register the generated AOT code as described in the [Unity Compatibility](#unity-compatibility) section.
 
 ### Usage
 
