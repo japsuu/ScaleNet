@@ -62,6 +62,9 @@ ScaleNet provides basic client management features, such as:
 
 ScaleNet is compatible with Unity 2018.3 and later, but there are some caveats:
 
+ScaleNet includes platform-specific `#ifdef`s and workarounds for Unity, thus it is not available precompiled.
+You need to clone the repository and manually copy the source files into your project.
+
 ### MessagePack
 
 ScaleNet uses MessagePack for serialization.
@@ -98,10 +101,9 @@ Here's the quick guide to generate AOT code for Unity:
 
 ## Getting Started
 
-### Installation
+### Installation (C# Project)
 
 Currently, the preferred way to use ScaleNet is to clone the repository and manually copy the source files into your project.
-ScaleNet includes platform-specific #ifdefs and workarounds for Unity, thus it is not available precompiled.
 
 ```bash
 git clone https://github.com/japsuu/ScaleNet
@@ -112,6 +114,53 @@ The server and client code are separated into different projects in the `/src` d
 - For client, you should copy `ScaleNet.Client` and `ScaleNet` folders into your project.
 
 If you do not care about separating the server and client code, you can copy the entire `src` folder into your project.
+
+### Installation (Unity)
+
+> [!WARNING]
+> Read the [Unity Compatibility](#unity-compatibility) section before proceeding.
+
+Now, using this library in Unity is complicated. For me, it's worth it.
+Here's how I personally use this library in Unity:
+
+#### File structure
+
+I create my basic file structure as follows:
+root
+- .git
+- submodules/
+   - ScaleNet (cloned as a git submodule)
+- src/
+   - Client/ (Unity Project)
+      - Assets/
+      - ...
+   - Server/
+      - Server.sln
+      - Server/ (C# Project)
+      - Common/ (C# Project)
+
+#### Synchronization
+
+> [!NOTE]
+> Skip this, if you plan on modifying the ScaleNet source, or otherwise never updating the submodule.
+
+In Unity, I use the ["Link & Sync"](https://assetstore.unity.com/packages/tools/version-control/link-sync-229569) package to sync the ScaleNet submodule to Unity:
+- Unity > Import Link & Sync
+- "Assets" > "Create" > "Link And Sync" > Move the created sync object to `Assets/Plugins/ScaleNet/Client`
+- In the inspector, add `../../submodules/ScaleNet/src/ScaleNet.Client` to "External Directories." You might also want to exclude, for example, the `.csproj` file.
+- Click "Prepare Pull" > Execute
+- Now do the same for `../../submodules/ScaleNet/src/ScaleNet.Common` into `Assets/Plugins/ScaleNet/Common`.
+
+Now the ScaleNet source is mirrored into your Unity project. Feel free to pull changes to the submodule when needed.
+
+#### Dependencies
+
+Unity doesn't support NuGet packages natively. You can either use [NuGetForUnity](https://github.com/GlitchEnzo/NuGetForUnity) or add the required packages as either DLLs or `.unitypackage`s.
+
+Get the following dependencies in one of the aforementioned ways:
+- [MessagePackCSharp](https://github.com/MessagePack-CSharp/MessagePack-CSharp/releases) (`.unitypackage` recommended)
+
+If you installed MessagePack using the `.unitypackage`, you should also enable MessagePack CodeGen: Unity > Window > MessagePack > CodeGenerator > Install
 
 ### Usage
 
