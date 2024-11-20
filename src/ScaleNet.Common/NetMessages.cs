@@ -48,18 +48,6 @@ namespace ScaleNet.Common
         internal static void Initialize()
         {
             RegisterAllMessages();
-
-#if SCALENET_AOT
-            StaticCompositeResolver.Instance.Register(
-                MessagePack.Resolvers.GeneratedResolver.Instance, // Custom AOT-generated resolver
-                StandardResolver.Instance  // Fallback to standard
-            );
-
-            MessagePackSerializerOptions options = MessagePackSerializerOptions.Standard
-                .WithResolver(StaticCompositeResolver.Instance);
-
-            MessagePackSerializer.DefaultOptions = options;
-#endif
         }
         
         
