@@ -34,9 +34,19 @@ namespace ScaleNet.Client
         public event Action<ConnectionStateArgs>? ConnectionStateChanged;
 
         /// <summary>
-        /// Called after the local client has authenticated (when a <see cref="AuthenticationResponseMessage"/> with <see cref="AuthenticationResult.Success"/> is received from the server).
+        /// Called after the local client has received authentication information from the server.
         /// </summary>
-        public event Action? Authenticated;
+        public event Action? ReceivedAuthInfo;
+
+        /// <summary>
+        /// Called after the local client has received an authentication result from the server.
+        /// </summary>
+        public event Action<AuthenticationResult>? AuthenticationResultReceived;
+
+        /// <summary>
+        /// Called after the local client has received an account creation result from the server.
+        /// </summary>
+        public event Action<AccountCreationResult>? AccountCreationResultReceived;
 
 
         public NetClient(IClientTransport transport)
@@ -88,7 +98,6 @@ namespace ScaleNet.Client
         
             IsAuthenticated = true;
             AccountUid = accountUid;
-            Authenticated?.Invoke();
         }
     
 
@@ -125,6 +134,84 @@ namespace ScaleNet.Client
 
             // Send the message.
             _transport.SendAsync(message);
+        }
+        
+        
+        public void RequestLogin(string username, string password)
+        {
+            if (!IsConnected)
+            {
+                Networking.Logger.LogError("Local connection is not started, cannot request login.");
+                return;
+            }
+
+            if (IsAuthenticated)
+            {
+                Networking.Logger.LogError("Local client is already authenticated.");
+                return;
+            }
+            
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            {
+                Networking.Logger.LogError("Username and password cannot be empty.");
+                return;
+            }
+            
+            if (username.Length < SharedConstants.MIN_USERNAME_LENGTH || username.Length > SharedConstants.MAX_USERNAME_LENGTH)
+            {
+                Networking.Logger.LogError($"Username must be between {SharedConstants.MIN_USERNAME_LENGTH} and {SharedConstants.MAX_USERNAME_LENGTH} characters.");
+                return;
+            }
+        
+            if (password.Length < SharedConstants.MIN_PASSWORD_LENGTH || password.Length > SharedConstants.MAX_PASSWORD_LENGTH)
+            {
+                Networking.Logger.LogError($"Password must be between {SharedConstants.MIN_PASSWORD_LENGTH} and {SharedConstants.MAX_PASSWORD_LENGTH} characters.");
+                return;
+            }
+        
+            _authenticator.Login(username, password);
+        }
+        
+        
+        public void RequestRegister(string username, string password)
+        {
+            if (!IsConnected)
+            {
+                Networking.Logger.LogError("Local connection is not started, cannot request registration.");
+                return;
+            }
+
+            if (IsAuthenticated)
+            {
+                Networking.Logger.LogError("Local client is already authenticated.");
+                return;
+            }
+
+            if (!_serverAllowsRegistration)
+            {
+                Networking.Logger.LogInfo("Registration is disabled by server. You can currently only login.");
+                return;
+            }
+            
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            {
+                Networking.Logger.LogError("Username and password cannot be empty.");
+                return;
+            }
+            
+            if (username.Length < SharedConstants.MIN_USERNAME_LENGTH || username.Length > SharedConstants.MAX_USERNAME_LENGTH)
+            {
+                Networking.Logger.LogError($"Username must be between {SharedConstants.MIN_USERNAME_LENGTH} and {SharedConstants.MAX_USERNAME_LENGTH} characters.");
+                return;
+            }
+        
+            if (password.Length < SharedConstants.MIN_PASSWORD_LENGTH || password.Length > SharedConstants.MAX_PASSWORD_LENGTH)
+            {
+                Networking.Logger.LogError($"Password must be between {SharedConstants.MIN_PASSWORD_LENGTH} and {SharedConstants.MAX_PASSWORD_LENGTH} characters.");
+                return;
+            }
+        
+            _authenticator.Register(username, password);
         }
     
     
@@ -164,16 +251,22 @@ namespace ScaleNet.Client
 
         private void OnReceiveAuthInfo(AuthenticationInfoMessage msg)
         {
+            _serverAllowsRegistration = msg.RegistrationAllowed;
+            
             if (msg.ServerVersion != SharedConstants.GAME_VERSION)
             {
-                Networking.Logger.LogError($"The client version ({SharedConstants.GAME_VERSION}) does not match the server version ({msg.ServerVersion}). Please update the client.");
+                Networking.Logger.LogError($"The client version ({SharedConstants.GAME_VERSION}) does not match the server version ({msg.ServerVersion}). Please update the client. Disconnecting.");
                 Disconnect();
                 return;
             }
-        
-            _serverAllowsRegistration = msg.RegistrationAllowed;
 
-            TryAuthenticate();
+            if (ReceivedAuthInfo == null)
+            {
+                Networking.Logger.LogWarning($"No handler is registered for {nameof(ReceivedAuthInfo)} event. Ignoring.");
+                return;
+            }
+
+            ReceivedAuthInfo.Invoke();
         }
 
 
@@ -181,108 +274,33 @@ namespace ScaleNet.Client
         {
             Networking.Logger.LogInfo($"Received authentication result: {result}");
 
-            if (result == AuthenticationResult.Success)
+            if (result != AuthenticationResult.Success)
+                Networking.Logger.LogError("Authentication failed.");
+            
+            if (AuthenticationResultReceived == null)
+            {
+                Networking.Logger.LogWarning($"No handler is registered for {nameof(AuthenticationResultReceived)} event. Ignoring.");
                 return;
-        
-            Networking.Logger.LogError("Authentication failed.");
-            TryAuthenticate();
+            }
+            
+            AuthenticationResultReceived.Invoke(result);
         }
 
 
         private void OnAccountCreationResultReceived(AccountCreationResult result)
         {
             Networking.Logger.LogInfo($"Received account creation result: {result}");
-            TryAuthenticate();
-        }
-
-
-        private void TryAuthenticate()
-        {
-            // Ask user if they want to log in or register.
-            bool login;
-            if (_serverAllowsRegistration)
-            {
-                while (true)
-                {
-                    Networking.Logger.LogInfo("Do you want to login or register? (login/register)");
-                    string? input = Console.ReadLine();
-                    if (string.IsNullOrWhiteSpace(input))
-                    {
-                        Networking.Logger.LogError("Please enter 'login' or 'register'.");
-                        continue;
-                    }
-
-                    if (input.Equals("login", StringComparison.OrdinalIgnoreCase))
-                    {
-                        login = true;
-                        break;
-                    }
-
-                    if (input.Equals("register", StringComparison.OrdinalIgnoreCase))
-                    {
-                        login = false;
-                        break;
-                    }
-
-                    Networking.Logger.LogError("Please enter 'login' or 'register'.");
-                }
-            }
-            else
-            {
-                Networking.Logger.LogInfo("Registration is disabled by server. You can currently only login.");
-                login = true;
-            }
-        
-            // Ask user for username and password.
-            string username;
-            string password;
-            while (true)
-            {
-                (string? user, string? pass) = RequestCredentials();
-                if (string.IsNullOrWhiteSpace(user) || string.IsNullOrWhiteSpace(pass))
-                {
-                    Networking.Logger.LogError("Username and password cannot be empty.");
-                    continue;
-                }
             
-                if (user.Length < SharedConstants.MIN_USERNAME_LENGTH || user.Length > SharedConstants.MAX_USERNAME_LENGTH)
-                {
-                    Networking.Logger.LogError($"Username must be between {SharedConstants.MIN_USERNAME_LENGTH} and {SharedConstants.MAX_USERNAME_LENGTH} characters.");
-                    continue;
-                }
-        
-                if (pass.Length < SharedConstants.MIN_PASSWORD_LENGTH || pass.Length > SharedConstants.MAX_PASSWORD_LENGTH)
-                {
-                    Networking.Logger.LogError($"Password must be between {SharedConstants.MIN_PASSWORD_LENGTH} and {SharedConstants.MAX_PASSWORD_LENGTH} characters.");
-                    continue;
-                }
+            if (result != AccountCreationResult.Success)
+                Networking.Logger.LogError("Account creation failed.");
+
+            if (AccountCreationResultReceived == null)
+            {
+                Networking.Logger.LogWarning($"No handler is registered for {nameof(AccountCreationResultReceived)} event. Ignoring.");
+                return;
+            }
             
-                username = user;
-                password = pass;
-
-                break;
-            }
-
-            if (login)
-            {
-                _authenticator.Login(username, password);
-            }
-            else
-            {
-                _authenticator.Register(username, password);
-            }
-        }
-    
-    
-        private (string?, string?) RequestCredentials()
-        {
-            Networking.Logger.LogInfo("Enter your username:");
-            string? username = Console.ReadLine();
-        
-            Networking.Logger.LogInfo("Enter your password:");
-            string? password = Console.ReadLine();
-        
-            return (username, password);
+            AccountCreationResultReceived.Invoke(result);
         }
     }
 }
