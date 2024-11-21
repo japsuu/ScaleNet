@@ -4,20 +4,17 @@ namespace ScaleNet.Server.LowLevel;
 
 internal abstract class MessageHandler
 {
-    public abstract bool RequiresAuthentication { get; }
     public abstract void RegisterAction(object action);
     public abstract void UnregisterAction(object action);
-    public abstract void Invoke(Client session, INetMessage message);
+    public abstract void Invoke(Connection session, INetMessage message);
 }
 
 /// <summary>
 /// Handles packets received on clients, from the server.
 /// </summary>
-internal class MessageHandler<T>(bool requiresAuthentication) : MessageHandler where T : INetMessage
+internal class MessageHandler<T> : MessageHandler where T : INetMessage
 {
-    private readonly List<Action<Client, T>> _actions = [];
-    
-    public override bool RequiresAuthentication => requiresAuthentication;
+    private readonly List<Action<Connection, T>> _actions = [];
 
     
     /// <remarks>
@@ -25,8 +22,8 @@ internal class MessageHandler<T>(bool requiresAuthentication) : MessageHandler w
     /// </remarks>
     public override void RegisterAction(object action)
     {
-        if (action is not Action<Client, T> tAction)
-            throw new ArgumentException($"Action is not of type {nameof(Action<Client, T>)}.");
+        if (action is not Action<Connection, T> tAction)
+            throw new ArgumentException($"Action is not of type {nameof(Action<Connection, T>)}.");
         
         _actions.Add(tAction);
     }
@@ -37,8 +34,8 @@ internal class MessageHandler<T>(bool requiresAuthentication) : MessageHandler w
     /// </remarks>
     public override void UnregisterAction(object action)
     {
-        if (action is not Action<Client, T> tAction)
-            throw new ArgumentException($"Action is not of type {nameof(Action<Client, T>)}.");
+        if (action is not Action<Connection, T> tAction)
+            throw new ArgumentException($"Action is not of type {nameof(Action<Connection, T>)}.");
         
         _actions.Remove(tAction);
     }
@@ -52,12 +49,12 @@ internal class MessageHandler<T>(bool requiresAuthentication) : MessageHandler w
     /// <remarks>
     /// Not thread-safe.
     /// </remarks>
-    public override void Invoke(Client session, INetMessage message)
+    public override void Invoke(Connection session, INetMessage message)
     {
         if (message is not T tMessage)
             return;
         
-        foreach (Action<Client, T> handler in _actions)
+        foreach (Action<Connection, T> handler in _actions)
             handler.Invoke(session, tMessage);
     }
 }

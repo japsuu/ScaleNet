@@ -2,7 +2,7 @@
 
 namespace ScaleNet.Common
 {
-    public static class Networking
+    public static class ScaleNetManager
     {
         public static bool IsInitialized { get; private set; }
         public static Logger Logger { get; private set; } = new DefaultConsoleLogger();
