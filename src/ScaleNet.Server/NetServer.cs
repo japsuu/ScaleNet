@@ -1,8 +1,4 @@
-﻿using System.Diagnostics;
-using ScaleNet.Common;
-using ScaleNet.Server.Authentication;
-using ScaleNet.Server.Authentication.Resolvers;
-using ScaleNet.Server.Database;
+﻿using ScaleNet.Common;
 using ScaleNet.Server.LowLevel;
 using ScaleNet.Server.LowLevel.Transport;
 
@@ -11,11 +7,9 @@ namespace ScaleNet.Server;
 public sealed class NetServer : IDisposable
 {
     private readonly MessageHandlerManager _messageHandlerManager;
-    private readonly Authenticator _authenticator;
     private readonly ClientManager _clientManager;
 
     public readonly IServerTransport Transport;
-    public readonly IDatabaseAccess DatabaseAccess;
     
     /// <summary>
     /// True if the server is started and listening for incoming connections.
@@ -31,25 +25,16 @@ public sealed class NetServer : IDisposable
     /// Called after a client's state changes.
     /// </summary>
     public event Action<ClientStateChangeArgs>? ClientStateChanged;
-    
-    /// <summary>
-    /// Called after a client has successfully authenticated.
-    /// </summary>
-    public event Action<Client>? ClientAuthenticated;
 
 
-    public NetServer(IServerTransport transport, IAuthenticationResolver authenticationResolver, IDatabaseAccess databaseAccess, bool allowRegistration)
+    public NetServer(IServerTransport transport)
     {
         if(!Networking.IsInitialized)
             throw new InvalidOperationException("Networking.Initialize() must be called before creating a server.");
 
         Transport = transport;
-        DatabaseAccess = databaseAccess;
         _messageHandlerManager = new MessageHandlerManager();
         _clientManager = new ClientManager(this);
-        
-        _authenticator = new Authenticator(this, authenticationResolver, allowRegistration);
-        _authenticator.ClientAuthSuccess += OnClientAuthenticated;
         
         Transport.ServerStateChanged += OnServerStateChanged;
         Transport.SessionStateChanged += OnSessionStateChanged;
@@ -241,18 +226,6 @@ public sealed class NetServer : IDisposable
                 
                 break;
             }
-            case ConnectionState.SslHandshaked:
-            {
-                if (!_clientManager.TryGetClient(sessionId, out client))
-                {
-                    Networking.Logger.LogWarning($"Client for session {sessionId} not found in the client manager, cannot authenticate.");
-                    return;
-                }
-                
-                _authenticator.OnNewClientReadyForAuthentication(client);
-                
-                break;
-            }
             case ConnectionState.Disconnected:
             {
                 if (!_clientManager.TryRemoveClient(sessionId, out client))
@@ -264,6 +237,7 @@ public sealed class NetServer : IDisposable
                 break;
             }
             case ConnectionState.SslHandshaking:
+            case ConnectionState.SslHandshaked:
             case ConnectionState.Connected:
             case ConnectionState.Disconnecting:
             {
@@ -280,34 +254,6 @@ public sealed class NetServer : IDisposable
         }
                 
         ClientStateChanged?.Invoke(new ClientStateChangeArgs(client, sessionStateChangeArgs.NewState));
-    }
-
-#endregion
-
-
-#region Authentication
-
-    /// <summary>
-    /// Called when a remote client authenticates with the server.
-    /// </summary>
-    private void OnClientAuthenticated(Client client)
-    {
-        Debug.Assert(client.IsAuthenticated, "Client is not authenticated.");
-        
-        AccountUID accountId = client.AccountId;
-        Networking.Logger.LogInfo($"Session {client.SessionId} authenticated as account {accountId}.");
-        
-        // Load user data.
-        if (!DatabaseAccess.TryGetPlayerData(accountId, out PlayerData? playerData))
-        {
-            Networking.Logger.LogWarning($"Session {client.SessionId} player data could not be loaded.");
-            client.Kick(DisconnectReason.CorruptPlayerData);
-            return;
-        }
-        
-        client.PlayerData = playerData;
-        
-        ClientAuthenticated?.Invoke(client);
     }
 
 #endregion
