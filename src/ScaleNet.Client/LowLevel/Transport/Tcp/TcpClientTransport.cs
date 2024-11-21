@@ -44,25 +44,25 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
         public void ConnectClient()
         {
-            if (!base.Connect())
+            if (!base.ConnectAsync())
             {
                 ScaleNetManager.Logger.LogError("Failed to connect to the server.");
                 return;
             }
         
-            base.ReceiveAsync();
+            //base.ReceiveAsync();
         }
 
 
         public void ReconnectClient()
         {
-            base.Reconnect();
+            base.ReconnectAsync();
         }
 
 
         public void DisconnectClient()
         {
-            base.Disconnect();
+            base.DisconnectAsync();
         }
 
 

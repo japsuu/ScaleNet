@@ -15,7 +15,7 @@ internal static class Program
     
     private static void Main(string[] args)
     {
-        Console.Title = "COV Client";
+        Console.Title = "Chat Client";
 
         (string address, int port) = GetAddressAndPort(args);
         
@@ -25,7 +25,7 @@ internal static class Program
                 "yourpassword"),
             TestingCertificateValidationCallback);
 
-        using GameClient client = new(context, address, port);
+        using ChatClient client = new(context, address, port);
         
         // Start the blocking client loop
         client.Run();

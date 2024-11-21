@@ -12,7 +12,7 @@ internal static class Program
 {
     private static void Main(string[] args)
     {
-        Console.Title = "COV Server";
+        Console.Title = "Chat Server";
         if (!ConfigManager.TryLoadConfiguration())
         {
             Console.WriteLine("Failed to load configuration.");
@@ -26,7 +26,7 @@ internal static class Program
             TestingCertificateValidationCallback);
         
         // Create the server
-        using GameServer server = new(
+        using ChatServer server = new(
             context,
             IPAddress.Any,
             SharedConstants.SERVER_PORT,
