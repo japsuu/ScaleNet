@@ -2,19 +2,19 @@
 
 namespace ScaleNet.Server.LowLevel;
 
-internal abstract class MessageHandler
+internal abstract class MessageHandler<TConnection>
 {
     public abstract void RegisterAction(object action);
     public abstract void UnregisterAction(object action);
-    public abstract void Invoke(Connection session, INetMessage message);
+    public abstract void Invoke(TConnection connection, INetMessage message);
 }
 
 /// <summary>
 /// Handles packets received on clients, from the server.
 /// </summary>
-internal class MessageHandler<T> : MessageHandler where T : INetMessage
+internal class MessageHandler<TConnection, T> : MessageHandler<TConnection> where T : INetMessage
 {
-    private readonly List<Action<Connection, T>> _actions = [];
+    private readonly List<Action<TConnection, T>> _actions = [];
 
     
     /// <remarks>
@@ -22,8 +22,8 @@ internal class MessageHandler<T> : MessageHandler where T : INetMessage
     /// </remarks>
     public override void RegisterAction(object action)
     {
-        if (action is not Action<Connection, T> tAction)
-            throw new ArgumentException($"Action is not of type {nameof(Action<Connection, T>)}.");
+        if (action is not Action<TConnection, T> tAction)
+            throw new ArgumentException($"Action is not of type {nameof(Action<TConnection, T>)}.");
         
         _actions.Add(tAction);
     }
@@ -34,8 +34,8 @@ internal class MessageHandler<T> : MessageHandler where T : INetMessage
     /// </remarks>
     public override void UnregisterAction(object action)
     {
-        if (action is not Action<Connection, T> tAction)
-            throw new ArgumentException($"Action is not of type {nameof(Action<Connection, T>)}.");
+        if (action is not Action<TConnection, T> tAction)
+            throw new ArgumentException($"Action is not of type {nameof(Action<TConnection, T>)}.");
         
         _actions.Remove(tAction);
     }
@@ -49,12 +49,12 @@ internal class MessageHandler<T> : MessageHandler where T : INetMessage
     /// <remarks>
     /// Not thread-safe.
     /// </remarks>
-    public override void Invoke(Connection session, INetMessage message)
+    public override void Invoke(TConnection session, INetMessage message)
     {
         if (message is not T tMessage)
             return;
         
-        foreach (Action<Connection, T> handler in _actions)
+        foreach (Action<TConnection, T> handler in _actions)
             handler.Invoke(session, tMessage);
     }
 }

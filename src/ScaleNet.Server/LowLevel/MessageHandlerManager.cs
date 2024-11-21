@@ -7,7 +7,7 @@ namespace ScaleNet.Server.LowLevel;
 /// </summary>
 internal class MessageHandlerManager<TConnection> where TConnection : Connection
 {
-    private readonly Dictionary<Type, MessageHandler> _messageHandlers = [];
+    private readonly Dictionary<Type, MessageHandler<TConnection>> _messageHandlers = [];
 
 
     /// <summary>
@@ -19,9 +19,9 @@ internal class MessageHandlerManager<TConnection> where TConnection : Connection
     {
         Type msgType = typeof(T);
         
-        if (!_messageHandlers.TryGetValue(msgType, out MessageHandler? handlerCollection))
+        if (!_messageHandlers.TryGetValue(msgType, out MessageHandler<TConnection>? handlerCollection))
         {
-            handlerCollection = new MessageHandler<T>();
+            handlerCollection = new MessageHandler<TConnection, T>();
             _messageHandlers.TryAdd(msgType, handlerCollection);
         }
 
@@ -38,7 +38,7 @@ internal class MessageHandlerManager<TConnection> where TConnection : Connection
     {
         Type key = typeof(T);
         
-        if (_messageHandlers.TryGetValue(key, out MessageHandler? handlerCollection))
+        if (_messageHandlers.TryGetValue(key, out MessageHandler<TConnection>? handlerCollection))
             handlerCollection.UnregisterAction(handler);
     }
 
@@ -54,7 +54,7 @@ internal class MessageHandlerManager<TConnection> where TConnection : Connection
         Type msgType = msg.Type;
         
         // Try to get a handler.
-        if (!_messageHandlers.TryGetValue(msgType, out MessageHandler? messageHandler))
+        if (!_messageHandlers.TryGetValue(msgType, out MessageHandler<TConnection>? messageHandler))
         {
             ScaleNetManager.Logger.LogWarning($"No handler is registered for {msgType}. Ignoring.");
             return;
