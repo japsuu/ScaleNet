@@ -2,7 +2,7 @@
 
 namespace ScaleNet.Server.LowLevel.Transport;
 
-public interface IServerTransport
+public interface IServerTransport : IDisposable
 {
     public int Port { get; }
     public int MaxConnections { get; }
@@ -47,14 +47,14 @@ public interface IServerTransport
     /// Starts the server.
     /// </summary>
     /// <returns>True if the server was started successfully, false otherwise.</returns>
-    public bool Start();
+    public bool StartServer();
 
 
     /// <summary>
     /// Stops the server.
     /// </summary>
     /// <returns>True if the server was stopped, false if it was already stopped.</returns>
-    public bool Stop(bool gracefully = true);
+    public bool StopServer(bool gracefully = true);
 
 
     /// <summary>

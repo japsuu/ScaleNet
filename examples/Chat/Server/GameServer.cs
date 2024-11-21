@@ -9,7 +9,7 @@ using Shared;
 
 namespace Server;
 
-internal class GameServer
+internal sealed class GameServer : IDisposable
 {
     private readonly NetServer _netServer;
 
@@ -70,5 +70,11 @@ internal class GameServer
         
         // Forward the message to all clients.
         _netServer.SendMessageToAllClients(new ChatMessageNotification(client.PlayerData!.Username, msg.Message));
+    }
+
+
+    public void Dispose()
+    {
+        _netServer.Dispose();
     }
 }

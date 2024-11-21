@@ -26,7 +26,7 @@ internal static class Program
             TestingCertificateValidationCallback);
         
         // Create the server
-        GameServer server = new(
+        using GameServer server = new(
             context,
             IPAddress.Any,
             SharedConstants.SERVER_PORT,

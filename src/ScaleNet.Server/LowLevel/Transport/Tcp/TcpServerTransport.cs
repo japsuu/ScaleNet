@@ -50,9 +50,9 @@ public class TcpServerTransport : SslServer, IServerTransport
         for (uint i = 1; i < maxConnections; i++)
             _availableSessionIds.Add(i);
     }
-    
-    
-    bool IServerTransport.Start()
+
+
+    public bool StartServer()
     {
         Networking.Logger.LogInfo($"Starting TCP transport on {Address}:{Port}...");
 
@@ -65,9 +65,9 @@ public class TcpServerTransport : SslServer, IServerTransport
         
         return started;
     }
-    
-    
-    bool IServerTransport.Stop(bool gracefully)
+
+
+    public bool StopServer(bool gracefully)
     {
         Networking.Logger.LogInfo("Stopping TCP transport...");
         _rejectNewConnections = true;
@@ -330,5 +330,19 @@ public class TcpServerTransport : SslServer, IServerTransport
     protected override void OnError(SocketError error)
     {
         Networking.Logger.LogError($"TCP server caught an error: {error}");
+    }
+
+
+    protected override void Dispose(bool disposingManagedResources)
+    {
+        if (disposingManagedResources)
+        {
+            StopServer(true);
+            
+            foreach (TcpClientSession session in _sessions.Values)
+                session.Dispose();
+        }
+        
+        base.Dispose(disposingManagedResources);
     }
 }

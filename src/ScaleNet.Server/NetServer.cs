@@ -8,7 +8,7 @@ using ScaleNet.Server.LowLevel.Transport;
 
 namespace ScaleNet.Server;
 
-public class NetServer
+public sealed class NetServer : IDisposable
 {
     private readonly MessageHandlerManager _messageHandlerManager;
     private readonly Authenticator _authenticator;
@@ -59,13 +59,13 @@ public class NetServer
     
     public void Start()
     {
-        Transport.Start();
+        Transport.StartServer();
     }
 
 
     public void Stop(bool gracefully = true)
     {
-        Transport.Stop(gracefully);
+        Transport.StopServer(gracefully);
     }
 
     public void Update()
@@ -311,4 +311,10 @@ public class NetServer
     }
 
 #endregion
+
+
+    public void Dispose()
+    {
+        Transport.Dispose();
+    }
 }
