@@ -28,6 +28,7 @@
         ServerShutdown,
         OversizedPacket,
         CorruptPlayerData,
-        TooManyPackets
+        TooManyPackets,
+        ServerFull
     }
 }

@@ -247,10 +247,6 @@ public class TcpServerTransport : SslServer, IServerTransport
         SessionId id = ((TcpClientSession)session).SessionId;
         
         SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.Connected));
-        
-        //TODO: Figure out an way to reject new connections earlier.
-        if (_rejectNewConnections || _sessions.Count >= MaxConnections)
-            session.Disconnect();
     }
 
 
@@ -264,9 +260,13 @@ public class TcpServerTransport : SslServer, IServerTransport
 
     protected override void OnHandshaked(SslSession session)
     {
-        SessionId id = ((TcpClientSession)session).SessionId;
+        TcpClientSession tcpClientSession = (TcpClientSession)session;
+        SessionId id = tcpClientSession.SessionId;
         
         SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.SslHandshaked));
+        
+        if (_rejectNewConnections || _sessions.Count >= MaxConnections)
+            DisconnectSession(tcpClientSession, DisconnectReason.ServerFull);
     }
 
 
