@@ -11,6 +11,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\..\src\ScaleNet.Common\ScaleNet.Common.csproj" />
       <ProjectReference Include="..\..\src\ScaleNet\ScaleNet.csproj" />
     </ItemGroup>
 

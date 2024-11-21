@@ -1,5 +1,8 @@
 ﻿using System.Net;
-using ScaleNet;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
+using ScaleNet.Common;
+using ScaleNet.Server.LowLevel.Transport.Tcp;
 using Server.Configuration;
 
 namespace Server;
@@ -15,8 +18,12 @@ internal static class Program
             return;
         }
         
+        // Create and prepare a new SSL server context
+        SslContext context = new SslContext(SslProtocols.Tls12, new X509Certificate2("server.pfx", ConfigManager.CurrentConfiguration.CertificatePassword));
+        
         // Create the server
         GameServer server = new(
+            context,
             IPAddress.Any,
             SharedConstants.SERVER_PORT,
             ConfigManager.CurrentConfiguration.MaxConnections,

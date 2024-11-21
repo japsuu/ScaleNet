@@ -1,5 +1,5 @@
 ﻿using MessagePack;
-using ScaleNet;
+using ScaleNet.Common;
 
 namespace Shared
 {

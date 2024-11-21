@@ -1,5 +1,5 @@
 ﻿using System;
-using ScaleNet;
+using ScaleNet.Common;
 
 namespace Client;
 

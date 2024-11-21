@@ -1,8 +1,8 @@
 ﻿using System;
-using ScaleNet;
 using ScaleNet.Client;
 using ScaleNet.Client.LowLevel.Transport.Tcp;
-using ScaleNet.Utils;
+using ScaleNet.Common;
+using ScaleNet.Common.Utils;
 using Shared;
 
 namespace Client;

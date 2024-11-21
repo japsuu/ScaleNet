@@ -1,5 +1,5 @@
 ﻿using System.Net;
-using ScaleNet;
+using ScaleNet.Common;
 using ScaleNet.Server;
 using ScaleNet.Server.Authentication.Resolvers;
 using ScaleNet.Server.Database;
@@ -13,13 +13,13 @@ internal class GameServer
     private readonly NetServer _netServer;
 
 
-    public GameServer(IPAddress address, int port, int maxConnections, bool allowAccountRegistration)
+    public GameServer(SslContext context, IPAddress address, int port, int maxConnections, bool allowAccountRegistration)
     {
         Networking.Initialize();
         
         InMemoryDatabase db = new();
         _netServer = new NetServer(
-            new TcpServerTransport(address, port, maxConnections),
+            new TcpServerTransport(context, address, port, maxConnections),
             new DatabaseAuthenticationResolver(db),
             db,
             allowAccountRegistration);
