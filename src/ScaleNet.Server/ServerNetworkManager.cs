@@ -4,7 +4,7 @@ using ScaleNet.Server.LowLevel.Transport;
 
 namespace ScaleNet.Server;
 
-public sealed class NetServer : IDisposable
+public sealed class ServerNetworkManager : IDisposable
 {
     private readonly MessageHandlerManager _messageHandlerManager;
     private readonly ClientManager _clientManager;
@@ -27,7 +27,7 @@ public sealed class NetServer : IDisposable
     public event Action<ClientStateChangeArgs>? ClientStateChanged;
 
 
-    public NetServer(IServerTransport transport)
+    public ServerNetworkManager(IServerTransport transport)
     {
         if(!Networking.IsInitialized)
             throw new InvalidOperationException("Networking.Initialize() must be called before creating a server.");

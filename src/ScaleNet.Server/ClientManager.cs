@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace ScaleNet.Server;
 
-internal class ClientManager(NetServer server)
+internal class ClientManager(ServerNetworkManager netManager)
 {
     private readonly ConcurrentDictionary<SessionId, Client> _clientsBySessionId = new();
     
@@ -19,7 +19,7 @@ internal class ClientManager(NetServer server)
             return false;
         }
         
-        session = new Client(sessionId, server);
+        session = new Client(sessionId, netManager);
         return _clientsBySessionId.TryAdd(sessionId, session);
     }
     

@@ -5,7 +5,7 @@ using ScaleNet.Common;
 
 namespace ScaleNet.Client
 {
-    public sealed class NetClient : IDisposable
+    public sealed class ClientNetworkManager : IDisposable
     {
         private readonly IClientTransport _transport;
         private readonly MessageHandlerManager _messageHandlerManager;
@@ -31,7 +31,7 @@ namespace ScaleNet.Client
         public event Action<ConnectionStateArgs>? ConnectionStateChanged;
 
 
-        public NetClient(IClientTransport transport)
+        public ClientNetworkManager(IClientTransport transport)
         {
             if(!Networking.IsInitialized)
                 throw new InvalidOperationException("Networking.Initialize() must be called before creating a server.");

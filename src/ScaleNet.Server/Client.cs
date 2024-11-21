@@ -3,7 +3,7 @@ using ScaleNet.Common;
 
 namespace ScaleNet.Server;
 
-public class Client(SessionId sessionId, NetServer server)
+public class Client(SessionId sessionId, ServerNetworkManager netManager)
 {
     private AccountUID _accountId;
     
@@ -54,7 +54,7 @@ public class Client(SessionId sessionId, NetServer server)
     {
         Networking.Logger.LogDebug($"Disconnecting client {SessionId} with reason {reason}.");
         
-        server.Transport.DisconnectSession(SessionId, reason, iterateOutgoing);
+        netManager.Transport.DisconnectSession(SessionId, reason, iterateOutgoing);
     }
 
 
@@ -62,6 +62,6 @@ public class Client(SessionId sessionId, NetServer server)
     {
         Networking.Logger.LogDebug($"QUE - {message}");
         
-        server.Transport.QueueSendAsync(SessionId, message);
+        netManager.Transport.QueueSendAsync(SessionId, message);
     }
 }
