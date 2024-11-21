@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using ScaleNet.Server.LowLevel.Transport.Tcp;
@@ -19,7 +20,10 @@ internal static class Program
         }
         
         // Create and prepare a new SSL server context
-        SslContext context = new SslContext(SslProtocols.Tls12, new X509Certificate2("server.pfx", ConfigManager.CurrentConfiguration.CertificatePassword));
+        SslContext context = new SslContext(SslProtocols.Tls12, new X509Certificate2(
+            "assets/localhost.pfx",
+            ConfigManager.CurrentConfiguration.CertificatePassword),
+            TestingCertificateValidationCallback);
         
         // Create the server
         GameServer server = new(
@@ -32,5 +36,12 @@ internal static class Program
         
         // Start the blocking server loop
         server.Run();
+    }
+
+
+    private static bool TestingCertificateValidationCallback(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors errors)
+    {
+        // This is a testing callback that allows any certificate.
+        return true;
     }
 }
