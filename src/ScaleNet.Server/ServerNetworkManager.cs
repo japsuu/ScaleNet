@@ -4,10 +4,10 @@ using ScaleNet.Server.LowLevel.Transport;
 
 namespace ScaleNet.Server;
 
-public sealed class ServerNetworkManager : IDisposable
+public sealed class ServerNetworkManager<TConnection> : IDisposable where TConnection : Connection, new()
 {
-    private readonly MessageHandlerManager _messageHandlerManager;
-    private readonly ClientManager _clientManager;
+    private readonly MessageHandlerManager<TConnection> _messageHandlerManager;
+    private readonly ConnectionManager<TConnection> _connectionManager;
 
     public readonly IServerTransport Transport;
     
@@ -24,7 +24,7 @@ public sealed class ServerNetworkManager : IDisposable
     /// <summary>
     /// Called after a client's state changes.
     /// </summary>
-    public event Action<ClientStateChangeArgs>? ClientStateChanged;
+    public event Action<ClientStateChangeArgs<TConnection>>? ClientStateChanged;
 
 
     public ServerNetworkManager(IServerTransport transport)
@@ -33,8 +33,8 @@ public sealed class ServerNetworkManager : IDisposable
             throw new InvalidOperationException("Networking.Initialize() must be called before creating a server.");
 
         Transport = transport;
-        _messageHandlerManager = new MessageHandlerManager();
-        _clientManager = new ClientManager(this);
+        _messageHandlerManager = new MessageHandlerManager<TConnection>();
+        _connectionManager = new ConnectionManager<TConnection>(Transport);
         
         Transport.ServerStateChanged += OnServerStateChanged;
         Transport.SessionStateChanged += OnSessionStateChanged;
@@ -58,15 +58,14 @@ public sealed class ServerNetworkManager : IDisposable
         Transport.HandleIncomingMessages();
         Transport.HandleOutgoingMessages();
     }
-    
+
 
     /// <summary>
     /// Registers a method to call when a message of the specified type arrives.
     /// </summary>
     /// <param name="handler">Method to call.</param>
     /// <typeparam name="T"></typeparam>
-    /// <param name="requiresAuthentication">True if the client must be authenticated to send this message.</param>
-    public void RegisterMessageHandler<T>(Action<Client, T> handler, bool requiresAuthentication = true) where T : INetMessage => _messageHandlerManager.RegisterMessageHandler(handler, requiresAuthentication);
+    public void RegisterMessageHandler<T>(Action<TConnection, T> handler) where T : INetMessage => _messageHandlerManager.RegisterMessageHandler(handler);
 
 
     /// <summary>
@@ -74,12 +73,12 @@ public sealed class ServerNetworkManager : IDisposable
     /// </summary>
     /// <param name="handler">The method to unregister.</param>
     /// <typeparam name="T">Type of message to unregister.</typeparam>
-    public void UnregisterMessageHandler<T>(Action<Client, T> handler) where T : INetMessage => _messageHandlerManager.UnregisterMessageHandler(handler);
+    public void UnregisterMessageHandler<T>(Action<TConnection, T> handler) where T : INetMessage => _messageHandlerManager.UnregisterMessageHandler(handler);
 
 
 #region Sending messages
 
-    public void SendMessageToClient<T>(Client client, T message, bool requireAuthenticated = true) where T : INetMessage
+    public void SendMessageToClient<T>(Connection connection, T message) where T : INetMessage
     {
         if (!IsStarted)
         {
@@ -87,13 +86,7 @@ public sealed class ServerNetworkManager : IDisposable
             return;
         }
 
-        if (requireAuthenticated && !client.IsAuthenticated)
-        {
-            Networking.Logger.LogWarning($"Cannot send message {message} to client {client.SessionId} because they are not authenticated.");
-            return;
-        }
-
-        client.QueueSend(message);
+        connection.QueueSend(message);
     }
 
 
@@ -101,9 +94,9 @@ public sealed class ServerNetworkManager : IDisposable
     /// Sends a message to all clients.
     /// </summary>
     /// <param name="message">Message to send.</param>
-    /// <param name="requireAuthenticated">True if the client must be authenticated to receive this message.</param>
+    /// <param name="precondition">Optional precondition to check per client before sending the message.</param>
     /// <typeparam name="T">The type of message to send.</typeparam>
-    public void SendMessageToAllClients<T>(T message, bool requireAuthenticated = true) where T : INetMessage
+    public void SendMessageToAllClients<T>(T message, Func<TConnection, bool>? precondition = null) where T : INetMessage
     {
         if (!IsStarted)
         {
@@ -111,12 +104,12 @@ public sealed class ServerNetworkManager : IDisposable
             return;
         }
 
-        foreach (Client c in _clientManager.Clients)
+        foreach (TConnection c in _connectionManager.Connections)
         {
-            if (requireAuthenticated && !c.IsAuthenticated)
+            if (precondition != null && !precondition(c))
                 continue;
             
-            SendMessageToClient(c, message, requireAuthenticated);
+            SendMessageToClient(c, message);
         }
     }
 
@@ -124,7 +117,7 @@ public sealed class ServerNetworkManager : IDisposable
     /// <summary>
     /// Sends a message to all clients except the specified one.
     /// </summary>
-    public void SendMessageToAllClientsExcept<T>(T message, Client except, bool requireAuthenticated = true) where T : INetMessage
+    public void SendMessageToAllClientsExcept<T>(T message, TConnection except, Func<TConnection, bool>? precondition = null) where T : INetMessage
     {
         if (!IsStarted)
         {
@@ -132,15 +125,15 @@ public sealed class ServerNetworkManager : IDisposable
             return;
         }
 
-        foreach (Client c in _clientManager.Clients)
+        foreach (TConnection c in _connectionManager.Connections)
         {
             if (c == except)
                 continue;
             
-            if (requireAuthenticated && !c.IsAuthenticated)
+            if (precondition != null && !precondition(c))
                 continue;
             
-            SendMessageToClient(c, message, requireAuthenticated);
+            SendMessageToClient(c, message);
         }
     }
 
@@ -148,7 +141,7 @@ public sealed class ServerNetworkManager : IDisposable
     /// <summary>
     /// Sends a message to all clients except the specified ones.
     /// </summary>
-    public void SendMessageToAllClientsExcept<T>(T message, List<Client> except, bool requireAuthenticated = true) where T : INetMessage
+    public void SendMessageToAllClientsExcept<T>(T message, List<TConnection> except, Func<TConnection, bool>? precondition = null) where T : INetMessage
     {
         if (!IsStarted)
         {
@@ -156,15 +149,15 @@ public sealed class ServerNetworkManager : IDisposable
             return;
         }
 
-        foreach (Client c in _clientManager.Clients)
+        foreach (TConnection c in _connectionManager.Connections)
         {
             if (except.Contains(c))
                 continue;
             
-            if (requireAuthenticated && !c.IsAuthenticated)
+            if (precondition != null && !precondition(c))
                 continue;
 
-            SendMessageToClient(c, message, requireAuthenticated);
+            SendMessageToClient(c, message);
         }
     }
 
@@ -175,15 +168,16 @@ public sealed class ServerNetworkManager : IDisposable
     
     private void OnMessageReceived(SessionId sessionId, DeserializedNetMessage msg)
     {
-        if (!_clientManager.TryGetClient(sessionId, out Client? client))
+        if (!_connectionManager.TryGetConnection(sessionId, out TConnection? connection))
         {
-            Networking.Logger.LogWarning($"Received a message from an unknown session {sessionId}. Ignoring.");
+            Networking.Logger.LogWarning($"Received a message from an unknown session {sessionId}. Ignoring, and ending the session.");
+            Transport.DisconnectSession(sessionId, DisconnectReason.UnexpectedProblem);
             return;
         }
         
-        Networking.Logger.LogDebug($"RCV - {msg.Type} from session {client.SessionId}");
+        Networking.Logger.LogDebug($"RCV - {msg.Type} from session {connection.SessionId}");
         
-        _messageHandlerManager.TryHandleMessage(client, msg);
+        _messageHandlerManager.TryHandleMessage(connection, msg);
     }
 
 #endregion
@@ -209,7 +203,7 @@ public sealed class ServerNetworkManager : IDisposable
     private void OnSessionStateChanged(SessionStateChangeArgs sessionStateChangeArgs)
     {
         SessionId sessionId = sessionStateChangeArgs.SessionId;
-        Client? client;
+        TConnection? connection;
         
         Networking.Logger.LogInfo($"Session {sessionId} is {sessionStateChangeArgs.NewState.ToString().ToLower()}");
         
@@ -217,7 +211,7 @@ public sealed class ServerNetworkManager : IDisposable
         {
             case ConnectionState.Connecting:
             {
-                if (!_clientManager.TryAddClient(sessionId, out client))
+                if (!_connectionManager.TryCreateConnection(sessionId, out connection))
                 {
                     Networking.Logger.LogWarning($"Client for session {sessionId} already exists. Kicking.");
                     Transport.DisconnectSession(sessionId, DisconnectReason.UnexpectedProblem);
@@ -228,7 +222,7 @@ public sealed class ServerNetworkManager : IDisposable
             }
             case ConnectionState.Disconnected:
             {
-                if (!_clientManager.TryRemoveClient(sessionId, out client))
+                if (!_connectionManager.TryRemoveConnection(sessionId, out connection))
                 {
                     Networking.Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
                     return;
@@ -241,7 +235,7 @@ public sealed class ServerNetworkManager : IDisposable
             case ConnectionState.Connected:
             case ConnectionState.Disconnecting:
             {
-                if (!_clientManager.TryGetClient(sessionId, out client))
+                if (!_connectionManager.TryGetConnection(sessionId, out connection))
                 {
                     Networking.Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
                     return;
@@ -253,7 +247,7 @@ public sealed class ServerNetworkManager : IDisposable
                 throw new InvalidOperationException($"Unknown session state: {sessionStateChangeArgs.NewState}");
         }
                 
-        ClientStateChanged?.Invoke(new ClientStateChangeArgs(client, sessionStateChangeArgs.NewState));
+        ClientStateChanged?.Invoke(new ClientStateChangeArgs<TConnection>(connection, sessionStateChangeArgs.NewState));
     }
 
 #endregion
