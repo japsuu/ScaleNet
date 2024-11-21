@@ -239,27 +239,17 @@ public class NetServer
                     return;
                 }
                 
-                _authenticator.OnNewClientConnected(client);
-                
                 break;
             }
-            case ConnectionState.Connected:
+            case ConnectionState.SslHandshaked:
             {
                 if (!_clientManager.TryGetClient(sessionId, out client))
                 {
-                    Networking.Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
+                    Networking.Logger.LogWarning($"Client for session {sessionId} not found in the client manager, cannot authenticate.");
                     return;
                 }
                 
-                break;
-            }
-            case ConnectionState.Disconnecting:
-            {
-                if (!_clientManager.TryGetClient(sessionId, out client))
-                {
-                    Networking.Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
-                    return;
-                }
+                _authenticator.OnNewClientReadyForAuthentication(client);
                 
                 break;
             }

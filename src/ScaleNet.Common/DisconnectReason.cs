@@ -26,7 +26,6 @@
         UnexpectedProblem,
     
         ServerShutdown,
-        OutdatedVersion,
         OversizedPacket,
         CorruptPlayerData,
         TooManyPackets

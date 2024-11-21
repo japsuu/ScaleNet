@@ -11,17 +11,32 @@ public enum ConnectionState : byte
     Disconnected = 0,
 
     /// <summary>
-    /// Connection is starting but not yet established.
+    /// Connection is starting but not yet established.<br/>
+    /// Not encrypted yet.
     /// </summary>
     Connecting = 1,
 
     /// <summary>
-    /// Connection is established.
+    /// Connection is established.<br/>
+    /// Not encrypted yet.
     /// </summary>
     Connected = 2,
+    
+    /// <summary>
+    /// Connection is in the process of SSL handshaking.<br/>
+    /// Not encrypted yet.
+    /// </summary>
+    SslHandshaking = 3,
 
     /// <summary>
-    /// Connection is stopping.
+    /// Connection has completed the SSL handshake.<br/>
+    /// Encrypted.
     /// </summary>
-    Disconnecting = 3
+    SslHandshaked = 4,
+
+    /// <summary>
+    /// Connection is stopping.<br/>
+    /// Encrypted.
+    /// </summary>
+    Disconnecting = 5
 }

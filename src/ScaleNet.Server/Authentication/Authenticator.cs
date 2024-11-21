@@ -40,7 +40,7 @@ internal class Authenticator
     /// Called on the server immediately after a client connects. Can be used to send data to the client for authentication.
     /// </summary>
     /// <param name="client">Connection which is not yet authenticated.</param>
-    public void OnNewClientConnected(Client client)
+    public void OnNewClientReadyForAuthentication(Client client)
     {
         // Send the client the authentication info.
         _server.SendMessageToClient(client, new AuthenticationInfoMessage(_allowAccountRegistration, SharedConstants.GAME_VERSION), false);

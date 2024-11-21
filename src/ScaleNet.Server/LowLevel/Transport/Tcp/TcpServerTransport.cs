@@ -7,7 +7,7 @@ using ScaleNet.Common;
 
 namespace ScaleNet.Server.LowLevel.Transport.Tcp;
 
-public class TcpServerTransport : TcpServer, IServerTransport
+public class TcpServerTransport : SslServer, IServerTransport
 {
     /// <summary>
     /// A raw packet of data.
@@ -40,7 +40,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
     public event Action<SessionId, DeserializedNetMessage>? MessageReceived;
 
 
-    public TcpServerTransport(IPAddress address, int port, int maxConnections, IPacketMiddleware? middleware = null) : base(address, port)
+    public TcpServerTransport(SslContext sslContext, IPAddress address, int port, int maxConnections, IPacketMiddleware? middleware = null) : base(sslContext, address, port)
     {
         MaxConnections = maxConnections;
         Middleware = middleware;
@@ -211,7 +211,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
 
 #region Session Lifetime
 
-    protected override TcpSession CreateSession()
+    protected override SslSession CreateSession()
     {
         bool isIdAvailable = _availableSessionIds.TryTake(out uint uId);
         
@@ -234,15 +234,15 @@ public class TcpServerTransport : TcpServer, IServerTransport
     }
 
 
-    protected override void OnConnecting(TcpSession session)
+    protected override void OnConnecting(SslSession session)
     {
         SessionId id = ((TcpClientSession)session).SessionId;
         
         SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.Connecting));
     }
-    
 
-    protected override void OnConnected(TcpSession session)
+
+    protected override void OnConnected(SslSession session)
     {
         SessionId id = ((TcpClientSession)session).SessionId;
         
@@ -254,7 +254,23 @@ public class TcpServerTransport : TcpServer, IServerTransport
     }
 
 
-    protected override void OnDisconnecting(TcpSession session)
+    protected override void OnHandshaking(SslSession session)
+    {
+        SessionId id = ((TcpClientSession)session).SessionId;
+        
+        SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.SslHandshaking));
+    }
+
+
+    protected override void OnHandshaked(SslSession session)
+    {
+        SessionId id = ((TcpClientSession)session).SessionId;
+        
+        SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.SslHandshaked));
+    }
+
+
+    protected override void OnDisconnecting(SslSession session)
     {
         SessionId id = ((TcpClientSession)session).SessionId;
         
@@ -262,7 +278,7 @@ public class TcpServerTransport : TcpServer, IServerTransport
     }
 
 
-    protected override void OnDisconnected(TcpSession session)
+    protected override void OnDisconnected(SslSession session)
     {
         SessionId id = ((TcpClientSession)session).SessionId;
         
