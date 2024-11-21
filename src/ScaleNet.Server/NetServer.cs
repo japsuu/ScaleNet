@@ -263,8 +263,20 @@ public class NetServer
                 
                 break;
             }
+            case ConnectionState.SslHandshaking:
+            case ConnectionState.Connected:
+            case ConnectionState.Disconnecting:
+            {
+                if (!_clientManager.TryGetClient(sessionId, out client))
+                {
+                    Networking.Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
+                    return;
+                }
+
+                break;
+            }
             default:
-                throw new InvalidOperationException($"Unknown session state {sessionStateChangeArgs.NewState}");
+                throw new InvalidOperationException($"Unknown session state: {sessionStateChangeArgs.NewState}");
         }
                 
         ClientStateChanged?.Invoke(new ClientStateChangeArgs(client, sessionStateChangeArgs.NewState));
