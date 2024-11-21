@@ -9,21 +9,11 @@ namespace ScaleNet.Client
     {
         private readonly IClientTransport _transport;
         private readonly MessageHandlerManager _messageHandlerManager;
-
-        /// <summary>
-        /// The current unique client ID.
-        /// </summary>
-        public AccountUID AccountUid { get; private set; }
     
         /// <summary>
         /// True if the local client is connected to the server.
         /// </summary>
         public bool IsConnected { get; private set; }
-
-        /// <summary>
-        /// True if the local client is authenticated with the server.
-        /// </summary>
-        public bool IsAuthenticated { get; private set; }
     
         /// <summary>
         /// Called after the local client connection state changes.
@@ -66,15 +56,6 @@ namespace ScaleNet.Client
         {
             Networking.Logger.LogInfo("Disconnecting...");
             _transport.DisconnectClient();
-        }
-    
-    
-        internal void SetAuthenticated(AccountUID accountUid)
-        {
-            Networking.Logger.LogDebug("Local client is now authenticated.");
-        
-            IsAuthenticated = true;
-            AccountUid = accountUid;
         }
     
 
@@ -122,7 +103,6 @@ namespace ScaleNet.Client
         {
             ConnectionState state = args.NewConnectionState;
             IsConnected = state == ConnectionState.Connected;
-            IsAuthenticated = false;
 
             Networking.Logger.LogInfo($"Local client is {state.ToString().ToLower()}.");
 
