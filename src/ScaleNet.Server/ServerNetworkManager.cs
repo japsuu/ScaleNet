@@ -29,7 +29,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
 
     public ServerNetworkManager(IServerTransport transport)
     {
-        if(!Networking.IsInitialized)
+        if(!ScaleNetManager.IsInitialized)
             throw new InvalidOperationException("Networking.Initialize() must be called before creating a server.");
 
         Transport = transport;
@@ -82,7 +82,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
     {
         if (!IsStarted)
         {
-            Networking.Logger.LogWarning("Cannot send message to client because server is not active.");
+            ScaleNetManager.Logger.LogWarning("Cannot send message to client because server is not active.");
             return;
         }
 
@@ -100,7 +100,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
     {
         if (!IsStarted)
         {
-            Networking.Logger.LogWarning("Cannot send message to clients because server is not active.");
+            ScaleNetManager.Logger.LogWarning("Cannot send message to clients because server is not active.");
             return;
         }
 
@@ -121,7 +121,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
     {
         if (!IsStarted)
         {
-            Networking.Logger.LogWarning("Cannot send message to clients because server is not active.");
+            ScaleNetManager.Logger.LogWarning("Cannot send message to clients because server is not active.");
             return;
         }
 
@@ -145,7 +145,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
     {
         if (!IsStarted)
         {
-            Networking.Logger.LogWarning("Cannot send message to clients because server is not active.");
+            ScaleNetManager.Logger.LogWarning("Cannot send message to clients because server is not active.");
             return;
         }
 
@@ -170,12 +170,12 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
     {
         if (!_connectionManager.TryGetConnection(sessionId, out TConnection? connection))
         {
-            Networking.Logger.LogWarning($"Received a message from an unknown session {sessionId}. Ignoring, and ending the session.");
+            ScaleNetManager.Logger.LogWarning($"Received a message from an unknown session {sessionId}. Ignoring, and ending the session.");
             Transport.DisconnectSession(sessionId, DisconnectReason.UnexpectedProblem);
             return;
         }
         
-        Networking.Logger.LogDebug($"RCV - {msg.Type} from session {connection.SessionId}");
+        ScaleNetManager.Logger.LogDebug($"RCV - {msg.Type} from session {connection.SessionId}");
         
         _messageHandlerManager.TryHandleMessage(connection, msg);
     }
@@ -190,7 +190,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
         ServerState state = args.NewState;
         IsStarted = state == ServerState.Started;
 
-        Networking.Logger.LogInfo($"Server is {state.ToString().ToLower()}");
+        ScaleNetManager.Logger.LogInfo($"Server is {state.ToString().ToLower()}");
 
         ServerStateChanged?.Invoke(args);
     }
@@ -205,7 +205,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
         SessionId sessionId = sessionStateChangeArgs.SessionId;
         TConnection? connection;
         
-        Networking.Logger.LogInfo($"Session {sessionId} is {sessionStateChangeArgs.NewState.ToString().ToLower()}");
+        ScaleNetManager.Logger.LogInfo($"Session {sessionId} is {sessionStateChangeArgs.NewState.ToString().ToLower()}");
         
         switch (sessionStateChangeArgs.NewState)
         {
@@ -213,7 +213,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
             {
                 if (!_connectionManager.TryCreateConnection(sessionId, out connection))
                 {
-                    Networking.Logger.LogWarning($"Client for session {sessionId} already exists. Kicking.");
+                    ScaleNetManager.Logger.LogWarning($"Client for session {sessionId} already exists. Kicking.");
                     Transport.DisconnectSession(sessionId, DisconnectReason.UnexpectedProblem);
                     return;
                 }
@@ -224,7 +224,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
             {
                 if (!_connectionManager.TryRemoveConnection(sessionId, out connection))
                 {
-                    Networking.Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
+                    ScaleNetManager.Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
                     return;
                 }
                 
@@ -237,7 +237,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
             {
                 if (!_connectionManager.TryGetConnection(sessionId, out connection))
                 {
-                    Networking.Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
+                    ScaleNetManager.Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
                     return;
                 }
 

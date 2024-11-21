@@ -56,7 +56,7 @@ internal class MessageHandlerManager<TConnection> where TConnection : Connection
         // Try to get a handler.
         if (!_messageHandlers.TryGetValue(msgType, out MessageHandler? messageHandler))
         {
-            Networking.Logger.LogWarning($"No handler is registered for {msgType}. Ignoring.");
+            ScaleNetManager.Logger.LogWarning($"No handler is registered for {msgType}. Ignoring.");
             return;
         }
 

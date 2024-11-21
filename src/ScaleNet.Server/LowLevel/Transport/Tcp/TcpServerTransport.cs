@@ -54,14 +54,14 @@ public class TcpServerTransport : SslServer, IServerTransport
 
     public bool StartServer()
     {
-        Networking.Logger.LogInfo($"Starting TCP transport on {Address}:{Port}...");
+        ScaleNetManager.Logger.LogInfo($"Starting TCP transport on {Address}:{Port}...");
 
         bool started = Start();
         
         if (started)
-            Networking.Logger.LogInfo("TCP transport started successfully.");
+            ScaleNetManager.Logger.LogInfo("TCP transport started successfully.");
         else
-            Networking.Logger.LogError("Failed to start TCP transport.");
+            ScaleNetManager.Logger.LogError("Failed to start TCP transport.");
         
         return started;
     }
@@ -69,7 +69,7 @@ public class TcpServerTransport : SslServer, IServerTransport
 
     public bool StopServer(bool gracefully)
     {
-        Networking.Logger.LogInfo("Stopping TCP transport...");
+        ScaleNetManager.Logger.LogInfo("Stopping TCP transport...");
         _rejectNewConnections = true;
         _rejectNewMessages = true;
         
@@ -82,9 +82,9 @@ public class TcpServerTransport : SslServer, IServerTransport
         bool stopped = Stop();
         
         if (stopped)
-            Networking.Logger.LogInfo("TCP transport stopped successfully.");
+            ScaleNetManager.Logger.LogInfo("TCP transport stopped successfully.");
         else
-            Networking.Logger.LogError("Failed to stop TCP transport.");
+            ScaleNetManager.Logger.LogError("Failed to stop TCP transport.");
         
         return stopped;
     }
@@ -103,7 +103,7 @@ public class TcpServerTransport : SslServer, IServerTransport
             {
                 if (!NetMessages.TryDeserialize(packet.TypeID, packet.Data, out DeserializedNetMessage msg))
                 {
-                    Networking.Logger.LogWarning($"Received a packet that could not be deserialized. Kicking session {session.SessionId} immediately.");
+                    ScaleNetManager.Logger.LogWarning($"Received a packet that could not be deserialized. Kicking session {session.SessionId} immediately.");
                     DisconnectSession(session, DisconnectReason.MalformedData);
                     return;
                 }
@@ -129,7 +129,7 @@ public class TcpServerTransport : SslServer, IServerTransport
     {
         if (!_sessions.TryGetValue(sessionId, out TcpClientSession? session))
         {
-            Networking.Logger.LogWarning($"Tried to send a packet to a non-existent/disconnected session with ID {sessionId}");
+            ScaleNetManager.Logger.LogWarning($"Tried to send a packet to a non-existent/disconnected session with ID {sessionId}");
             return;
         }
 
@@ -141,7 +141,7 @@ public class TcpServerTransport : SslServer, IServerTransport
     {
         if (!NetMessages.TryGetMessageId(message.GetType(), out ushort id))
         {
-            Networking.Logger.LogError($"Cannot send: failed to get the ID of message {message.GetType()}.");
+            ScaleNetManager.Logger.LogError($"Cannot send: failed to get the ID of message {message.GetType()}.");
             return;
         }
         
@@ -159,7 +159,7 @@ public class TcpServerTransport : SslServer, IServerTransport
     {
         if (!_sessions.TryGetValue(sessionId, out TcpClientSession? session))
         {
-            Networking.Logger.LogWarning($"Tried to disconnect a non-existent/disconnected session with ID {sessionId}");
+            ScaleNetManager.Logger.LogWarning($"Tried to disconnect a non-existent/disconnected session with ID {sessionId}");
             return;
         }
         
@@ -329,7 +329,7 @@ public class TcpServerTransport : SslServer, IServerTransport
 
     protected override void OnError(SocketError error)
     {
-        Networking.Logger.LogError($"TCP server caught an error: {error}");
+        ScaleNetManager.Logger.LogError($"TCP server caught an error: {error}");
     }
 
 

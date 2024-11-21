@@ -23,7 +23,7 @@ namespace ScaleNet.Client
 
         public ClientNetworkManager(IClientTransport transport)
         {
-            if(!Networking.IsInitialized)
+            if(!ScaleNetManager.IsInitialized)
                 throw new InvalidOperationException("Networking.Initialize() must be called before creating a server.");
 
             _messageHandlerManager = new MessageHandlerManager();
@@ -37,14 +37,14 @@ namespace ScaleNet.Client
 
         public void Connect()
         {
-            Networking.Logger.LogInfo($"Connecting to {_transport.Address}:{_transport.Port}...");
+            ScaleNetManager.Logger.LogInfo($"Connecting to {_transport.Address}:{_transport.Port}...");
             _transport.ConnectClient();
         }
 
 
         public void Reconnect()
         {
-            Networking.Logger.LogInfo("Reconnecting...");
+            ScaleNetManager.Logger.LogInfo("Reconnecting...");
             _transport.ReconnectClient();
         }
 
@@ -54,7 +54,7 @@ namespace ScaleNet.Client
         /// </summary>
         public void Disconnect()
         {
-            Networking.Logger.LogInfo("Disconnecting...");
+            ScaleNetManager.Logger.LogInfo("Disconnecting...");
             _transport.DisconnectClient();
         }
     
@@ -84,11 +84,11 @@ namespace ScaleNet.Client
         {
             if (!IsConnected)
             {
-                Networking.Logger.LogError($"Local connection is not started, cannot send message of type {message}.");
+                ScaleNetManager.Logger.LogError($"Local connection is not started, cannot send message of type {message}.");
                 return;
             }
         
-            Networking.Logger.LogDebug($"SND - {message}");
+            ScaleNetManager.Logger.LogDebug($"SND - {message}");
 
             // Send the message.
             _transport.SendAsync(message);
@@ -104,7 +104,7 @@ namespace ScaleNet.Client
             ConnectionState state = args.NewConnectionState;
             IsConnected = state == ConnectionState.Connected;
 
-            Networking.Logger.LogInfo($"Local client is {state.ToString().ToLower()}.");
+            ScaleNetManager.Logger.LogInfo($"Local client is {state.ToString().ToLower()}.");
 
             ConnectionStateChanged?.Invoke(args);
         }
@@ -112,16 +112,16 @@ namespace ScaleNet.Client
 
         private void OnMessageReceived(DeserializedNetMessage msg)
         {
-            Networking.Logger.LogDebug($"RCV - {msg.Type}");
+            ScaleNetManager.Logger.LogDebug($"RCV - {msg.Type}");
 
             if (!_messageHandlerManager.TryHandleMessage(msg))
-                Networking.Logger.LogWarning($"No handler is registered for {msg}. Ignoring.");
+                ScaleNetManager.Logger.LogWarning($"No handler is registered for {msg}. Ignoring.");
         }
 
 
         private void OnDisconnectReceived(DisconnectMessage message)
         {
-            Networking.Logger.LogWarning($"Received disconnect message from server: {message.Reason}");
+            ScaleNetManager.Logger.LogWarning($"Received disconnect message from server: {message.Reason}");
         
             // Disconnect the local client.
             Disconnect();

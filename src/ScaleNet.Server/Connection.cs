@@ -38,7 +38,7 @@ public abstract class Connection
     {
         Debug.Assert(_transport != null, nameof(_transport) + " != null");
         
-        Networking.Logger.LogDebug($"Disconnecting client {SessionId} with reason {reason}.");
+        ScaleNetManager.Logger.LogDebug($"Disconnecting client {SessionId} with reason {reason}.");
 
         _transport.DisconnectSession(SessionId, reason, iterateOutgoing);
     }
@@ -48,7 +48,7 @@ public abstract class Connection
     {
         Debug.Assert(_transport != null, nameof(_transport) + " != null");
         
-        Networking.Logger.LogDebug($"QUE - {message}");
+        ScaleNetManager.Logger.LogDebug($"QUE - {message}");
 
         _transport.QueueSendAsync(SessionId, message);
     }

@@ -35,14 +35,14 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport) : Ss
         
             if (rCount != 4)
             {
-                Networking.Logger.LogWarning("Failed to read the packet header.");
+                ScaleNetManager.Logger.LogWarning("Failed to read the packet header.");
                 break;
             }
 
             // Interpret the length using little-endian
             ushort packetLength = BinaryPrimitives.ReadUInt16LittleEndian(header);
             if (packetLength <= 0)
-                Networking.Logger.LogWarning("Received a packet with a length of 0.");
+                ScaleNetManager.Logger.LogWarning("Received a packet with a length of 0.");
 
             // Check if the entire packet is in the buffer
             if (_receiveBuffer.Length - _receiveBuffer.Position < packetLength)
@@ -58,7 +58,7 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport) : Ss
         
             if (rCount != packetLength)
             {
-                Networking.Logger.LogWarning("Failed to read the full packet data.");
+                ScaleNetManager.Logger.LogWarning("Failed to read the full packet data.");
                 break;
             }
             
@@ -81,7 +81,7 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport) : Ss
         
             if (rCount != leftoverData)
             {
-                Networking.Logger.LogWarning("Failed to read the leftover data.");
+                ScaleNetManager.Logger.LogWarning("Failed to read the leftover data.");
                 ArrayPool<byte>.Shared.Return(remainingBytes);
                 return;
             }
@@ -100,14 +100,14 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport) : Ss
     {
         if (IncomingPackets.Count > ServerConstants.MAX_PACKETS_PER_TICK)
         {
-            Networking.Logger.LogWarning($"Session {SessionId} is sending too many packets. Kicking immediately.");
+            ScaleNetManager.Logger.LogWarning($"Session {SessionId} is sending too many packets. Kicking immediately.");
             transport.DisconnectSession(this, DisconnectReason.TooManyPackets);
             return;
         }
         
         if (data.Length > SharedConstants.MAX_PACKET_SIZE_BYTES)
         {
-            Networking.Logger.LogWarning($"Session {SessionId} sent a packet that is too large. Kicking immediately.");
+            ScaleNetManager.Logger.LogWarning($"Session {SessionId} sent a packet that is too large. Kicking immediately.");
             transport.DisconnectSession(this, DisconnectReason.OversizedPacket);
             return;
         }
@@ -125,6 +125,6 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport) : Ss
 
     protected override void OnError(SocketError error)
     {
-        Networking.Logger.LogError($"TCP session with Id {Id} caught an error: {error}");
+        ScaleNetManager.Logger.LogError($"TCP session with Id {Id} caught an error: {error}");
     }
 }

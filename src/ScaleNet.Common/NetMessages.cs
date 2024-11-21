@@ -81,38 +81,38 @@ namespace ScaleNet.Common
 
             if (netMessageAttribute == null)
             {
-                Networking.Logger.LogError($"Message {type} is missing the NetMessage attribute.");
+                ScaleNetManager.Logger.LogError($"Message {type} is missing the NetMessage attribute.");
                 return;
             }
             
             if (messagePackObjectAttribute == null)
             {
-                Networking.Logger.LogError($"Message {type} is missing the MessagePackObject attribute.");
+                ScaleNetManager.Logger.LogError($"Message {type} is missing the MessagePackObject attribute.");
                 return;
             }
 
             if (MessageTypes.TryGetValue(netMessageAttribute.Id, out Type? msgType))
             {
-                Networking.Logger.LogError($"Message ID {netMessageAttribute.Id} is already in use by {msgType}.");
+                ScaleNetManager.Logger.LogError($"Message ID {netMessageAttribute.Id} is already in use by {msgType}.");
                 return;
             }
 
             if (type.IsAbstract)
             {
-                Networking.Logger.LogError($"Message {type} must not be abstract.");
+                ScaleNetManager.Logger.LogError($"Message {type} must not be abstract.");
                 return;
             }
 
             if (type.IsClass)
             {
-                Networking.Logger.LogError($"Message {type} must be a struct.");
+                ScaleNetManager.Logger.LogError($"Message {type} must be a struct.");
                 return;
             }
 
             MessageTypes.Add(netMessageAttribute.Id, type);
             MessageIds.Add(type, netMessageAttribute.Id);
             
-            Networking.Logger.LogInfo($"Registered message {type} with ID {netMessageAttribute.Id}.");
+            ScaleNetManager.Logger.LogInfo($"Registered message {type} with ID {netMessageAttribute.Id}.");
         }
 
 
@@ -142,7 +142,7 @@ namespace ScaleNet.Common
         {
             if (!TryGetMessageType(id, out Type type))
             {
-                Networking.Logger.LogError($"Failed to deserialize message with ID {id}: No message type found.");
+                ScaleNetManager.Logger.LogError($"Failed to deserialize message with ID {id}: No message type found.");
                 message = default;
                 return false;
             }
@@ -160,7 +160,7 @@ namespace ScaleNet.Common
             }
             catch (Exception e)
             {
-                Networking.Logger.LogError($"Failed to deserialize message {type}: {buffer.AsStringBits()}:\n{e}");
+                ScaleNetManager.Logger.LogError($"Failed to deserialize message {type}: {buffer.AsStringBits()}:\n{e}");
                 message = default;
                 return false;
             }
