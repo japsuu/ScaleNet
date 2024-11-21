@@ -3,7 +3,7 @@
     public static class SharedConstants
     {
         // Game
-        public const ushort GAME_VERSION = 3;
+        public const uint GAME_VERSION = 3;
     
         // Networking
         public const int MAX_PACKET_SIZE_BYTES = 2048;
