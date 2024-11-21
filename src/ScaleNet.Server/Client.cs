@@ -60,7 +60,7 @@ public class Client(SessionId sessionId, NetServer server)
 
     public void QueueSend<T>(T message) where T : INetMessage
     {
-        Networking.Logger.LogDebug($"Queue message {message} to client.");
+        Networking.Logger.LogDebug($"QUE - {message}");
         
         server.Transport.QueueSendAsync(SessionId, message);
     }

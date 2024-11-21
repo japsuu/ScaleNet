@@ -36,8 +36,6 @@ internal class GameServer
     {
         _netServer.Start();
         
-        Networking.Logger.LogInfo("Server started.");
-        
         while (_netServer.IsStarted)
         {
             _netServer.Update();

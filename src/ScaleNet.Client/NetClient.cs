@@ -130,7 +130,7 @@ namespace ScaleNet.Client
                 return;
             }
         
-            Networking.Logger.LogDebug($"Sending message {message} to server.");
+            Networking.Logger.LogDebug($"SND - {message}");
 
             // Send the message.
             _transport.SendAsync(message);
@@ -233,7 +233,7 @@ namespace ScaleNet.Client
 
         private void OnMessageReceived(DeserializedNetMessage msg)
         {
-            Networking.Logger.LogDebug($"Received message {msg} from server.");
+            Networking.Logger.LogDebug($"RCV - {msg.Type}");
 
             if (!_messageHandlerManager.TryHandleMessage(msg))
                 Networking.Logger.LogWarning($"No handler is registered for {msg}. Ignoring.");
@@ -272,11 +272,6 @@ namespace ScaleNet.Client
 
         private void OnAuthenticationResultReceived(AuthenticationResult result)
         {
-            Networking.Logger.LogInfo($"Received authentication result: {result}");
-
-            if (result != AuthenticationResult.Success)
-                Networking.Logger.LogError("Authentication failed.");
-            
             if (AuthenticationResultReceived == null)
             {
                 Networking.Logger.LogWarning($"No handler is registered for {nameof(AuthenticationResultReceived)} event. Ignoring.");
@@ -289,11 +284,6 @@ namespace ScaleNet.Client
 
         private void OnAccountCreationResultReceived(AccountCreationResult result)
         {
-            Networking.Logger.LogInfo($"Received account creation result: {result}");
-            
-            if (result != AccountCreationResult.Success)
-                Networking.Logger.LogError("Account creation failed.");
-
             if (AccountCreationResultReceived == null)
             {
                 Networking.Logger.LogWarning($"No handler is registered for {nameof(AccountCreationResultReceived)} event. Ignoring.");

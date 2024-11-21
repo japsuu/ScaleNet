@@ -196,7 +196,7 @@ public class NetServer
             return;
         }
         
-        Networking.Logger.LogDebug($"Received message {msg.GetType()} from client {client.SessionId}.");
+        Networking.Logger.LogDebug($"RCV - {msg.Type} from session {client.SessionId}");
         
         _messageHandlerManager.TryHandleMessage(client, msg);
     }
