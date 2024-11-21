@@ -25,7 +25,7 @@ internal static class Program
                 "yourpassword"),
             TestingCertificateValidationCallback);
 
-        GameClient client = new(context, address, port);
+        using GameClient client = new(context, address, port);
         
         // Start the blocking client loop
         client.Run();

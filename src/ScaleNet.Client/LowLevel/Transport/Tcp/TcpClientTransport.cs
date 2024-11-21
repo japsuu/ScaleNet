@@ -3,12 +3,13 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.IO;
 using System.Net.Sockets;
+using System.Threading.Tasks;
 using ScaleNet.Common;
 using ScaleNet.Common.Ssl;
 
 namespace ScaleNet.Client.LowLevel.Transport.Tcp
 {
-    public class TcpClientTransport : SslClient, IClientTransport
+    public class TcpClientTransport : SslClient, IClientTransport, IAsyncDisposable
     {
         /// <summary>
         /// A raw packet of data.
@@ -41,7 +42,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         }
 
 
-        void IClientTransport.Connect()
+        public void ConnectClient()
         {
             if (!base.Connect())
             {
@@ -53,19 +54,19 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         }
 
 
-        void IClientTransport.Reconnect()
+        public void ReconnectClient()
         {
             base.Reconnect();
         }
 
 
-        void IClientTransport.Disconnect()
+        public void DisconnectClient()
         {
             base.Disconnect();
         }
 
 
-        void IClientTransport.SendAsync<T>(T message)
+        public void SendAsync<T>(T message) where T : INetMessage
         {
             byte[] bytes = NetMessages.Serialize(message);
         
@@ -240,6 +241,30 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         protected override void OnError(SocketError error)
         {
             Networking.Logger.LogError($"TCP transport caught an error with code {error}");
+        }
+
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _receiveBuffer.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+
+
+        protected virtual async ValueTask DisposeAsyncCore()
+        {
+            await _receiveBuffer.DisposeAsync();
+        }
+
+
+        public async ValueTask DisposeAsync()
+        {
+            await DisposeAsyncCore();
+            GC.SuppressFinalize(this);
         }
     }
 }

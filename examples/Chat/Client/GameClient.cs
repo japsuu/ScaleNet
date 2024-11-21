@@ -8,7 +8,7 @@ using Shared;
 
 namespace Client;
 
-internal class GameClient
+internal sealed class GameClient : IDisposable
 {
     private readonly NetClient _netClient;
 
@@ -85,5 +85,11 @@ internal class GameClient
         string password = Console.ReadLine() ?? RandomUtils.RandomString(8);
         
         return (username, password);
+    }
+    
+    
+    public void Dispose()
+    {
+        _netClient.Dispose();
     }
 }

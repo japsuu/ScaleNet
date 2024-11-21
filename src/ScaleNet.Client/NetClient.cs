@@ -6,7 +6,7 @@ using ScaleNet.Common;
 
 namespace ScaleNet.Client
 {
-    public class NetClient
+    public sealed class NetClient : IDisposable
     {
         private readonly IClientTransport _transport;
         private readonly Authenticator _authenticator;
@@ -71,14 +71,14 @@ namespace ScaleNet.Client
         public void Connect()
         {
             Networking.Logger.LogInfo($"Connecting to {_transport.Address}:{_transport.Port}...");
-            _transport.Connect();
+            _transport.ConnectClient();
         }
 
 
         public void Reconnect()
         {
             Networking.Logger.LogInfo("Reconnecting...");
-            _transport.Reconnect();
+            _transport.ReconnectClient();
         }
 
 
@@ -88,7 +88,7 @@ namespace ScaleNet.Client
         public void Disconnect()
         {
             Networking.Logger.LogInfo("Disconnecting...");
-            _transport.Disconnect();
+            _transport.DisconnectClient();
         }
     
     
@@ -291,6 +291,12 @@ namespace ScaleNet.Client
             }
             
             AccountCreationResultReceived.Invoke(result);
+        }
+        
+        
+        public void Dispose()
+        {
+            _transport.Dispose();
         }
     }
 }

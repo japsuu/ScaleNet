@@ -3,14 +3,14 @@ using ScaleNet.Common;
 
 namespace ScaleNet.Client.LowLevel.Transport
 {
-    public interface IClientTransport
+    public interface IClientTransport : IDisposable
     {
         public string Address { get; }
         public int Port { get; }
     
-        public void Connect();
-        public void Reconnect();
-        public void Disconnect();
+        public void ConnectClient();
+        public void ReconnectClient();
+        public void DisconnectClient();
 
         /// <summary>
         /// Sends the given message to the server asynchronously.
