@@ -20,7 +20,7 @@ public class ConfigurationData
         {
             MaxConnections = 1000,
             AllowAccountRegistration = true,
-            CertificatePassword = "password"
+            CertificatePassword = "yourpassword"
         };
         
         return defaultConfig;

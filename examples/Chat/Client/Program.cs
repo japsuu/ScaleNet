@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Net.Security;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
+using ScaleNet.Common.Ssl;
 using Shared;
 
 namespace Client;
@@ -14,8 +18,14 @@ internal static class Program
         Console.Title = "COV Client";
 
         (string address, int port) = GetAddressAndPort(args);
+        
+        // Create and prepare a new SSL server context
+        SslContext context = new SslContext(SslProtocols.Tls12, new X509Certificate2(
+                "assets/localhost.pfx",
+                "yourpassword"),
+            TestingCertificateValidationCallback);
 
-        GameClient client = new(address, port);
+        GameClient client = new(context, address, port);
         
         // Start the blocking client loop
         client.Run();
@@ -57,5 +67,12 @@ internal static class Program
         if (string.IsNullOrEmpty(portStr) || !int.TryParse(portStr, out int port))
             port = DEFAULT_PORT;
         return (address, port);
+    }
+
+
+    private static bool TestingCertificateValidationCallback(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors errors)
+    {
+        // This is a testing callback that allows any certificate.
+        return true;
     }
 }

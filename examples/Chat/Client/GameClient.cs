@@ -15,9 +15,30 @@ internal class GameClient
 
     public GameClient(SslContext context, string address, int port)
     {
+        (string username, string password) = GetCredentials();
+
         Networking.Initialize();
         
         _netClient = new NetClient(new TcpClientTransport(context, address, port));
+        
+        _netClient.ReceivedAuthInfo += () => _netClient.RequestRegister(username, password);
+        _netClient.AccountCreationResultReceived += result =>
+        {
+            if (result == AccountCreationResult.Success)
+            {
+                Networking.Logger.LogInfo("Account created successfully");
+                _netClient.RequestLogin(username, password);
+            }
+            else
+                Networking.Logger.LogError("Failed to create account");
+        };
+        _netClient.AuthenticationResultReceived += result =>
+        {
+            if (result == AuthenticationResult.Success)
+                Networking.Logger.LogInfo("Authenticated successfully");
+            else
+                Networking.Logger.LogError("Failed to authenticate");
+        };
         
         _netClient.RegisterMessageHandler<ChatMessageNotification>(msg => Networking.Logger.LogInfo($"[Chat] {msg.User}: {msg.Message}"));
     }
@@ -52,5 +73,17 @@ internal class GameClient
         }
         
         _netClient.Disconnect();
+    }
+
+
+    private static (string, string) GetCredentials()
+    {
+        Console.WriteLine("Enter your username:");
+        string username = Console.ReadLine() ?? RandomUtils.RandomString(8);
+        
+        Console.WriteLine("Enter your password:");
+        string password = Console.ReadLine() ?? RandomUtils.RandomString(8);
+        
+        return (username, password);
     }
 }
