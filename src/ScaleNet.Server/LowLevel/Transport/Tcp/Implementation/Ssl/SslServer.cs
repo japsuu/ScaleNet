@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using ScaleNet.Common.Ssl;
 
 namespace ScaleNet.Server.LowLevel.Transport.Tcp;
 

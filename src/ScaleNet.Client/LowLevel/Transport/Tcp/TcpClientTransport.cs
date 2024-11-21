@@ -4,11 +4,11 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Net.Sockets;
 using ScaleNet.Common;
-using TcpClient = NetCoreServer.TcpClient;
+using ScaleNet.Common.Ssl;
 
 namespace ScaleNet.Client.LowLevel.Transport.Tcp
 {
-    public class TcpClientTransport : TcpClient, IClientTransport
+    public class TcpClientTransport : SslClient, IClientTransport
     {
         /// <summary>
         /// A raw packet of data.
@@ -35,7 +35,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         public event Action<DeserializedNetMessage>? MessageReceived;
 
 
-        public TcpClientTransport(string address, int port, IPacketMiddleware? middleware = null) : base(address, port)
+        public TcpClientTransport(SslContext context, string address, int port, IPacketMiddleware? middleware = null) : base(context, address, port)
         {
             _middleware = middleware;
         }

@@ -2,7 +2,7 @@
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using ScaleNet.Server.LowLevel.Transport.Tcp;
+using ScaleNet.Common.Ssl;
 using Server.Configuration;
 using Shared;
 

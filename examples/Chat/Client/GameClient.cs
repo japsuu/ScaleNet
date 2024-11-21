@@ -2,6 +2,7 @@
 using ScaleNet.Client;
 using ScaleNet.Client.LowLevel.Transport.Tcp;
 using ScaleNet.Common;
+using ScaleNet.Common.Ssl;
 using ScaleNet.Common.Utils;
 using Shared;
 
@@ -12,11 +13,11 @@ internal class GameClient
     private readonly NetClient _netClient;
 
 
-    public GameClient(string address, int port)
+    public GameClient(SslContext context, string address, int port)
     {
         Networking.Initialize();
         
-        _netClient = new NetClient(new TcpClientTransport(address, port));
+        _netClient = new NetClient(new TcpClientTransport(context, address, port));
         
         _netClient.RegisterMessageHandler<ChatMessageNotification>(msg => Networking.Logger.LogInfo($"[Chat] {msg.User}: {msg.Message}"));
     }

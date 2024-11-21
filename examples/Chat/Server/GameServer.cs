@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using ScaleNet.Common;
+using ScaleNet.Common.Ssl;
 using ScaleNet.Server;
 using ScaleNet.Server.Authentication.Resolvers;
 using ScaleNet.Server.Database;
