@@ -1,9 +1,9 @@
 ﻿using System.Net;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using ScaleNet.Common;
 using ScaleNet.Server.LowLevel.Transport.Tcp;
 using Server.Configuration;
+using Shared;
 
 namespace Server;
 

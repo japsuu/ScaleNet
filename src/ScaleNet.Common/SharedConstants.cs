@@ -6,7 +6,6 @@
         public const ushort GAME_VERSION = 3;
     
         // Networking
-        public const int SERVER_PORT = 11221;
         public const int MAX_PACKET_SIZE_BYTES = 2048;
     
         // Account registration
