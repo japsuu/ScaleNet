@@ -1,68 +1,55 @@
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
-using System.IO;
-using System.Net.Sockets;
 using System.Threading.Tasks;
+using NetworkLibrary.TCP.SSL.ByteMessage;
 using ScaleNet.Common;
 using ScaleNet.Common.Ssl;
 
 namespace ScaleNet.Client.LowLevel.Transport.Tcp
 {
-    public class TcpClientTransport : SslClient, IClientTransport, IAsyncDisposable
+    public sealed class TcpClientTransport : IClientTransport
     {
-        /// <summary>
-        /// A raw packet of data.
-        /// </summary>
-        internal readonly struct Packet
-        {
-            public readonly ushort TypeID;
-            public readonly byte[] Data;
-
-
-            public Packet(ushort typeID, byte[] data)
-            {
-                TypeID = typeID;
-                Data = data;
-            }
-        }
-        
         // Buffer for accumulating incomplete packet data
-        private readonly MemoryStream _receiveBuffer = new();
-        private readonly IPacketMiddleware? _middleware;
+        private readonly SslByteMessageClient _client;
         private ConnectionState _connectionState = ConnectionState.Disconnected;
+        
+        public string Address { get; set; }
+        public int Port { get; set; }
     
         public event Action<ConnectionStateArgs>? ConnectionStateChanged;
         public event Action<DeserializedNetMessage>? MessageReceived;
 
 
-        public TcpClientTransport(SslContext context, string address, int port, IPacketMiddleware? middleware = null) : base(context, address, port)
+        public TcpClientTransport(SslContext sslContext, string address, int port)
         {
-            _middleware = middleware;
+            Address = address;
+            Port = port;
+            _client = new SslByteMessageClient(sslContext.Certificate);
+            _client.RemoteCertificateValidationCallback = sslContext.CertificateValidationCallback;
+            _client.GatherConfig = ScatterGatherConfig.UseBuffer;
+            
+            _client.OnBytesReceived += OnBytesReceived;
+            _client.OnConnected += OnConnected;
+            _client.OnDisconnected += OnDisconnected;
         }
 
 
-        public void ConnectClient()
+        public void Connect()
         {
-            if (!base.ConnectAsync())
-            {
-                ScaleNetManager.Logger.LogError("Failed to connect to the server.");
-                return;
-            }
-        
-            //base.ReceiveAsync();
+            _client.Connect(Address, Port);
         }
 
 
-        public void ReconnectClient()
+        public Task<bool> ConnectAsync()
         {
-            base.ReconnectAsync();
+            return _client.ConnectAsyncAwaitable(Address, Port);
         }
 
 
-        public void DisconnectClient()
+        public void Disconnect()
         {
-            base.DisconnectAsync();
+            _client.Disconnect();
         }
 
 
@@ -82,23 +69,19 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
                 return;
             }
             
-            _middleware?.HandleOutgoingPacket(ref bytes);
-            
-            // Get a pooled buffer to add the length prefix and message id.
+            // Get a pooled buffer to add the message id.
             int messageLength = bytes.Length;
-            int packetLength = messageLength + 4;
+            int packetLength = messageLength + 2;
             byte[] buffer = ArrayPool<byte>.Shared.Rent(packetLength);
             
             // Add the 16-bit packet length prefix.
-            BinaryPrimitives.WriteUInt16LittleEndian(buffer, (ushort)messageLength);
-            
-            // Add the 16-bit message type ID.
-            BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan(2), typeId);
+            BinaryPrimitives.WriteUInt16LittleEndian(buffer, typeId);
             
             // Copy the message data to the buffer.
-            bytes.CopyTo(buffer.AsSpan(4));
+            bytes.CopyTo(buffer.AsSpan(2));
         
-            base.SendAsync(buffer, 0, packetLength);
+            // Send the packet.
+            _client.SendAsync(buffer, 0, packetLength);
         
             // Return the buffer to the pool.
             ArrayPool<byte>.Shared.Return(buffer);
@@ -106,32 +89,16 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
 
 #region Lifetime
-
-        protected override void OnConnecting()
-        {
-            ConnectionState prevState = _connectionState;
-            _connectionState = ConnectionState.Connecting;
-            ConnectionStateChanged?.Invoke(new ConnectionStateArgs(_connectionState, prevState));
-        }
-
-
-        protected override void OnConnected()
+        
+        private void OnConnected()
         {
             ConnectionState prevState = _connectionState;
             _connectionState = ConnectionState.Connected;
             ConnectionStateChanged?.Invoke(new ConnectionStateArgs(_connectionState, prevState));
         }
 
-    
-        protected override void OnDisconnecting()
-        {
-            ConnectionState prevState = _connectionState;
-            _connectionState = ConnectionState.Disconnecting;
-            ConnectionStateChanged?.Invoke(new ConnectionStateArgs(_connectionState, prevState));
-        }
 
-
-        protected override void OnDisconnected()
+        private void OnDisconnected()
         {
             ConnectionState prevState = _connectionState;
             _connectionState = ConnectionState.Disconnected;
@@ -141,130 +108,33 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 #endregion
 
 
-        protected override void OnReceived(byte[] buffer, long offset, long size)
+        private void OnBytesReceived(byte[] bytes, int offset, int count)
         {
-            // Append the received bytes to the buffer
-            _receiveBuffer.Write(buffer, (int)offset, (int)size);
-            _receiveBuffer.Position = 0;
-
-            while (true)
-            {
-                // Check if we have at least 4 bytes for the length and type prefix
-                if (_receiveBuffer.Length - _receiveBuffer.Position < 4)
-                    break;
-
-                // Read the length and type prefix
-                byte[] header = new byte[4];
-                int rCount = _receiveBuffer.Read(header, 0, 4);
-
-                if (rCount != 4)
-                {
-                    ScaleNetManager.Logger.LogWarning("Failed to read the packet header.");
-                    break;
-                }
-
-                // Interpret the length using little-endian
-                ushort packetLength = BinaryPrimitives.ReadUInt16LittleEndian(header);
-                if (packetLength <= 0)
-                    ScaleNetManager.Logger.LogWarning("Received a packet with a length of 0.");
-
-                // Check if the entire packet is in the buffer
-                if (_receiveBuffer.Length - _receiveBuffer.Position < packetLength)
-                {
-                    // Not enough data, rewind to just after the last full read for appending more data later
-                    _receiveBuffer.Position -= 4; // Rewind to the start of the header
-                    break;
-                }
-
-                // Extract the packet data (excluding the header)
-                byte[] packetData = new byte[packetLength];
-                rCount = _receiveBuffer.Read(packetData, 0, packetLength);
-
-                if (rCount != packetLength)
-                {
-                    ScaleNetManager.Logger.LogWarning("Failed to read the full packet data.");
-                    break;
-                }
-
-                // Interpret the type using little-endian
-                ushort typeId = BinaryPrimitives.ReadUInt16LittleEndian(header.AsSpan(2));
-
-                // Create a packet and enqueue it
-                OnReceiveFullPacket(typeId, packetData);
-
-                // Position is naturally incremented, no manual reset required here
-            }
-
-            // Handle leftover data and re-adjust the buffer
-            int leftoverData = (int)(_receiveBuffer.Length - _receiveBuffer.Position);
-            if (leftoverData > 0)
-            {
-                byte[] remainingBytes = ArrayPool<byte>.Shared.Rent(leftoverData);
-
-                int rCount = _receiveBuffer.Read(remainingBytes, 0, leftoverData);
-
-                if (rCount != leftoverData)
-                {
-                    ScaleNetManager.Logger.LogWarning("Failed to read the leftover data.");
-                    ArrayPool<byte>.Shared.Return(remainingBytes);
-                    return;
-                }
-
-                _receiveBuffer.SetLength(0);
-                _receiveBuffer.Write(remainingBytes, 0, leftoverData);
-
-                ArrayPool<byte>.Shared.Return(remainingBytes);
-            }
-            else
-                _receiveBuffer.SetLength(0); // Clear the buffer if no data is left
-        }
-
-
-        private void OnReceiveFullPacket(ushort typeId, byte[] data)
-        {
-            /*Console.WriteLine("receive:");
-            Console.WriteLine(data.AsStringBits());
-            Console.WriteLine(MessagePack.MessagePackSerializer.ConvertToJson(data));*/
-
-            _middleware?.HandleIncomingPacket(ref data);
+            // Framing is handled automatically by SslByteMessageClient.
             
-            if (!NetMessages.TryDeserialize(typeId, data, out DeserializedNetMessage message))
+            // Ensure the message is at least 2 bytes long.
+            if (count < 2)
             {
-                ScaleNetManager.Logger.LogError($"Failed to deserialize message with ID {typeId}.");
+                ScaleNetManager.Logger.LogWarning("Received a message without a type ID.");
                 return;
             }
+            
+            // Extract message type ID from the first 2 bytes.
+            ushort typeId = BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(offset, 2));
+            
+            // Extract the message data as read-only memory.
+            ReadOnlyMemory<byte> memory = new(bytes, offset + 2, count - 2);
+            
+            if (!NetMessages.TryDeserialize(typeId, memory, out DeserializedNetMessage message))
+                return;
             
             MessageReceived?.Invoke(message);
         }
 
 
-        protected override void OnError(SocketError error)
+        public void Dispose()
         {
-            ScaleNetManager.Logger.LogError($"TCP transport caught an error with code {error}");
-        }
-
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                _receiveBuffer.Dispose();
-            }
-
-            base.Dispose(disposing);
-        }
-
-
-        protected virtual async ValueTask DisposeAsyncCore()
-        {
-            await _receiveBuffer.DisposeAsync();
-        }
-
-
-        public async ValueTask DisposeAsync()
-        {
-            await DisposeAsyncCore();
-            GC.SuppressFinalize(this);
+            _client.Dispose();
         }
     }
 }

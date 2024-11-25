@@ -138,7 +138,13 @@ namespace ScaleNet.Common
         }
 
 
-        public static bool TryDeserialize(ushort id, byte[] buffer, out DeserializedNetMessage message)
+        /*public static bool TryDeserialize(ushort id, byte[] buffer, out DeserializedNetMessage message)
+        {
+            return TryDeserialize(id, buffer.AsMemory(), out message);
+        }*/
+
+
+        public static bool TryDeserialize(ushort id, ReadOnlyMemory<byte> buffer, out DeserializedNetMessage message)
         {
             if (!TryGetMessageType(id, out Type type))
             {

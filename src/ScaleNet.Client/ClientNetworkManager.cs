@@ -38,14 +38,7 @@ namespace ScaleNet.Client
         public void Connect()
         {
             ScaleNetManager.Logger.LogInfo($"Connecting to {_transport.Address}:{_transport.Port}...");
-            _transport.ConnectClient();
-        }
-
-
-        public void Reconnect()
-        {
-            ScaleNetManager.Logger.LogInfo("Reconnecting...");
-            _transport.ReconnectClient();
+            _transport.Connect();
         }
 
 
@@ -55,7 +48,7 @@ namespace ScaleNet.Client
         public void Disconnect()
         {
             ScaleNetManager.Logger.LogInfo("Disconnecting...");
-            _transport.DisconnectClient();
+            _transport.Disconnect();
         }
     
 

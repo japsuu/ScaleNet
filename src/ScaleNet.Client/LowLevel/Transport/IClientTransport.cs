@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using ScaleNet.Common;
 
 namespace ScaleNet.Client.LowLevel.Transport
@@ -7,10 +8,10 @@ namespace ScaleNet.Client.LowLevel.Transport
     {
         public string Address { get; }
         public int Port { get; }
-    
-        public void ConnectClient();
-        public void ReconnectClient();
-        public void DisconnectClient();
+
+        public void Connect();
+        public Task<bool> ConnectAsync();
+        public void Disconnect();
 
         /// <summary>
         /// Sends the given message to the server asynchronously.

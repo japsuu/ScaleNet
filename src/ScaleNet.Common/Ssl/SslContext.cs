@@ -5,11 +5,11 @@ namespace ScaleNet.Common.Ssl
 {
     public class SslContext
     {
-        public readonly X509Certificate Certificate;
-        public readonly RemoteCertificateValidationCallback? CertificateValidationCallback;
+        public readonly X509Certificate2 Certificate;
+        public readonly RemoteCertificateValidationCallback CertificateValidationCallback;
         
         
-        public SslContext(X509Certificate certificate, RemoteCertificateValidationCallback? certificateValidationCallback = null)
+        public SslContext(X509Certificate2 certificate, RemoteCertificateValidationCallback certificateValidationCallback)
         {
             Certificate = certificate;
             CertificateValidationCallback = certificateValidationCallback;

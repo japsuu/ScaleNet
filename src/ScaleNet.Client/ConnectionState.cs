@@ -11,18 +11,8 @@ namespace ScaleNet.Client
         Disconnected = 0,
 
         /// <summary>
-        /// Connection is starting but not yet established.
-        /// </summary>
-        Connecting = 1,
-
-        /// <summary>
         /// Connection is established.
         /// </summary>
-        Connected = 2,
-
-        /// <summary>
-        /// Connection is stopping.
-        /// </summary>
-        Disconnecting = 3
+        Connected = 1,
     }
 }

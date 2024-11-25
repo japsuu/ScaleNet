@@ -6,6 +6,7 @@
         <Nullable>enable</Nullable>
         <AssemblyName>ScaleNet.Client</AssemblyName>
         <RootNamespace>ScaleNet.Client</RootNamespace>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
