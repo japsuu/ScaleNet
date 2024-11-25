@@ -20,7 +20,7 @@ internal static class Program
         (string address, int port) = GetAddressAndPort(args);
         
         // Create and prepare a new SSL server context
-        SslContext context = new SslContext(SslProtocols.Tls12, new X509Certificate2(
+        SslContext context = new SslContext(new X509Certificate2(
                 "assets/localhost.pfx",
                 "yourpassword"),
             TestingCertificateValidationCallback);
