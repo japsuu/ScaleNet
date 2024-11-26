@@ -39,6 +39,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         public void Connect()
         {
             _client.Connect(Address, Port);
+            OnConnected();
         }
 
 
