@@ -5,7 +5,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
-using Buffer = NetCoreServer.Buffer;
+using Buffer = ScaleNet.Common.Transport.TCP.Buffer;
 
 namespace ScaleNet.Client.LowLevel.Transport.Tcp
 {
@@ -21,7 +21,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         /// <param name="context">SSL context</param>
         /// <param name="address">IP address</param>
         /// <param name="port">Port number</param>
-        public SslClient(SslContext context, IPAddress address, int port) : this(context, new IPEndPoint(address, port))
+        public SslClient(ClientSslContext context, IPAddress address, int port) : this(context, new IPEndPoint(address, port))
         {
         }
 
@@ -32,7 +32,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         /// <param name="context">SSL context</param>
         /// <param name="address">IP address</param>
         /// <param name="port">Port number</param>
-        public SslClient(SslContext context, string address, int port) : this(context, new IPEndPoint(IPAddress.Parse(address), port))
+        public SslClient(ClientSslContext context, string address, int port) : this(context, new IPEndPoint(IPAddress.Parse(address), port))
         {
         }
 
@@ -42,7 +42,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         /// </summary>
         /// <param name="context">SSL context</param>
         /// <param name="endpoint">DNS endpoint</param>
-        public SslClient(SslContext context, DnsEndPoint endpoint) : this(context, endpoint as EndPoint, endpoint.Host, endpoint.Port)
+        public SslClient(ClientSslContext context, DnsEndPoint endpoint) : this(context, endpoint as EndPoint, endpoint.Host, endpoint.Port)
         {
         }
 
@@ -52,7 +52,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         /// </summary>
         /// <param name="context">SSL context</param>
         /// <param name="endpoint">IP endpoint</param>
-        public SslClient(SslContext context, IPEndPoint endpoint) : this(context, endpoint as EndPoint, endpoint.Address.ToString(), endpoint.Port)
+        public SslClient(ClientSslContext context, IPEndPoint endpoint) : this(context, endpoint as EndPoint, endpoint.Address.ToString(), endpoint.Port)
         {
         }
 
@@ -64,7 +64,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         /// <param name="endpoint">Endpoint</param>
         /// <param name="address">Server address</param>
         /// <param name="port">Server port</param>
-        private SslClient(SslContext context, EndPoint endpoint, string address, int port)
+        private SslClient(ClientSslContext context, EndPoint endpoint, string address, int port)
         {
             Id = Guid.NewGuid();
             Address = address;
@@ -92,7 +92,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         /// <summary>
         /// SSL context
         /// </summary>
-        public SslContext Context { get; }
+        public ClientSslContext Context { get; }
 
         /// <summary>
         /// Endpoint
@@ -347,9 +347,9 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
                 // SSL handshake
                 if (Context.Certificates != null)
-                    _sslStream.AuthenticateAsClient(Address, Context.Certificates, SslContext.Protocols, true);
+                    _sslStream.AuthenticateAsClient(Address, Context.Certificates, ClientSslContext.Protocols, true);
                 else if (Context.Certificate != null)
-                    _sslStream.AuthenticateAsClient(Address, new X509CertificateCollection(new[] { Context.Certificate }), SslContext.Protocols, true);
+                    _sslStream.AuthenticateAsClient(Address, new X509CertificateCollection(new[] { Context.Certificate }), ClientSslContext.Protocols, true);
                 else
                     _sslStream.AuthenticateAsClient(Address);
             }
@@ -965,11 +965,11 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
                     // Begin the SSL handshake
                     IsHandshaking = true;
                     if (Context.Certificates != null)
-                        _sslStream.BeginAuthenticateAsClient(Address, Context.Certificates, SslContext.Protocols, true, ProcessHandshake, _sslStreamId);
+                        _sslStream.BeginAuthenticateAsClient(Address, Context.Certificates, ClientSslContext.Protocols, true, ProcessHandshake, _sslStreamId);
                     else if (Context.Certificate != null)
                     {
                         _sslStream.BeginAuthenticateAsClient(
-                            Address, new X509CertificateCollection(new[] { Context.Certificate }), SslContext.Protocols, true, ProcessHandshake, _sslStreamId);
+                            Address, new X509CertificateCollection(new[] { Context.Certificate }), ClientSslContext.Protocols, true, ProcessHandshake, _sslStreamId);
                     }
                     else
                         _sslStream.BeginAuthenticateAsClient(Address, ProcessHandshake, _sslStreamId);

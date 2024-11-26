@@ -35,7 +35,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         public event Action<DeserializedNetMessage>? MessageReceived;
 
 
-        public TcpClientTransport(SslContext context, string address, int port, IPacketMiddleware? middleware = null) : base(context, address, port)
+        public TcpClientTransport(ClientSslContext context, string address, int port, IPacketMiddleware? middleware = null) : base(context, address, port)
         {
             _middleware = middleware;
         }
@@ -43,13 +43,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
         public void ConnectClient()
         {
-            if (!base.ConnectAsync())
-            {
-                ScaleNetManager.Logger.LogError("Failed to connect to the server.");
-                return;
-            }
-        
-            //base.ReceiveAsync();
+            base.ConnectAsync();
         }
 
 

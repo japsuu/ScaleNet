@@ -40,7 +40,7 @@ public class TcpServerTransport : SslServer, IServerTransport
     public event Action<SessionId, DeserializedNetMessage>? MessageReceived;
 
 
-    public TcpServerTransport(SslContext sslContext, IPAddress address, int port, int maxConnections, IPacketMiddleware? middleware = null) : base(sslContext, address, port)
+    public TcpServerTransport(ServerSslContext sslContext, IPAddress address, int port, int maxConnections, IPacketMiddleware? middleware = null) : base(sslContext, address, port)
     {
         MaxConnections = maxConnections;
         Middleware = middleware;

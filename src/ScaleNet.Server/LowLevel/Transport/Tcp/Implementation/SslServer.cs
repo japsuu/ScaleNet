@@ -498,7 +498,7 @@ public class SslServer : IDisposable
     /// <param name="offset">Buffer offset</param>
     /// <param name="size">Buffer size</param>
     /// <returns>'true' if the data was successfully multicasted, 'false' if the data was not multicasted</returns>
-    public virtual bool Multicast(byte[] buffer, long offset, long size) => Multicast(buffer.AsSpan((int)offset, (int)size));
+    public virtual bool Multicast(byte[] buffer, int offset, int size) => Multicast(buffer.AsSpan(offset, size));
 
 
     /// <summary>

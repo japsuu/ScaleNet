@@ -17,10 +17,10 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport) : Ss
     public readonly SessionId SessionId = id;
 
 
-    protected override void OnReceived(byte[] buffer, long offset, long size)
+    protected override void OnReceived(byte[] buffer, int offset, int size)
     {
         // Append the received bytes to the buffer
-        _receiveBuffer.Write(buffer, (int)offset, (int)size);
+        _receiveBuffer.Write(buffer, offset, size);
         _receiveBuffer.Position = 0;
 
         while (true)

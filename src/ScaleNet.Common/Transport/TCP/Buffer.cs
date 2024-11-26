@@ -1,7 +1,8 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Text;
 
-namespace ScaleNet.Server.LowLevel.Transport.Tcp
+namespace ScaleNet.Common.Transport.TCP
 {
     /// <summary>
     /// Dynamic byte buffer
@@ -15,19 +16,23 @@ namespace ScaleNet.Server.LowLevel.Transport.Tcp
         /// <summary>
         /// Is the buffer empty?
         /// </summary>
-        public bool IsEmpty => (_data == null) || (_size == 0);
+        public bool IsEmpty => _size == 0;
+
         /// <summary>
         /// Bytes memory buffer
         /// </summary>
         public byte[] Data => _data;
+
         /// <summary>
         /// Bytes memory buffer capacity
         /// </summary>
         public long Capacity => _data.Length;
+
         /// <summary>
         /// Bytes memory buffer size
         /// </summary>
         public long Size => _size;
+
         /// <summary>
         /// Bytes memory buffer offset
         /// </summary>
@@ -38,36 +43,53 @@ namespace ScaleNet.Server.LowLevel.Transport.Tcp
         /// </summary>
         public byte this[long index] => _data[index];
 
+
         /// <summary>
         /// Initialize a new expandable buffer with zero capacity
         /// </summary>
-        public Buffer() { _data = new byte[0]; _size = 0; _offset = 0; }
+        public Buffer()
+        {
+            _data = Array.Empty<byte>();
+            _size = 0;
+            _offset = 0;
+        }
+
+
         /// <summary>
         /// Initialize a new expandable buffer with the given capacity
         /// </summary>
-        public Buffer(long capacity) { _data = new byte[capacity]; _size = 0; _offset = 0; }
+        public Buffer(long capacity)
+        {
+            _data = new byte[capacity];
+            _size = 0;
+            _offset = 0;
+        }
+
+
         /// <summary>
         /// Initialize a new expandable buffer with the given data
         /// </summary>
-        public Buffer(byte[] data) { _data = data; _size = data.Length; _offset = 0; }
+        public Buffer(byte[] data)
+        {
+            _data = data;
+            _size = data.Length;
+            _offset = 0;
+        }
 
-        #region Memory buffer methods
+
+#region Memory buffer methods
 
         /// <summary>
         /// Get a span of bytes from the current buffer
         /// </summary>
-        public Span<byte> AsSpan()
-        {
-            return new Span<byte>(_data, (int)_offset, (int)_size);
-        }
+        public Span<byte> AsSpan() => new(_data, (int)_offset, (int)_size);
+
 
         /// <summary>
         /// Get a string from the current buffer
         /// </summary>
-        public override string ToString()
-        {
-            return ExtractString(0, _size);
-        }
+        public override string ToString() => ExtractString(0, _size);
+
 
         /// <summary>
         /// Clear the current buffer and its offset
@@ -78,30 +100,32 @@ namespace ScaleNet.Server.LowLevel.Transport.Tcp
             _offset = 0;
         }
 
+
         /// <summary>
         /// Extract the string from buffer of the given offset and size
         /// </summary>
         public string ExtractString(long offset, long size)
         {
-            Debug.Assert(((offset + size) <= Size), "Invalid offset & size!");
-            if ((offset + size) > Size)
+            Debug.Assert(offset + size <= Size, "Invalid offset & size!");
+            if (offset + size > Size)
                 throw new ArgumentException("Invalid offset & size!", nameof(offset));
 
             return Encoding.UTF8.GetString(_data, (int)offset, (int)size);
         }
+
 
         /// <summary>
         /// Remove the buffer of the given offset and size
         /// </summary>
         public void Remove(long offset, long size)
         {
-            Debug.Assert(((offset + size) <= Size), "Invalid offset & size!");
-            if ((offset + size) > Size)
+            Debug.Assert(offset + size <= Size, "Invalid offset & size!");
+            if (offset + size > Size)
                 throw new ArgumentException("Invalid offset & size!", nameof(offset));
 
             Array.Copy(_data, offset + size, _data, offset, _size - size - offset);
             _size -= size;
-            if (_offset >= (offset + size))
+            if (_offset >= offset + size)
                 _offset -= size;
             else if (_offset >= offset)
             {
@@ -111,22 +135,23 @@ namespace ScaleNet.Server.LowLevel.Transport.Tcp
             }
         }
 
+
         /// <summary>
         /// Reserve the buffer of the given capacity
         /// </summary>
         public void Reserve(long capacity)
         {
-            Debug.Assert((capacity >= 0), "Invalid reserve capacity!");
             if (capacity < 0)
                 throw new ArgumentException("Invalid reserve capacity!", nameof(capacity));
 
-            if (capacity > Capacity)
-            {
-                byte[] data = new byte[Math.Max(capacity, 2 * Capacity)];
-                Array.Copy(_data, 0, data, 0, _size);
-                _data = data;
-            }
+            if (capacity <= Capacity)
+                return;
+            
+            byte[] data = new byte[Math.Max(capacity, 2 * Capacity)];
+            Array.Copy(_data, 0, data, 0, _size);
+            _data = data;
         }
+
 
         /// <summary>
         /// Resize the current buffer
@@ -139,18 +164,28 @@ namespace ScaleNet.Server.LowLevel.Transport.Tcp
                 _offset = _size;
         }
 
+
         /// <summary>
         /// Shift the current buffer offset
         /// </summary>
-        public void Shift(long offset) { _offset += offset; }
+        public void Shift(long offset)
+        {
+            _offset += offset;
+        }
+
+
         /// <summary>
         /// Unshift the current buffer offset
         /// </summary>
-        public void Unshift(long offset) { _offset -= offset; }
+        public void Unshift(long offset)
+        {
+            _offset -= offset;
+        }
 
-        #endregion
+#endregion
 
-        #region Buffer I/O methods
+
+#region Buffer I/O methods
 
         /// <summary>
         /// Append the single byte
@@ -165,6 +200,7 @@ namespace ScaleNet.Server.LowLevel.Transport.Tcp
             return 1;
         }
 
+
         /// <summary>
         /// Append the given buffer
         /// </summary>
@@ -177,6 +213,7 @@ namespace ScaleNet.Server.LowLevel.Transport.Tcp
             _size += buffer.Length;
             return buffer.Length;
         }
+
 
         /// <summary>
         /// Append the given buffer fragment
@@ -193,6 +230,7 @@ namespace ScaleNet.Server.LowLevel.Transport.Tcp
             return size;
         }
 
+
         /// <summary>
         /// Append the given span of bytes
         /// </summary>
@@ -206,12 +244,14 @@ namespace ScaleNet.Server.LowLevel.Transport.Tcp
             return buffer.Length;
         }
 
+
         /// <summary>
         /// Append the given buffer
         /// </summary>
         /// <param name="buffer">Buffer to append</param>
         /// <returns>Count of append bytes</returns>
         public long Append(Buffer buffer) => Append(buffer.AsSpan());
+
 
         /// <summary>
         /// Append the given text in UTF-8 encoding
@@ -227,6 +267,7 @@ namespace ScaleNet.Server.LowLevel.Transport.Tcp
             return result;
         }
 
+
         /// <summary>
         /// Append the given text in UTF-8 encoding
         /// </summary>
@@ -241,6 +282,6 @@ namespace ScaleNet.Server.LowLevel.Transport.Tcp
             return result;
         }
 
-        #endregion
+#endregion
     }
 }

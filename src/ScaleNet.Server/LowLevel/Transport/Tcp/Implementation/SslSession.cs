@@ -2,6 +2,7 @@
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Text;
+using Buffer = ScaleNet.Common.Transport.TCP.Buffer;
 
 namespace ScaleNet.Server.LowLevel.Transport.Tcp;
 
@@ -290,7 +291,7 @@ public class SslSession : IDisposable
     /// </summary>
     /// <param name="buffer">Buffer to send</param>
     /// <returns>Size of sent data</returns>
-    public virtual long Send(byte[] buffer) => Send(buffer.AsSpan());
+    public virtual int Send(byte[] buffer) => Send(buffer.AsSpan());
 
 
     /// <summary>
@@ -300,7 +301,7 @@ public class SslSession : IDisposable
     /// <param name="offset">Buffer offset</param>
     /// <param name="size">Buffer size</param>
     /// <returns>Size of sent data</returns>
-    public virtual long Send(byte[] buffer, long offset, long size) => Send(buffer.AsSpan((int)offset, (int)size));
+    public virtual int Send(byte[] buffer, int offset, int size) => Send(buffer.AsSpan(offset, size));
 
 
     /// <summary>
@@ -308,7 +309,7 @@ public class SslSession : IDisposable
     /// </summary>
     /// <param name="buffer">Buffer to send as a span of bytes</param>
     /// <returns>Size of sent data</returns>
-    public virtual long Send(ReadOnlySpan<byte> buffer)
+    public virtual int Send(ReadOnlySpan<byte> buffer)
     {
         if (!IsHandshaked)
             return 0;
@@ -323,7 +324,7 @@ public class SslSession : IDisposable
             // Sent data to the server
             _sslStream.Write(buffer);
 
-            long sent = buffer.Length;
+            int sent = buffer.Length;
 
             // Update statistic
             BytesSent += sent;
@@ -358,7 +359,7 @@ public class SslSession : IDisposable
     /// <param name="offset">Buffer offset</param>
     /// <param name="size">Buffer size</param>
     /// <returns>'true' if the data was successfully sent, 'false' if the session is not connected</returns>
-    public virtual bool SendAsync(byte[] buffer, long offset, long size) => SendAsync(buffer.AsSpan((int)offset, (int)size));
+    public virtual bool SendAsync(byte[] buffer, int offset, int size) => SendAsync(buffer.AsSpan(offset, size));
 
 
     /// <summary>
@@ -409,7 +410,7 @@ public class SslSession : IDisposable
     /// </summary>
     /// <param name="buffer">Buffer to receive</param>
     /// <returns>Size of received data</returns>
-    public virtual long Receive(byte[] buffer) => Receive(buffer, 0, buffer.Length);
+    public virtual int Receive(byte[] buffer) => Receive(buffer, 0, buffer.Length);
 
 
     /// <summary>
@@ -419,7 +420,7 @@ public class SslSession : IDisposable
     /// <param name="offset">Buffer offset</param>
     /// <param name="size">Buffer size</param>
     /// <returns>Size of received data</returns>
-    public virtual long Receive(byte[] buffer, long offset, long size)
+    public virtual int Receive(byte[] buffer, int offset, int size)
     {
         if (!IsHandshaked)
             return 0;
@@ -432,7 +433,7 @@ public class SslSession : IDisposable
         try
         {
             // Receive data from the client
-            long received = _sslStream.Read(buffer, (int)offset, (int)size);
+            int received = _sslStream.Read(buffer, offset, size);
             if (received <= 0)
                 return received;
 
@@ -459,11 +460,11 @@ public class SslSession : IDisposable
     /// </summary>
     /// <param name="size">Text size to receive</param>
     /// <returns>Received text</returns>
-    public virtual string Receive(long size)
+    public virtual string Receive(int size)
     {
         byte[] buffer = new byte[size];
-        long length = Receive(buffer);
-        return Encoding.UTF8.GetString(buffer, 0, (int)length);
+        int length = Receive(buffer);
+        return Encoding.UTF8.GetString(buffer, 0, length);
     }
 
 
@@ -648,7 +649,7 @@ public class SslSession : IDisposable
                 return;
 
             // End the SSL read
-            long size = _sslStream!.EndRead(result);
+            int size = _sslStream!.EndRead(result);
 
             // Received some data from the client
             if (size > 0)
@@ -809,7 +810,7 @@ public class SslSession : IDisposable
     /// <remarks>
     /// Notification is called when another part of buffer was received from the client
     /// </remarks>
-    protected virtual void OnReceived(byte[] buffer, long offset, long size)
+    protected virtual void OnReceived(byte[] buffer, int offset, int size)
     {
     }
 
