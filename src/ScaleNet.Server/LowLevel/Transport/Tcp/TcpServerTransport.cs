@@ -7,7 +7,7 @@ using ScaleNet.Common;
 
 namespace ScaleNet.Server.LowLevel.Transport.Tcp;
 
-public class TcpServerTransport : SslServer, IServerTransport
+public sealed class TcpServerTransport : SslServer, IServerTransport
 {
     /// <summary>
     /// A raw packet of data.
@@ -106,8 +106,16 @@ public class TcpServerTransport : SslServer, IServerTransport
                     DisconnectSession(session, DisconnectReason.MalformedData);
                     return;
                 }
-                
-                MessageReceived?.Invoke(session.SessionId, msg);
+
+                try
+                {
+                    MessageReceived?.Invoke(session.SessionId, msg);
+                }
+                catch (Exception e)
+                {
+                    ScaleNetManager.Logger.LogError($"User code threw an exception in the {nameof(MessageReceived)} event:\n{e}");
+                    throw;
+                }
             }
         }
     }
@@ -279,7 +287,7 @@ public class TcpServerTransport : SslServer, IServerTransport
     {
         SessionId id = ((TcpClientSession)session).SessionId;
         
-        SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.Disconnecting));
+        OnSessionStateChanged(id, ConnectionState.Disconnecting);
     }
 
 
@@ -287,9 +295,23 @@ public class TcpServerTransport : SslServer, IServerTransport
     {
         SessionId id = ((TcpClientSession)session).SessionId;
         
-        SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.Disconnected));
+        OnSessionStateChanged(id, ConnectionState.Disconnected);
         
         OnEndSession(id);
+    }
+    
+    
+    private void OnSessionStateChanged(SessionId id, ConnectionState newState)
+    {
+        try
+        {
+            SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, newState));
+        }
+        catch (Exception e)
+        {
+            ScaleNetManager.Logger.LogError($"User code threw an exception in the {nameof(SessionStateChanged)} event:\n{e}");
+            throw;
+        }
     }
 
 #endregion
@@ -299,33 +321,41 @@ public class TcpServerTransport : SslServer, IServerTransport
 
     protected override void OnStarting()
     {
-        ServerState prevState = _serverState;
-        _serverState = ServerState.Starting;
-        ServerStateChanged?.Invoke(new ServerStateChangeArgs(_serverState, prevState));
+        OnServerStateChanged(ServerState.Starting);
     }
 
 
     protected override void OnStarted()
     {
-        ServerState prevState = _serverState;
-        _serverState = ServerState.Started;
-        ServerStateChanged?.Invoke(new ServerStateChangeArgs(_serverState, prevState));
+        OnServerStateChanged(ServerState.Started);
     }
 
     
     protected override void OnStopping()
     {
-        ServerState prevState = _serverState;
-        _serverState = ServerState.Stopping;
-        ServerStateChanged?.Invoke(new ServerStateChangeArgs(_serverState, prevState));
+        OnServerStateChanged(ServerState.Stopping);
     }
 
 
     protected override void OnStopped()
     {
+        OnServerStateChanged(ServerState.Stopped);
+    }
+    
+    
+    private void OnServerStateChanged(ServerState newState)
+    {
         ServerState prevState = _serverState;
-        _serverState = ServerState.Stopped;
-        ServerStateChanged?.Invoke(new ServerStateChangeArgs(_serverState, prevState));
+        _serverState = newState;
+        try
+        {
+            ServerStateChanged?.Invoke(new ServerStateChangeArgs(_serverState, prevState));
+        }
+        catch (Exception e)
+        {
+            ScaleNetManager.Logger.LogError($"User code threw an exception in the {nameof(ServerStateChanged)} event:\n{e}");
+            throw;
+        }
     }
 
 #endregion
