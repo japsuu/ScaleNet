@@ -2,6 +2,7 @@
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using ScaleNet.Client.LowLevel;
 using Shared;
 
 namespace Client;
@@ -19,7 +20,7 @@ internal static class Program
         (string address, int port) = GetAddressAndPort(args);
         
         // Create and prepare a new SSL server context
-        SslContext context = new SslContext(SslProtocols.Tls12, new X509Certificate2(
+        ClientSslContext context = new(new X509Certificate2(
                 "assets/localhost.pfx",
                 "yourpassword"),
             TestingCertificateValidationCallback);

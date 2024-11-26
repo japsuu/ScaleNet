@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using ScaleNet.Client;
+using ScaleNet.Client.LowLevel;
 using ScaleNet.Client.LowLevel.Transport.Tcp;
 using ScaleNet.Common;
 using Shared.Authentication;
@@ -27,7 +28,7 @@ public sealed class ChatClient : IDisposable
     private AccountUID _accountUid;
 
 
-    public ChatClient(SslContext context, string address, int port)
+    public ChatClient(ClientSslContext context, string address, int port)
     {
         // IMPORTANT: Initialize the ScaleNetManager before creating any network-related objects.
         ScaleNetManager.Initialize();

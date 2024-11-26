@@ -2,6 +2,7 @@
 using System.Net;
 using ScaleNet.Common;
 using ScaleNet.Server;
+using ScaleNet.Server.LowLevel;
 using ScaleNet.Server.LowLevel.Transport.Tcp;
 using Server.Authentication;
 using Server.Database;
@@ -17,7 +18,7 @@ internal sealed class ChatServer : IDisposable
     private readonly IDatabaseAccess _databaseAccess;
 
 
-    public ChatServer(SslContext context, IPAddress address, int port, int maxConnections, bool allowAccountRegistration)
+    public ChatServer(ServerSslContext context, IPAddress address, int port, int maxConnections, bool allowAccountRegistration)
     {
         ScaleNetManager.Initialize();
         

@@ -97,7 +97,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         /// <summary>
         /// Endpoint
         /// </summary>
-        public EndPoint Endpoint { get; private set; }
+        public EndPoint Endpoint { get; }
 
         /// <summary>
         /// Socket
@@ -140,32 +140,6 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         /// This option will setup SO_KEEPALIVE if the OS support this feature
         /// </remarks>
         public bool OptionKeepAlive { get; set; }
-
-#if !NETSTANDARD // Not supported in .NET Standard
-    /// <summary>
-    /// Option: TCP keep alive time
-    /// </summary>
-    /// <remarks>
-    /// The number of seconds a TCP connection will remain alive/idle before keepalive probes are sent to the remote
-    /// </remarks>
-    public int OptionTcpKeepAliveTime { get; set; } = -1;
-
-    /// <summary>
-    /// Option: TCP keep alive interval
-    /// </summary>
-    /// <remarks>
-    /// The number of seconds a TCP connection will wait for a keepalive response before sending another keepalive probe
-    /// </remarks>
-    public int OptionTcpKeepAliveInterval { get; set; } = -1;
-
-    /// <summary>
-    /// Option: TCP keep alive retry count
-    /// </summary>
-    /// <remarks>
-    /// The number of TCP keep alive probes that will be sent before the connection is terminated
-    /// </remarks>
-    public int OptionTcpKeepAliveRetryCount { get; set; } = -1;
-#endif
 
         /// <summary>
         /// Option: no delay
@@ -348,8 +322,6 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
                 // SSL handshake
                 if (Context.Certificates != null)
                     _sslStream.AuthenticateAsClient(Address, Context.Certificates, ClientSslContext.Protocols, true);
-                else if (Context.Certificate != null)
-                    _sslStream.AuthenticateAsClient(Address, new X509CertificateCollection(new[] { Context.Certificate }), ClientSslContext.Protocols, true);
                 else
                     _sslStream.AuthenticateAsClient(Address);
             }
@@ -412,6 +384,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
                 }
                 catch (Exception)
                 {
+                    // ignored
                 }
 
                 // Dispose the SSL stream & buffer
@@ -966,11 +939,6 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
                     IsHandshaking = true;
                     if (Context.Certificates != null)
                         _sslStream.BeginAuthenticateAsClient(Address, Context.Certificates, ClientSslContext.Protocols, true, ProcessHandshake, _sslStreamId);
-                    else if (Context.Certificate != null)
-                    {
-                        _sslStream.BeginAuthenticateAsClient(
-                            Address, new X509CertificateCollection(new[] { Context.Certificate }), ClientSslContext.Protocols, true, ProcessHandshake, _sslStreamId);
-                    }
                     else
                         _sslStream.BeginAuthenticateAsClient(Address, ProcessHandshake, _sslStreamId);
                 }

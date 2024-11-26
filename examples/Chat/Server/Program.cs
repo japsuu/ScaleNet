@@ -2,6 +2,7 @@
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using ScaleNet.Server.LowLevel;
 using Server.Configuration;
 using Shared;
 
@@ -19,7 +20,7 @@ internal static class Program
         }
         
         // Create and prepare a new SSL server context
-        SslContext context = new SslContext(SslProtocols.Tls12, new X509Certificate2(
+        ServerSslContext context = new ServerSslContext(new X509Certificate2(
             "assets/localhost.pfx",
             ConfigManager.CurrentConfiguration.CertificatePassword),
             TestingCertificateValidationCallback);

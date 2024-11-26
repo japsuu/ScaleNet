@@ -14,9 +14,9 @@ namespace ScaleNet.Client.LowLevel
         /// </summary>
         /// <param name="certificate">SSL certificate</param>
         /// <param name="certificateValidationCallback">SSL certificate</param>
-        public ClientSslContext(X509Certificate certificate, RemoteCertificateValidationCallback? certificateValidationCallback = null)
+        public ClientSslContext(X509Certificate2 certificate, RemoteCertificateValidationCallback? certificateValidationCallback = null)
         {
-            Certificate = certificate;
+            Certificates = new X509Certificate2Collection(new[] {certificate});
             CertificateValidationCallback = certificateValidationCallback;
         }
 
@@ -39,11 +39,6 @@ namespace ScaleNet.Client.LowLevel
         public static SslProtocols Protocols => SslProtocols.Tls12;
 
         /// <summary>
-        /// SSL certificate
-        /// </summary>
-        public X509Certificate? Certificate { get; set; }
-
-        /// <summary>
         /// SSL certificates collection
         /// </summary>
         public X509Certificate2Collection? Certificates { get; set; }
@@ -52,11 +47,5 @@ namespace ScaleNet.Client.LowLevel
         /// SSL certificate validation callback
         /// </summary>
         public RemoteCertificateValidationCallback? CertificateValidationCallback { get; set; }
-
-        /// <summary>
-        /// If the client is asked for a certificate for authentication.
-        /// Note that this is only a request - if no certificate is provided, the server still accepts the connection request.
-        /// </summary>
-        public bool ClientCertificateRequired { get; set; }
     }
 }
