@@ -2,7 +2,7 @@
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Text;
-using Buffer = ScaleNet.Common.Transport.TCP.Buffer;
+using ScaleNet.Common;
 
 namespace ScaleNet.Server.LowLevel.Transport.Tcp;
 
@@ -18,13 +18,13 @@ public class SslSession : IDisposable
 
     // Receive buffer
     private bool _isReceiving;
-    private Buffer? _receiveBuffer;
+    private ByteBuffer? _receiveBuffer;
 
     // Send buffer
     private bool _isSending;
     private readonly object _sendLock = new();
-    private Buffer? _sendBufferMain;
-    private Buffer? _sendBufferFlush;
+    private ByteBuffer? _sendBufferMain;
+    private ByteBuffer? _sendBufferFlush;
     private long _sendBufferFlushOffset;
 
     /// <summary>
@@ -119,9 +119,9 @@ public class SslSession : IDisposable
         IsSocketDisposed = false;
 
         // Setup buffers
-        _receiveBuffer = new Buffer();
-        _sendBufferMain = new Buffer();
-        _sendBufferFlush = new Buffer();
+        _receiveBuffer = new ByteBuffer();
+        _sendBufferMain = new ByteBuffer();
+        _sendBufferFlush = new ByteBuffer();
 
         // Apply the option: keep alive
         if (Server.OptionKeepAlive)

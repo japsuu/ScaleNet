@@ -2,12 +2,12 @@
 using System.Diagnostics;
 using System.Text;
 
-namespace ScaleNet.Common.Transport.TCP
+namespace ScaleNet.Common
 {
     /// <summary>
     /// Dynamic byte buffer
     /// </summary>
-    public class Buffer
+    public class ByteBuffer
     {
         private byte[] _data;
         private long _size;
@@ -47,7 +47,7 @@ namespace ScaleNet.Common.Transport.TCP
         /// <summary>
         /// Initialize a new expandable buffer with zero capacity
         /// </summary>
-        public Buffer()
+        public ByteBuffer()
         {
             _data = Array.Empty<byte>();
             _size = 0;
@@ -58,7 +58,7 @@ namespace ScaleNet.Common.Transport.TCP
         /// <summary>
         /// Initialize a new expandable buffer with the given capacity
         /// </summary>
-        public Buffer(long capacity)
+        public ByteBuffer(long capacity)
         {
             _data = new byte[capacity];
             _size = 0;
@@ -69,7 +69,7 @@ namespace ScaleNet.Common.Transport.TCP
         /// <summary>
         /// Initialize a new expandable buffer with the given data
         /// </summary>
-        public Buffer(byte[] data)
+        public ByteBuffer(byte[] data)
         {
             _data = data;
             _size = data.Length;
@@ -250,7 +250,7 @@ namespace ScaleNet.Common.Transport.TCP
         /// </summary>
         /// <param name="buffer">Buffer to append</param>
         /// <returns>Count of append bytes</returns>
-        public long Append(Buffer buffer) => Append(buffer.AsSpan());
+        public long Append(ByteBuffer buffer) => Append(buffer.AsSpan());
 
 
         /// <summary>

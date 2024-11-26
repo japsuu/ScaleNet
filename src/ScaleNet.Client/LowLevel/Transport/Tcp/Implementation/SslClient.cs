@@ -5,7 +5,7 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using Buffer = ScaleNet.Common.Transport.TCP.Buffer;
+using ScaleNet.Common;
 
 namespace ScaleNet.Client.LowLevel.Transport.Tcp
 {
@@ -22,13 +22,13 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
         // Receive buffer
         private bool _receiving;
-        private Buffer? _receiveBuffer;
+        private ByteBuffer? _receiveBuffer;
 
         // Send buffer
         private readonly object _sendLock = new();
         private bool _sending;
-        private Buffer? _sendBufferMain;
-        private Buffer? _sendBufferFlush;
+        private ByteBuffer? _sendBufferMain;
+        private ByteBuffer? _sendBufferFlush;
         private long _sendBufferFlushOffset;
 
         /// <summary>
@@ -222,9 +222,9 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
                 return false;
 
             // Setup buffers
-            _receiveBuffer = new Buffer();
-            _sendBufferMain = new Buffer();
-            _sendBufferFlush = new Buffer();
+            _receiveBuffer = new ByteBuffer();
+            _sendBufferMain = new ByteBuffer();
+            _sendBufferFlush = new ByteBuffer();
 
             // Setup event args
             _connectEventArg = new SocketAsyncEventArgs();
@@ -458,9 +458,9 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
                 return false;
 
             // Setup buffers
-            _receiveBuffer = new Buffer();
-            _sendBufferMain = new Buffer();
-            _sendBufferFlush = new Buffer();
+            _receiveBuffer = new ByteBuffer();
+            _sendBufferMain = new ByteBuffer();
+            _sendBufferFlush = new ByteBuffer();
 
             // Setup event args
             _connectEventArg = new SocketAsyncEventArgs();
