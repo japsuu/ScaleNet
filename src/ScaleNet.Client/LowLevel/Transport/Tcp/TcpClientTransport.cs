@@ -83,35 +83,25 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
 #region Lifetime
 
-        protected override void OnConnecting()
+        protected override void OnConnecting() => OnConnectionStateChanged(ConnectionState.Connecting);
+        protected override void OnConnected() => OnConnectionStateChanged(ConnectionState.Connected);
+        protected override void OnDisconnecting() => OnConnectionStateChanged(ConnectionState.Disconnecting);
+        protected override void OnDisconnected() => OnConnectionStateChanged(ConnectionState.Disconnected);
+
+
+        private void OnConnectionStateChanged(ConnectionState newState)
         {
             ConnectionState prevState = _connectionState;
-            _connectionState = ConnectionState.Connecting;
-            ConnectionStateChanged?.Invoke(new ConnectionStateArgs(_connectionState, prevState));
-        }
-
-
-        protected override void OnConnected()
-        {
-            ConnectionState prevState = _connectionState;
-            _connectionState = ConnectionState.Connected;
-            ConnectionStateChanged?.Invoke(new ConnectionStateArgs(_connectionState, prevState));
-        }
-
-    
-        protected override void OnDisconnecting()
-        {
-            ConnectionState prevState = _connectionState;
-            _connectionState = ConnectionState.Disconnecting;
-            ConnectionStateChanged?.Invoke(new ConnectionStateArgs(_connectionState, prevState));
-        }
-
-
-        protected override void OnDisconnected()
-        {
-            ConnectionState prevState = _connectionState;
-            _connectionState = ConnectionState.Disconnected;
-            ConnectionStateChanged?.Invoke(new ConnectionStateArgs(_connectionState, prevState));
+            _connectionState = newState;
+            try
+            {
+                ConnectionStateChanged?.Invoke(new ConnectionStateArgs(_connectionState, prevState));
+            }
+            catch (Exception e)
+            {
+                ScaleNetManager.Logger.LogError($"User code threw an exception in the {nameof(ConnectionStateChanged)} event:\n{e}");
+                throw;
+            }
         }
 
 #endregion
@@ -209,8 +199,16 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
                 ScaleNetManager.Logger.LogError($"Failed to deserialize message with ID {typeId}.");
                 return;
             }
-            
-            MessageReceived?.Invoke(message);
+
+            try
+            {
+                MessageReceived?.Invoke(message);
+            }
+            catch (Exception e)
+            {
+                ScaleNetManager.Logger.LogError($"User code threw an exception in the {nameof(MessageReceived)} event:\n{e}");
+                throw;
+            }
         }
 
 
