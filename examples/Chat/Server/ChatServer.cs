@@ -57,7 +57,7 @@ internal sealed class ChatServer : IDisposable
     {
         switch (args.NewState)
         {
-            case ConnectionState.SslHandshaking:
+            case ConnectionState.SslHandshaked:
             {
                 _authenticator.OnNewClientReadyForAuthentication(args.Connection);
                 break;
