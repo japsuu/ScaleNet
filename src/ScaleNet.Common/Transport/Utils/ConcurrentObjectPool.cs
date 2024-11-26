@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace NetworkLibrary.Utils
+namespace ScaleNet.Common.Transport.Utils
 {
     public class ConcurrentObjectPool<T> where T : new()
     {

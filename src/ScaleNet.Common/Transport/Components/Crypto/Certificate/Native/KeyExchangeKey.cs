@@ -1,10 +1,6 @@
-﻿
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System;
 
-namespace NetworkLibrary.Components.Crypto.Certificate.Native
+namespace ScaleNet.Common.Transport.Components.Crypto.Certificate.Native
 {
     public class KeyExchangeKey : CryptKey
     {

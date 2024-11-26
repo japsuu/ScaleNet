@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace NetworkLibrary.Utils
+namespace ScaleNet.Common.Transport.Utils
 {
     public class Spinlock
     {

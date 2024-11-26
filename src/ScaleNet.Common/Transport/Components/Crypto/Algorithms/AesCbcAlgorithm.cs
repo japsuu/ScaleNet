@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 
-namespace NetworkLibrary.Components.Crypto.Algorithms
+namespace ScaleNet.Common.Transport.Components.Crypto.Algorithms
 {
     public class AesCbcAlgorithm
         : IDisposable, IAesAlgorithm

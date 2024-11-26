@@ -1,4 +1,4 @@
-﻿namespace NetworkLibrary.Components.Crypto.Algorithms
+﻿namespace ScaleNet.Common.Transport.Components.Crypto.Algorithms
 {
     public interface IAesAlgorithm
     {

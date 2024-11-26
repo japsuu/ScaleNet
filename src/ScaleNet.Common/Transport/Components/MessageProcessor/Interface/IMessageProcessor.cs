@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace NetworkLibrary.Components
+namespace ScaleNet.Common.Transport.Components.MessageProcessor.Interface
 {
     public interface IMessageProcessor : IDisposable
     {

@@ -1,13 +1,9 @@
-﻿using NetworkLibrary.Utils;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
-using System.Text;
+﻿using System;
 using System.Threading;
+using ScaleNet.Common.Transport.Components.Crypto.ManagedGCM;
+using ScaleNet.Common.Transport.Utils;
 
-namespace NetworkLibrary.Components.Crypto.Algorithms
+namespace ScaleNet.Common.Transport.Components.Crypto.Algorithms
 {
     internal class AesGcmManagedAlgorithm : IAesAlgorithm
     {

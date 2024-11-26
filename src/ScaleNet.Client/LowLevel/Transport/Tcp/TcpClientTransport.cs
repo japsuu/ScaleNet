@@ -2,9 +2,10 @@ using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Threading.Tasks;
-using NetworkLibrary.TCP.SSL.ByteMessage;
 using ScaleNet.Common;
 using ScaleNet.Common.Ssl;
+using ScaleNet.Common.Transport.Tcp.Base.Core;
+using ScaleNet.Common.Transport.Tcp.SSL.ByteMessage;
 using ScaleNet.Common.Utils;
 
 namespace ScaleNet.Client.LowLevel.Transport.Tcp

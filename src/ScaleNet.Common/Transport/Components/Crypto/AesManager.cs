@@ -1,13 +1,9 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using NetworkLibrary.Components.Crypto.Algorithms;
-using NetworkLibrary.Utils;
+using ScaleNet.Common.Transport.Components.Crypto.Algorithms;
+using ScaleNet.Common.Transport.Utils;
 
-namespace NetworkLibrary.Components.Crypto
+namespace ScaleNet.Common.Transport.Components.Crypto
 {
     internal class AesManager:IAesEngine
     {

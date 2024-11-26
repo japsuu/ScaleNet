@@ -1,9 +1,9 @@
-﻿using NetworkLibrary.TCP.Base;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using ScaleNet.Common.Transport.Tcp.Base.Core;
 
-namespace NetworkLibrary.Components.Statistics
+namespace ScaleNet.Common.Transport.Components.Statistics
 {
     internal class TcpClientStatisticsPublisher
     {

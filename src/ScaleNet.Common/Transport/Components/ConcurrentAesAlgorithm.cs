@@ -1,13 +1,9 @@
-﻿using NetworkLibrary.Components.Crypto;
-using NetworkLibrary.Components.Crypto.Algorithms;
-using NetworkLibrary.Utils;
-using System;
-using System.Collections.Concurrent;
-using System.ComponentModel;
-using System.Drawing;
+﻿using System;
 using System.Security.Cryptography;
+using ScaleNet.Common.Transport.Components.Crypto;
+using ScaleNet.Common.Transport.Utils;
 
-namespace NetworkLibrary.Components
+namespace ScaleNet.Common.Transport.Components
 {
     public class ConcurrentAesAlgorithm
     {

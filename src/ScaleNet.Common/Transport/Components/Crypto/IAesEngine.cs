@@ -1,4 +1,4 @@
-﻿namespace NetworkLibrary.Components.Crypto
+﻿namespace ScaleNet.Common.Transport.Components.Crypto
 {
     public enum AesMode
     {

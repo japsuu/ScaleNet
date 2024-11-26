@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Security.Cryptography;
-using NetworkLibrary.Utils;
+using ScaleNet.Common.Transport.Utils;
 
-namespace NetworkLibrary.Components.Crypto.Algorithms
+namespace ScaleNet.Common.Transport.Components.Crypto.Algorithms
 {
     internal class AesCbcRandIVAlgorithm : IAesAlgorithm
     {

@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using ScaleNet.Common.Transport.Components.MessageProcessor.Interface;
 
-namespace NetworkLibrary.Components
+namespace ScaleNet.Common.Transport.Components.MessageProcessor.Unmanaged
 {
     internal class MessageWriter
         : IMessageProcessor

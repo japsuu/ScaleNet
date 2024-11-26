@@ -1,9 +1,7 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 
-
-
-namespace NetworkLibrary.Utils
+namespace ScaleNet.Common.Transport.Utils
 {
     public class AsyncManualResetEvent
     {

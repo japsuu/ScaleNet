@@ -3,7 +3,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace NetworkLibrary.Components
+namespace ScaleNet.Common.Transport.Components
 {
     /*There is no allccation here, all byte arrays comes from pool and retuned on flush */
     public class PooledMemoryStream : Stream

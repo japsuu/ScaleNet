@@ -1,8 +1,4 @@
 ﻿using System;
-using NetworkLibrary.Components.Crypto.Certificate;
-using NetworkLibrary.Components.Statistics;
-using NetworkLibrary.TCP.Base;
-using NetworkLibrary.Utils;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Security;
@@ -11,8 +7,12 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using ScaleNet.Common.Transport.Components.Crypto.Certificate;
+using ScaleNet.Common.Transport.Components.Statistics;
+using ScaleNet.Common.Transport.Tcp.Base.Core;
+using ScaleNet.Common.Transport.Utils;
 
-namespace NetworkLibrary.TCP.SSL.Base
+namespace ScaleNet.Common.Transport.Tcp.SSL
 {
     public class SslServer : TcpServerBase
     {

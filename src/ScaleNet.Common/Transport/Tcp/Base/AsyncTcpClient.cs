@@ -1,11 +1,12 @@
-﻿using NetworkLibrary.Components.Statistics;
-using NetworkLibrary.Utils;
-using System;
+﻿using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using ScaleNet.Common.Transport.Components.Statistics;
+using ScaleNet.Common.Transport.Tcp.Base.Core;
+using ScaleNet.Common.Transport.Utils;
 
-namespace NetworkLibrary.TCP.Base
+namespace ScaleNet.Common.Transport.Tcp.Base
 {
     public class AsyncTpcClient : TcpClientBase, IDisposable
     {

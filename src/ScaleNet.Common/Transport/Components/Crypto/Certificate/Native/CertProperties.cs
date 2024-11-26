@@ -1,11 +1,7 @@
-﻿
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System;
 using System.Security.Cryptography.X509Certificates;
 
-namespace NetworkLibrary.Components.Crypto.Certificate.Native
+namespace ScaleNet.Common.Transport.Components.Crypto.Certificate.Native
 {
     public class SelfSignedCertProperties
     {

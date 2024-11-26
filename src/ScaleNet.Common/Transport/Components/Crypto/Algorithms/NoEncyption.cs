@@ -1,9 +1,6 @@
-﻿using NetworkLibrary.Utils;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using ScaleNet.Common.Transport.Utils;
 
-namespace NetworkLibrary.Components.Crypto.Algorithms
+namespace ScaleNet.Common.Transport.Components.Crypto.Algorithms
 {
     internal class NoEncyption : IAesAlgorithm
     {

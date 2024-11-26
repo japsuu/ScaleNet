@@ -1,8 +1,8 @@
-﻿using NetworkLibrary.Components.Statistics;
-using System;
+﻿using System;
 using System.Threading.Tasks;
+using ScaleNet.Common.Transport.Components.Statistics;
 
-namespace NetworkLibrary.TCP.Base
+namespace ScaleNet.Common.Transport.Tcp.Base.Core
 {
     public abstract class TcpClientBase
     {

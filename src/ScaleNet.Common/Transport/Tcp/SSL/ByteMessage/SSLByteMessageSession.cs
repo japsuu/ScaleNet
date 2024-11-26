@@ -1,11 +1,11 @@
-﻿using NetworkLibrary.Components;
-using NetworkLibrary.Components.MessageBuffer;
-using NetworkLibrary.Components.MessageProcessor.Unmanaged;
-using NetworkLibrary.TCP.SSL.Base;
-using System;
+﻿using System;
 using System.Net.Security;
+using ScaleNet.Common.Transport.Components;
+using ScaleNet.Common.Transport.Components.MessageBuffer;
+using ScaleNet.Common.Transport.Components.MessageBuffer.Interface;
+using ScaleNet.Common.Transport.Components.MessageProcessor.Unmanaged;
 
-namespace NetworkLibrary.TCP.SSL.ByteMessage
+namespace ScaleNet.Common.Transport.Tcp.SSL.ByteMessage
 {
     internal class SslByteMessageSession : SslSession
     {

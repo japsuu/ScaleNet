@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Threading;
+using ScaleNet.Common.Transport.Components.MessageBuffer.Interface;
 
-namespace NetworkLibrary.Components.MessageBuffer
+namespace ScaleNet.Common.Transport.Components.MessageBuffer
 {
     public class EncryptedMessageBuffer : IMessageQueue
     {

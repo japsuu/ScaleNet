@@ -1,5 +1,8 @@
-public enum ScatterGatherConfig
+namespace ScaleNet.Common.Transport.Tcp.Base.Core
 {
-    UseQueue,
-    UseBuffer
+    public enum ScatterGatherConfig
+    {
+        UseQueue,
+        UseBuffer
+    }
 }

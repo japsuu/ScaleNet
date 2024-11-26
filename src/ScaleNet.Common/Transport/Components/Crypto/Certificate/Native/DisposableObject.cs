@@ -1,11 +1,7 @@
-﻿
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System;
 using System.Runtime.InteropServices;
 
-namespace NetworkLibrary.Components.Crypto.Certificate.Native
+namespace ScaleNet.Common.Transport.Components.Crypto.Certificate.Native
 {
     [StructLayout(LayoutKind.Sequential)]
     public abstract class DisposeableObject : IDisposable

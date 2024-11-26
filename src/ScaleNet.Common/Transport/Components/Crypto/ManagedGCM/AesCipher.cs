@@ -1,19 +1,12 @@
-﻿using NetworkLibrary.Components.Crypto.ManagedGCM;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System;
 
-namespace NetworkLibrary.Components.Crypto.ManagedGCM
+namespace ScaleNet.Common.Transport.Components.Crypto.ManagedGCM
 {
-    internal class AesCipher
+    public class AesCipher
     {
-    }
-}
-public class AesCipher
-{
-    // The S box
-    private static readonly byte[] S =
-    {
+        // The S box
+        private static readonly byte[] S =
+        {
             99, 124, 119, 123, 242, 107, 111, 197,
             48, 1, 103, 43, 254, 215, 171, 118,
             202, 130, 201, 125, 250, 89, 71, 240,
@@ -48,9 +41,9 @@ public class AesCipher
             65, 153, 45, 15, 176, 84, 187, 22,
         };
 
-    // The inverse S-box
-    private static readonly byte[] Si =
-    {
+        // The inverse S-box
+        private static readonly byte[] Si =
+        {
             82, 9, 106, 213, 48, 54, 165, 56,
             191, 64, 163, 158, 129, 243, 215, 251,
             124, 227, 57, 130, 155, 47, 255, 135,
@@ -85,16 +78,16 @@ public class AesCipher
             225, 105, 20, 99, 85, 33, 12, 125,
         };
 
-    // vector used in calculating key schedule (powers of x in GF(256))
-    private static readonly byte[] rcon =
-    {
+        // vector used in calculating key schedule (powers of x in GF(256))
+        private static readonly byte[] rcon =
+        {
             0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36, 0x6c, 0xd8, 0xab, 0x4d, 0x9a,
             0x2f, 0x5e, 0xbc, 0x63, 0xc6, 0x97, 0x35, 0x6a, 0xd4, 0xb3, 0x7d, 0xfa, 0xef, 0xc5, 0x91
         };
 
-    // precomputation tables of calculations for rounds
-    private static readonly uint[] T0 =
-    {
+        // precomputation tables of calculations for rounds
+        private static readonly uint[] T0 =
+        {
             0xa56363c6, 0x847c7cf8, 0x997777ee, 0x8d7b7bf6, 0x0df2f2ff,
             0xbd6b6bd6, 0xb16f6fde, 0x54c5c591, 0x50303060, 0x03010102,
             0xa96767ce, 0x7d2b2b56, 0x19fefee7, 0x62d7d7b5, 0xe6abab4d,
@@ -149,8 +142,8 @@ public class AesCipher
             0x3a16162c
         };
 
-    private static readonly uint[] Tinv0 =
-    {
+        private static readonly uint[] Tinv0 =
+        {
             0x50a7f451, 0x5365417e, 0xc3a4171a, 0x965e273a, 0xcb6bab3b,
             0xf1459d1f, 0xab58faac, 0x9303e34b, 0x55fa3020, 0xf66d76ad,
             0x9176cc88, 0x254c02f5, 0xfcd7e54f, 0xd7cb2ac5, 0x80443526,
@@ -205,33 +198,33 @@ public class AesCipher
             0x4257b8d0
         };
 
-    private static uint Shift(uint r, int shift)
-    {
-        return (r >> shift) | (r << (32 - shift));
-    }
+        private static uint Shift(uint r, int shift)
+        {
+            return (r >> shift) | (r << (32 - shift));
+        }
 
-    /* multiply four bytes in GF(2^8) by 'x' {02} in parallel */
+        /* multiply four bytes in GF(2^8) by 'x' {02} in parallel */
 
-    private const uint m1 = 0x80808080;
-    private const uint m2 = 0x7f7f7f7f;
-    private const uint m3 = 0x0000001b;
-    private const uint m4 = 0xC0C0C0C0;
-    private const uint m5 = 0x3f3f3f3f;
+        private const uint m1 = 0x80808080;
+        private const uint m2 = 0x7f7f7f7f;
+        private const uint m3 = 0x0000001b;
+        private const uint m4 = 0xC0C0C0C0;
+        private const uint m5 = 0x3f3f3f3f;
 
-    private static uint FFmulX(uint x)
-    {
-        return ((x & m2) << 1) ^ (((x & m1) >> 7) * m3);
-    }
+        private static uint FFmulX(uint x)
+        {
+            return ((x & m2) << 1) ^ (((x & m1) >> 7) * m3);
+        }
 
-    private static uint FFmulX2(uint x)
-    {
-        uint t0 = (x & m5) << 2;
-        uint t1 = (x & m4);
-        t1 ^= (t1 >> 1);
-        return t0 ^ (t1 >> 2) ^ (t1 >> 5);
-    }
+        private static uint FFmulX2(uint x)
+        {
+            uint t0 = (x & m5) << 2;
+            uint t1 = (x & m4);
+            t1 ^= (t1 >> 1);
+            return t0 ^ (t1 >> 2) ^ (t1 >> 5);
+        }
 
-    /*
+        /*
     The following defines provide alternative definitions of FFmulX that might
     give improved performance if a fast 32-bit multiply is not available.
 
@@ -241,49 +234,49 @@ public class AesCipher
 
     */
 
-    private static uint Inv_Mcol(uint x)
-    {
-        uint t0, t1;
-        t0 = x;
-        t1 = t0 ^ Shift(t0, 8);
-        t0 ^= FFmulX(t1);
-        t1 ^= FFmulX2(t0);
-        t0 ^= t1 ^ Shift(t1, 16);
-        return t0;
-    }
+        private static uint Inv_Mcol(uint x)
+        {
+            uint t0, t1;
+            t0 = x;
+            t1 = t0 ^ Shift(t0, 8);
+            t0 ^= FFmulX(t1);
+            t1 ^= FFmulX2(t0);
+            t0 ^= t1 ^ Shift(t1, 16);
+            return t0;
+        }
 
-    private static uint SubWord(uint x)
-    {
-        return (uint)S[x & 255]
-            | (((uint)S[(x >> 8) & 255]) << 8)
-            | (((uint)S[(x >> 16) & 255]) << 16)
-            | (((uint)S[(x >> 24) & 255]) << 24);
-    }
+        private static uint SubWord(uint x)
+        {
+            return (uint)S[x & 255]
+                   | (((uint)S[(x >> 8) & 255]) << 8)
+                   | (((uint)S[(x >> 16) & 255]) << 16)
+                   | (((uint)S[(x >> 24) & 255]) << 24);
+        }
 
-    /**
+        /**
     * Calculate the necessary round keys
     * The number of calculations depends on key size and block size
     * AES specified a fixed block size of 128 bits and key sizes 128/192/256 bits
     * This code is written assuming those are the only possible values
     */
-    private uint[][] GenerateWorkingKey(byte[] key, bool forEncryption)
-    {
-        int keyLen = key.Length;
-        if (keyLen < 16 || keyLen > 32 || (keyLen & 7) != 0)
-            throw new ArgumentException("Key length not 128/192/256 bits.");
-
-        int KC = keyLen >> 2;
-        this.ROUNDS = KC + 6;  // This is not always true for the generalized Rijndael that allows larger block sizes
-
-        uint[][] W = new uint[ROUNDS + 1][]; // 4 words in a block
-        for (int i = 0; i <= ROUNDS; ++i)
+        private uint[][] GenerateWorkingKey(byte[] key, bool forEncryption)
         {
-            W[i] = new uint[4];
-        }
+            int keyLen = key.Length;
+            if (keyLen < 16 || keyLen > 32 || (keyLen & 7) != 0)
+                throw new ArgumentException("Key length not 128/192/256 bits.");
 
-        switch (KC)
-        {
-            case 4:
+            int KC = keyLen >> 2;
+            this.ROUNDS = KC + 6;  // This is not always true for the generalized Rijndael that allows larger block sizes
+
+            uint[][] W = new uint[ROUNDS + 1][]; // 4 words in a block
+            for (int i = 0; i <= ROUNDS; ++i)
+            {
+                W[i] = new uint[4];
+            }
+
+            switch (KC)
+            {
+                case 4:
                 {
                     uint t0 = GcmUtilities.LE_To_UInt32(key, 0); W[0][0] = t0;
                     uint t1 = GcmUtilities.LE_To_UInt32(key, 4); W[0][1] = t1;
@@ -301,7 +294,7 @@ public class AesCipher
 
                     break;
                 }
-            case 6:
+                case 6:
                 {
                     uint t0 = GcmUtilities.LE_To_UInt32(key, 0); W[0][0] = t0;
                     uint t1 = GcmUtilities.LE_To_UInt32(key, 4); W[0][1] = t1;
@@ -345,7 +338,7 @@ public class AesCipher
 
                     break;
                 }
-            case 8:
+                case 8:
                 {
                     uint t0 = GcmUtilities.LE_To_UInt32(key, 0); W[0][0] = t0;
                     uint t1 = GcmUtilities.LE_To_UInt32(key, 4); W[0][1] = t1;
@@ -380,43 +373,43 @@ public class AesCipher
 
                     break;
                 }
-            default:
+                default:
                 {
                     throw new InvalidOperationException("Should never get here");
                 }
-        }
+            }
 
-        if (!forEncryption)
-        {
-            for (int j = 1; j < ROUNDS; j++)
+            if (!forEncryption)
             {
-                uint[] w = W[j];
-                for (int i = 0; i < 4; i++)
+                for (int j = 1; j < ROUNDS; j++)
                 {
-                    w[i] = Inv_Mcol(w[i]);
+                    uint[] w = W[j];
+                    for (int i = 0; i < 4; i++)
+                    {
+                        w[i] = Inv_Mcol(w[i]);
+                    }
                 }
             }
+
+            return W;
         }
 
-        return W;
-    }
+        private int ROUNDS;
+        private uint[][] WorkingKey;
+        private bool forEncryption;
 
-    private int ROUNDS;
-    private uint[][] WorkingKey;
-    private bool forEncryption;
+        private byte[] s;
 
-    private byte[] s;
+        private const int BLOCK_SIZE = 16;
 
-    private const int BLOCK_SIZE = 16;
-
-    /**
+        /**
     * default constructor - 128 bit block size.
     */
-    public AesCipher()
-    {
-    }
+        public AesCipher()
+        {
+        }
 
-    /**
+        /**
     * initialise an AES cipher.
     *
     * @param forEncryption whether or not we are for encryption.
@@ -424,159 +417,160 @@ public class AesCipher
     * @exception ArgumentException if the parameters argument is
     * inappropriate.
     */
-    public virtual void Init(
-        bool forEncryption,
-       byte[] key)
-    {
-
-        WorkingKey = GenerateWorkingKey(key, forEncryption);
-
-        this.forEncryption = forEncryption;
-        if (forEncryption)
+        public virtual void Init(
+            bool forEncryption,
+            byte[] key)
         {
-            if (s == null)
-                s = new byte[S.Length];
-            Buffer.BlockCopy(S, 0, s, 0, S.Length);
 
-        }
-        else
-        {
-            if (s == null)
-                s = new byte[Si.Length];
-            Buffer.BlockCopy(Si, 0, s, 0, Si.Length);
+            WorkingKey = GenerateWorkingKey(key, forEncryption);
 
-        }
-    }
+            this.forEncryption = forEncryption;
+            if (forEncryption)
+            {
+                if (s == null)
+                    s = new byte[S.Length];
+                Buffer.BlockCopy(S, 0, s, 0, S.Length);
 
-    public virtual string AlgorithmName
-    {
-        get { return "AES"; }
-    }
+            }
+            else
+            {
+                if (s == null)
+                    s = new byte[Si.Length];
+                Buffer.BlockCopy(Si, 0, s, 0, Si.Length);
 
-    public virtual bool IsPartialBlockOkay
-    {
-        get { return false; }
-    }
-
-    public virtual int GetBlockSize()
-    {
-        return BLOCK_SIZE;
-    }
-
-    public virtual int ProcessBlock(byte[] input, int inOff, byte[] output, int outOff)
-    {
-        if (WorkingKey == null)
-            throw new InvalidOperationException("AES engine not initialised");
-
-        if (forEncryption)
-        {
-            EncryptBlock(input, inOff, output, outOff, WorkingKey);
-        }
-        else
-        {
-            DecryptBlock(input, inOff, output, outOff, WorkingKey);
+            }
         }
 
-        return BLOCK_SIZE;
-    }
-
-    public virtual void Reset()
-    {
-    }
-
-    private void EncryptBlock(byte[] input, int inOff, byte[] output, int outOff, uint[][] KW)
-    {
-        uint C0 = GcmUtilities.LE_To_UInt32(input, inOff + 0);
-        uint C1 = GcmUtilities.LE_To_UInt32(input, inOff + 4);
-        uint C2 = GcmUtilities.LE_To_UInt32(input, inOff + 8);
-        uint C3 = GcmUtilities.LE_To_UInt32(input, inOff + 12);
-
-        uint[] kw = KW[0];
-        uint t0 = C0 ^ kw[0];
-        uint t1 = C1 ^ kw[1];
-        uint t2 = C2 ^ kw[2];
-
-        uint r0, r1, r2, r3 = C3 ^ kw[3];
-        int r = 1;
-        while (r < ROUNDS - 1)
+        public virtual string AlgorithmName
         {
+            get { return "AES"; }
+        }
+
+        public virtual bool IsPartialBlockOkay
+        {
+            get { return false; }
+        }
+
+        public virtual int GetBlockSize()
+        {
+            return BLOCK_SIZE;
+        }
+
+        public virtual int ProcessBlock(byte[] input, int inOff, byte[] output, int outOff)
+        {
+            if (WorkingKey == null)
+                throw new InvalidOperationException("AES engine not initialised");
+
+            if (forEncryption)
+            {
+                EncryptBlock(input, inOff, output, outOff, WorkingKey);
+            }
+            else
+            {
+                DecryptBlock(input, inOff, output, outOff, WorkingKey);
+            }
+
+            return BLOCK_SIZE;
+        }
+
+        public virtual void Reset()
+        {
+        }
+
+        private void EncryptBlock(byte[] input, int inOff, byte[] output, int outOff, uint[][] KW)
+        {
+            uint C0 = GcmUtilities.LE_To_UInt32(input, inOff + 0);
+            uint C1 = GcmUtilities.LE_To_UInt32(input, inOff + 4);
+            uint C2 = GcmUtilities.LE_To_UInt32(input, inOff + 8);
+            uint C3 = GcmUtilities.LE_To_UInt32(input, inOff + 12);
+
+            uint[] kw = KW[0];
+            uint t0 = C0 ^ kw[0];
+            uint t1 = C1 ^ kw[1];
+            uint t2 = C2 ^ kw[2];
+
+            uint r0, r1, r2, r3 = C3 ^ kw[3];
+            int r = 1;
+            while (r < ROUNDS - 1)
+            {
+                kw = KW[r++];
+                r0 = T0[t0 & 255] ^ Shift(T0[(t1 >> 8) & 255], 24) ^ Shift(T0[(t2 >> 16) & 255], 16) ^ Shift(T0[(r3 >> 24) & 255], 8) ^ kw[0];
+                r1 = T0[t1 & 255] ^ Shift(T0[(t2 >> 8) & 255], 24) ^ Shift(T0[(r3 >> 16) & 255], 16) ^ Shift(T0[(t0 >> 24) & 255], 8) ^ kw[1];
+                r2 = T0[t2 & 255] ^ Shift(T0[(r3 >> 8) & 255], 24) ^ Shift(T0[(t0 >> 16) & 255], 16) ^ Shift(T0[(t1 >> 24) & 255], 8) ^ kw[2];
+                r3 = T0[r3 & 255] ^ Shift(T0[(t0 >> 8) & 255], 24) ^ Shift(T0[(t1 >> 16) & 255], 16) ^ Shift(T0[(t2 >> 24) & 255], 8) ^ kw[3];
+                kw = KW[r++];
+                t0 = T0[r0 & 255] ^ Shift(T0[(r1 >> 8) & 255], 24) ^ Shift(T0[(r2 >> 16) & 255], 16) ^ Shift(T0[(r3 >> 24) & 255], 8) ^ kw[0];
+                t1 = T0[r1 & 255] ^ Shift(T0[(r2 >> 8) & 255], 24) ^ Shift(T0[(r3 >> 16) & 255], 16) ^ Shift(T0[(r0 >> 24) & 255], 8) ^ kw[1];
+                t2 = T0[r2 & 255] ^ Shift(T0[(r3 >> 8) & 255], 24) ^ Shift(T0[(r0 >> 16) & 255], 16) ^ Shift(T0[(r1 >> 24) & 255], 8) ^ kw[2];
+                r3 = T0[r3 & 255] ^ Shift(T0[(r0 >> 8) & 255], 24) ^ Shift(T0[(r1 >> 16) & 255], 16) ^ Shift(T0[(r2 >> 24) & 255], 8) ^ kw[3];
+            }
+
             kw = KW[r++];
             r0 = T0[t0 & 255] ^ Shift(T0[(t1 >> 8) & 255], 24) ^ Shift(T0[(t2 >> 16) & 255], 16) ^ Shift(T0[(r3 >> 24) & 255], 8) ^ kw[0];
             r1 = T0[t1 & 255] ^ Shift(T0[(t2 >> 8) & 255], 24) ^ Shift(T0[(r3 >> 16) & 255], 16) ^ Shift(T0[(t0 >> 24) & 255], 8) ^ kw[1];
             r2 = T0[t2 & 255] ^ Shift(T0[(r3 >> 8) & 255], 24) ^ Shift(T0[(t0 >> 16) & 255], 16) ^ Shift(T0[(t1 >> 24) & 255], 8) ^ kw[2];
             r3 = T0[r3 & 255] ^ Shift(T0[(t0 >> 8) & 255], 24) ^ Shift(T0[(t1 >> 16) & 255], 16) ^ Shift(T0[(t2 >> 24) & 255], 8) ^ kw[3];
-            kw = KW[r++];
-            t0 = T0[r0 & 255] ^ Shift(T0[(r1 >> 8) & 255], 24) ^ Shift(T0[(r2 >> 16) & 255], 16) ^ Shift(T0[(r3 >> 24) & 255], 8) ^ kw[0];
-            t1 = T0[r1 & 255] ^ Shift(T0[(r2 >> 8) & 255], 24) ^ Shift(T0[(r3 >> 16) & 255], 16) ^ Shift(T0[(r0 >> 24) & 255], 8) ^ kw[1];
-            t2 = T0[r2 & 255] ^ Shift(T0[(r3 >> 8) & 255], 24) ^ Shift(T0[(r0 >> 16) & 255], 16) ^ Shift(T0[(r1 >> 24) & 255], 8) ^ kw[2];
-            r3 = T0[r3 & 255] ^ Shift(T0[(r0 >> 8) & 255], 24) ^ Shift(T0[(r1 >> 16) & 255], 16) ^ Shift(T0[(r2 >> 24) & 255], 8) ^ kw[3];
+
+            // the final round's table is a simple function of S so we don't use a whole other four tables for it
+
+            kw = KW[r];
+            C0 = (uint)S[r0 & 255] ^ (((uint)S[(r1 >> 8) & 255]) << 8) ^ (((uint)s[(r2 >> 16) & 255]) << 16) ^ (((uint)s[(r3 >> 24) & 255]) << 24) ^ kw[0];
+            C1 = (uint)s[r1 & 255] ^ (((uint)S[(r2 >> 8) & 255]) << 8) ^ (((uint)S[(r3 >> 16) & 255]) << 16) ^ (((uint)s[(r0 >> 24) & 255]) << 24) ^ kw[1];
+            C2 = (uint)s[r2 & 255] ^ (((uint)S[(r3 >> 8) & 255]) << 8) ^ (((uint)S[(r0 >> 16) & 255]) << 16) ^ (((uint)S[(r1 >> 24) & 255]) << 24) ^ kw[2];
+            C3 = (uint)s[r3 & 255] ^ (((uint)s[(r0 >> 8) & 255]) << 8) ^ (((uint)s[(r1 >> 16) & 255]) << 16) ^ (((uint)S[(r2 >> 24) & 255]) << 24) ^ kw[3];
+
+            GcmUtilities.UInt32_To_LE(C0, output, outOff + 0);
+            GcmUtilities.UInt32_To_LE(C1, output, outOff + 4);
+            GcmUtilities.UInt32_To_LE(C2, output, outOff + 8);
+            GcmUtilities.UInt32_To_LE(C3, output, outOff + 12);
         }
 
-        kw = KW[r++];
-        r0 = T0[t0 & 255] ^ Shift(T0[(t1 >> 8) & 255], 24) ^ Shift(T0[(t2 >> 16) & 255], 16) ^ Shift(T0[(r3 >> 24) & 255], 8) ^ kw[0];
-        r1 = T0[t1 & 255] ^ Shift(T0[(t2 >> 8) & 255], 24) ^ Shift(T0[(r3 >> 16) & 255], 16) ^ Shift(T0[(t0 >> 24) & 255], 8) ^ kw[1];
-        r2 = T0[t2 & 255] ^ Shift(T0[(r3 >> 8) & 255], 24) ^ Shift(T0[(t0 >> 16) & 255], 16) ^ Shift(T0[(t1 >> 24) & 255], 8) ^ kw[2];
-        r3 = T0[r3 & 255] ^ Shift(T0[(t0 >> 8) & 255], 24) ^ Shift(T0[(t1 >> 16) & 255], 16) ^ Shift(T0[(t2 >> 24) & 255], 8) ^ kw[3];
-
-        // the final round's table is a simple function of S so we don't use a whole other four tables for it
-
-        kw = KW[r];
-        C0 = (uint)S[r0 & 255] ^ (((uint)S[(r1 >> 8) & 255]) << 8) ^ (((uint)s[(r2 >> 16) & 255]) << 16) ^ (((uint)s[(r3 >> 24) & 255]) << 24) ^ kw[0];
-        C1 = (uint)s[r1 & 255] ^ (((uint)S[(r2 >> 8) & 255]) << 8) ^ (((uint)S[(r3 >> 16) & 255]) << 16) ^ (((uint)s[(r0 >> 24) & 255]) << 24) ^ kw[1];
-        C2 = (uint)s[r2 & 255] ^ (((uint)S[(r3 >> 8) & 255]) << 8) ^ (((uint)S[(r0 >> 16) & 255]) << 16) ^ (((uint)S[(r1 >> 24) & 255]) << 24) ^ kw[2];
-        C3 = (uint)s[r3 & 255] ^ (((uint)s[(r0 >> 8) & 255]) << 8) ^ (((uint)s[(r1 >> 16) & 255]) << 16) ^ (((uint)S[(r2 >> 24) & 255]) << 24) ^ kw[3];
-
-        GcmUtilities.UInt32_To_LE(C0, output, outOff + 0);
-        GcmUtilities.UInt32_To_LE(C1, output, outOff + 4);
-        GcmUtilities.UInt32_To_LE(C2, output, outOff + 8);
-        GcmUtilities.UInt32_To_LE(C3, output, outOff + 12);
-    }
-
-    private void DecryptBlock(byte[] input, int inOff, byte[] output, int outOff, uint[][] KW)
-    {
-        uint C0 = GcmUtilities.LE_To_UInt32(input, inOff + 0);
-        uint C1 = GcmUtilities.LE_To_UInt32(input, inOff + 4);
-        uint C2 = GcmUtilities.LE_To_UInt32(input, inOff + 8);
-        uint C3 = GcmUtilities.LE_To_UInt32(input, inOff + 12);
-
-        uint[] kw = KW[ROUNDS];
-        uint t0 = C0 ^ kw[0];
-        uint t1 = C1 ^ kw[1];
-        uint t2 = C2 ^ kw[2];
-
-        uint r0, r1, r2, r3 = C3 ^ kw[3];
-        int r = ROUNDS - 1;
-        while (r > 1)
+        private void DecryptBlock(byte[] input, int inOff, byte[] output, int outOff, uint[][] KW)
         {
-            kw = KW[r--];
+            uint C0 = GcmUtilities.LE_To_UInt32(input, inOff + 0);
+            uint C1 = GcmUtilities.LE_To_UInt32(input, inOff + 4);
+            uint C2 = GcmUtilities.LE_To_UInt32(input, inOff + 8);
+            uint C3 = GcmUtilities.LE_To_UInt32(input, inOff + 12);
+
+            uint[] kw = KW[ROUNDS];
+            uint t0 = C0 ^ kw[0];
+            uint t1 = C1 ^ kw[1];
+            uint t2 = C2 ^ kw[2];
+
+            uint r0, r1, r2, r3 = C3 ^ kw[3];
+            int r = ROUNDS - 1;
+            while (r > 1)
+            {
+                kw = KW[r--];
+                r0 = Tinv0[t0 & 255] ^ Shift(Tinv0[(r3 >> 8) & 255], 24) ^ Shift(Tinv0[(t2 >> 16) & 255], 16) ^ Shift(Tinv0[(t1 >> 24) & 255], 8) ^ kw[0];
+                r1 = Tinv0[t1 & 255] ^ Shift(Tinv0[(t0 >> 8) & 255], 24) ^ Shift(Tinv0[(r3 >> 16) & 255], 16) ^ Shift(Tinv0[(t2 >> 24) & 255], 8) ^ kw[1];
+                r2 = Tinv0[t2 & 255] ^ Shift(Tinv0[(t1 >> 8) & 255], 24) ^ Shift(Tinv0[(t0 >> 16) & 255], 16) ^ Shift(Tinv0[(r3 >> 24) & 255], 8) ^ kw[2];
+                r3 = Tinv0[r3 & 255] ^ Shift(Tinv0[(t2 >> 8) & 255], 24) ^ Shift(Tinv0[(t1 >> 16) & 255], 16) ^ Shift(Tinv0[(t0 >> 24) & 255], 8) ^ kw[3];
+                kw = KW[r--];
+                t0 = Tinv0[r0 & 255] ^ Shift(Tinv0[(r3 >> 8) & 255], 24) ^ Shift(Tinv0[(r2 >> 16) & 255], 16) ^ Shift(Tinv0[(r1 >> 24) & 255], 8) ^ kw[0];
+                t1 = Tinv0[r1 & 255] ^ Shift(Tinv0[(r0 >> 8) & 255], 24) ^ Shift(Tinv0[(r3 >> 16) & 255], 16) ^ Shift(Tinv0[(r2 >> 24) & 255], 8) ^ kw[1];
+                t2 = Tinv0[r2 & 255] ^ Shift(Tinv0[(r1 >> 8) & 255], 24) ^ Shift(Tinv0[(r0 >> 16) & 255], 16) ^ Shift(Tinv0[(r3 >> 24) & 255], 8) ^ kw[2];
+                r3 = Tinv0[r3 & 255] ^ Shift(Tinv0[(r2 >> 8) & 255], 24) ^ Shift(Tinv0[(r1 >> 16) & 255], 16) ^ Shift(Tinv0[(r0 >> 24) & 255], 8) ^ kw[3];
+            }
+
+            kw = KW[1];
             r0 = Tinv0[t0 & 255] ^ Shift(Tinv0[(r3 >> 8) & 255], 24) ^ Shift(Tinv0[(t2 >> 16) & 255], 16) ^ Shift(Tinv0[(t1 >> 24) & 255], 8) ^ kw[0];
             r1 = Tinv0[t1 & 255] ^ Shift(Tinv0[(t0 >> 8) & 255], 24) ^ Shift(Tinv0[(r3 >> 16) & 255], 16) ^ Shift(Tinv0[(t2 >> 24) & 255], 8) ^ kw[1];
             r2 = Tinv0[t2 & 255] ^ Shift(Tinv0[(t1 >> 8) & 255], 24) ^ Shift(Tinv0[(t0 >> 16) & 255], 16) ^ Shift(Tinv0[(r3 >> 24) & 255], 8) ^ kw[2];
             r3 = Tinv0[r3 & 255] ^ Shift(Tinv0[(t2 >> 8) & 255], 24) ^ Shift(Tinv0[(t1 >> 16) & 255], 16) ^ Shift(Tinv0[(t0 >> 24) & 255], 8) ^ kw[3];
-            kw = KW[r--];
-            t0 = Tinv0[r0 & 255] ^ Shift(Tinv0[(r3 >> 8) & 255], 24) ^ Shift(Tinv0[(r2 >> 16) & 255], 16) ^ Shift(Tinv0[(r1 >> 24) & 255], 8) ^ kw[0];
-            t1 = Tinv0[r1 & 255] ^ Shift(Tinv0[(r0 >> 8) & 255], 24) ^ Shift(Tinv0[(r3 >> 16) & 255], 16) ^ Shift(Tinv0[(r2 >> 24) & 255], 8) ^ kw[1];
-            t2 = Tinv0[r2 & 255] ^ Shift(Tinv0[(r1 >> 8) & 255], 24) ^ Shift(Tinv0[(r0 >> 16) & 255], 16) ^ Shift(Tinv0[(r3 >> 24) & 255], 8) ^ kw[2];
-            r3 = Tinv0[r3 & 255] ^ Shift(Tinv0[(r2 >> 8) & 255], 24) ^ Shift(Tinv0[(r1 >> 16) & 255], 16) ^ Shift(Tinv0[(r0 >> 24) & 255], 8) ^ kw[3];
+
+            // the final round's table is a simple function of Si so we don't use a whole other four tables for it
+
+            kw = KW[0];
+            C0 = (uint)Si[r0 & 255] ^ (((uint)s[(r3 >> 8) & 255]) << 8) ^ (((uint)s[(r2 >> 16) & 255]) << 16) ^ (((uint)Si[(r1 >> 24) & 255]) << 24) ^ kw[0];
+            C1 = (uint)s[r1 & 255] ^ (((uint)s[(r0 >> 8) & 255]) << 8) ^ (((uint)Si[(r3 >> 16) & 255]) << 16) ^ (((uint)s[(r2 >> 24) & 255]) << 24) ^ kw[1];
+            C2 = (uint)s[r2 & 255] ^ (((uint)Si[(r1 >> 8) & 255]) << 8) ^ (((uint)Si[(r0 >> 16) & 255]) << 16) ^ (((uint)s[(r3 >> 24) & 255]) << 24) ^ kw[2];
+            C3 = (uint)Si[r3 & 255] ^ (((uint)s[(r2 >> 8) & 255]) << 8) ^ (((uint)s[(r1 >> 16) & 255]) << 16) ^ (((uint)s[(r0 >> 24) & 255]) << 24) ^ kw[3];
+
+            GcmUtilities.UInt32_To_LE(C0, output, outOff + 0);
+            GcmUtilities.UInt32_To_LE(C1, output, outOff + 4);
+            GcmUtilities.UInt32_To_LE(C2, output, outOff + 8);
+            GcmUtilities.UInt32_To_LE(C3, output, outOff + 12);
         }
-
-        kw = KW[1];
-        r0 = Tinv0[t0 & 255] ^ Shift(Tinv0[(r3 >> 8) & 255], 24) ^ Shift(Tinv0[(t2 >> 16) & 255], 16) ^ Shift(Tinv0[(t1 >> 24) & 255], 8) ^ kw[0];
-        r1 = Tinv0[t1 & 255] ^ Shift(Tinv0[(t0 >> 8) & 255], 24) ^ Shift(Tinv0[(r3 >> 16) & 255], 16) ^ Shift(Tinv0[(t2 >> 24) & 255], 8) ^ kw[1];
-        r2 = Tinv0[t2 & 255] ^ Shift(Tinv0[(t1 >> 8) & 255], 24) ^ Shift(Tinv0[(t0 >> 16) & 255], 16) ^ Shift(Tinv0[(r3 >> 24) & 255], 8) ^ kw[2];
-        r3 = Tinv0[r3 & 255] ^ Shift(Tinv0[(t2 >> 8) & 255], 24) ^ Shift(Tinv0[(t1 >> 16) & 255], 16) ^ Shift(Tinv0[(t0 >> 24) & 255], 8) ^ kw[3];
-
-        // the final round's table is a simple function of Si so we don't use a whole other four tables for it
-
-        kw = KW[0];
-        C0 = (uint)Si[r0 & 255] ^ (((uint)s[(r3 >> 8) & 255]) << 8) ^ (((uint)s[(r2 >> 16) & 255]) << 16) ^ (((uint)Si[(r1 >> 24) & 255]) << 24) ^ kw[0];
-        C1 = (uint)s[r1 & 255] ^ (((uint)s[(r0 >> 8) & 255]) << 8) ^ (((uint)Si[(r3 >> 16) & 255]) << 16) ^ (((uint)s[(r2 >> 24) & 255]) << 24) ^ kw[1];
-        C2 = (uint)s[r2 & 255] ^ (((uint)Si[(r1 >> 8) & 255]) << 8) ^ (((uint)Si[(r0 >> 16) & 255]) << 16) ^ (((uint)s[(r3 >> 24) & 255]) << 24) ^ kw[2];
-        C3 = (uint)Si[r3 & 255] ^ (((uint)s[(r2 >> 8) & 255]) << 8) ^ (((uint)s[(r1 >> 16) & 255]) << 16) ^ (((uint)s[(r0 >> 24) & 255]) << 24) ^ kw[3];
-
-        GcmUtilities.UInt32_To_LE(C0, output, outOff + 0);
-        GcmUtilities.UInt32_To_LE(C1, output, outOff + 4);
-        GcmUtilities.UInt32_To_LE(C2, output, outOff + 8);
-        GcmUtilities.UInt32_To_LE(C3, output, outOff + 12);
     }
 }

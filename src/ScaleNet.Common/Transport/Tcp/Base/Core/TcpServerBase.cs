@@ -1,10 +1,10 @@
 ﻿using System;
-using NetworkLibrary.Components.Statistics;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using ScaleNet.Common.Transport.Components.Statistics;
 
-namespace NetworkLibrary.TCP.Base
+namespace ScaleNet.Common.Transport.Tcp.Base.Core
 {
     public abstract class TcpServerBase
     {

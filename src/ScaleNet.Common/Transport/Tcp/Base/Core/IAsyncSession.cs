@@ -1,8 +1,8 @@
-﻿using NetworkLibrary.Components.Statistics;
-using System;
+﻿using System;
 using System.Net;
+using ScaleNet.Common.Transport.Components.Statistics;
 
-namespace NetworkLibrary.TCP.Base
+namespace ScaleNet.Common.Transport.Tcp.Base.Core
 {
     internal interface IAsyncSession : IDisposable
     {

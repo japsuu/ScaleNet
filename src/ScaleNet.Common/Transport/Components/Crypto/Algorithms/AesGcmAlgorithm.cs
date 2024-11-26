@@ -1,13 +1,9 @@
-﻿
-using NetworkLibrary.Utils;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+﻿using System;
 using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
+using ScaleNet.Common.Transport.Utils;
 
-namespace NetworkLibrary.Components.Crypto.Algorithms
+namespace ScaleNet.Common.Transport.Components.Crypto.Algorithms
 {
 
 #if NET5_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER

@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using NetworkLibrary.Components.Crypto.Certificate.Native;
+using ScaleNet.Common.Transport.Components.Crypto.Certificate.Native;
 
-namespace NetworkLibrary.Components.Crypto.Certificate
+namespace ScaleNet.Common.Transport.Components.Crypto.Certificate
 
 {
     public static class CertificateGenerator

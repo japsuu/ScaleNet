@@ -1,11 +1,10 @@
-﻿using NetworkLibrary.TCP.Base;
-using NetworkLibrary.TCP.SSL.Base;
-using System;
+﻿using System;
 using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using ScaleNet.Common.Transport.Tcp.Base.Core;
 
-namespace NetworkLibrary.TCP.SSL.ByteMessage
+namespace ScaleNet.Common.Transport.Tcp.SSL.ByteMessage
 {
     public class SslByteMessageClient : SslClient
     {

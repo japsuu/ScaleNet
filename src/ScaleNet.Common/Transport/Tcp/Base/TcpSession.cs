@@ -1,14 +1,17 @@
-﻿using NetworkLibrary.Components;
-using NetworkLibrary.Components.MessageBuffer;
-using NetworkLibrary.Components.Statistics;
-using NetworkLibrary.Utils;
-using System;
+﻿using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using ScaleNet.Common.Transport.Components;
+using ScaleNet.Common.Transport.Components.MessageBuffer;
+using ScaleNet.Common.Transport.Components.MessageBuffer.Interface;
+using ScaleNet.Common.Transport.Components.MessageProcessor.Unmanaged;
+using ScaleNet.Common.Transport.Components.Statistics;
+using ScaleNet.Common.Transport.Tcp.Base.Core;
+using ScaleNet.Common.Transport.Utils;
 
-namespace NetworkLibrary.TCP.Base
+namespace ScaleNet.Common.Transport.Tcp.Base
 {
     internal class TcpSession : IAsyncSession
     {

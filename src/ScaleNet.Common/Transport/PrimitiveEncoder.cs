@@ -1,10 +1,10 @@
 ﻿using System;
 using System.IO;
-using NetworkLibrary.Components;
 using System.Runtime.CompilerServices;
 using System.Text;
+using ScaleNet.Common.Transport.Components;
 
-namespace NetworkLibrary
+namespace ScaleNet.Common.Transport
 {
     public class PrimitiveEncoder
     {

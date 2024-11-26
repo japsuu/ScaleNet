@@ -1,8 +1,6 @@
-﻿
-using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
-namespace NetworkLibrary.Components.Crypto.Certificate.Native
+namespace ScaleNet.Common.Transport.Components.Crypto.Certificate.Native
 {
     internal static class Win32ErrorHelper
     {

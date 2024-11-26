@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace NetworkLibrary.Components
+namespace ScaleNet.Common.Transport.Components.MessageBuffer.Interface
 {
     public interface IMessageQueue : IDisposable
     {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 
-namespace NetworkLibrary.Utils
+namespace ScaleNet.Common.Transport.Utils
 {
     public class ByteCopy
     {

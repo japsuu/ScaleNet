@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
-namespace NetworkLibrary.Components.Crypto.ManagedGCM
+namespace ScaleNet.Common.Transport.Components.Crypto.ManagedGCM
 {
     internal class GcmUtilities
     {

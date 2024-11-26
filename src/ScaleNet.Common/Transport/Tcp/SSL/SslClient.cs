@@ -1,14 +1,14 @@
-﻿using NetworkLibrary.Components.Crypto.Certificate;
-using NetworkLibrary.Components.Statistics;
-using NetworkLibrary.TCP.Base;
-using System;
+﻿using System;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
+using ScaleNet.Common.Transport.Components.Crypto.Certificate;
+using ScaleNet.Common.Transport.Components.Statistics;
+using ScaleNet.Common.Transport.Tcp.Base.Core;
 
-namespace NetworkLibrary.TCP.SSL.Base
+namespace ScaleNet.Common.Transport.Tcp.SSL
 {
     /// <summary>
     /// Standard SSL client

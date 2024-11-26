@@ -1,18 +1,16 @@
-﻿using NetworkLibrary.Utils;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-
+using ScaleNet.Common.Transport.Utils;
 #if NET5_0_OR_GREATER
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 #endif
-namespace NetworkLibrary
+namespace ScaleNet.Common.Transport.Components
 {
     /*
      * Concurrent bag has Tls list ( ThreadLocal<ThreadLocalList> m_locals )

@@ -1,7 +1,7 @@
-﻿using NetworkLibrary.Components;
-using System;
+﻿using System;
+using ScaleNet.Common.Transport.Components;
 
-namespace NetworkLibrary.Utils
+namespace ScaleNet.Common.Transport.Utils
 {
     public class SharerdMemoryStreamPool : IDisposable
     {

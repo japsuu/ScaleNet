@@ -1,9 +1,11 @@
-﻿using NetworkLibrary.Utils;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using ScaleNet.Common.Transport.Components.MessageBuffer.Interface;
+using ScaleNet.Common.Transport.Components.MessageProcessor.Interface;
+using ScaleNet.Common.Transport.Utils;
 
-namespace NetworkLibrary.Components
+namespace ScaleNet.Common.Transport.Components.MessageBuffer
 {
     internal sealed class MessageQueue<T> : IMessageQueue where T : IMessageProcessor
     {

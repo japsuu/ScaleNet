@@ -3,8 +3,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
 
-
-namespace NetworkLibrary.Components.Statistics
+namespace ScaleNet.Common.Transport.Components.Statistics
 {
     public class UdpStatisticsStringData
     {

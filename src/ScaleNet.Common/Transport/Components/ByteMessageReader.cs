@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace NetworkLibrary.Components
+namespace ScaleNet.Common.Transport.Components
 {
     // statefully parse byte messages with 4 byte lenght header,
     // under any fragmentation condition

@@ -1,8 +1,8 @@
-﻿
-using System;
-using NetworkLibrary.Components.Crypto.Algorithms;
+﻿using System;
+using ScaleNet.Common.Transport.Components.Crypto.Algorithms;
+using ScaleNet.Common.Transport.Components.MessageProcessor.Interface;
 
-namespace NetworkLibrary.Components
+namespace ScaleNet.Common.Transport.Components.MessageProcessor
 {
 
     internal class AesMessageDecryptor : IMessageProcessor
