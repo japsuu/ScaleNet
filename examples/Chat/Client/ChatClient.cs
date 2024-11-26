@@ -3,7 +3,6 @@ using System.Threading;
 using ScaleNet.Client;
 using ScaleNet.Client.LowLevel.Transport.Tcp;
 using ScaleNet.Common;
-using ScaleNet.Common.Ssl;
 using Shared.Authentication;
 using NetMessages = Shared.NetMessages;
 using SharedConstants = Shared.SharedConstants;

@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Net;
 using ScaleNet.Common;
-using ScaleNet.Common.Ssl;
 using ScaleNet.Server;
 using ScaleNet.Server.LowLevel.Transport.Tcp;
 using Server.Authentication;

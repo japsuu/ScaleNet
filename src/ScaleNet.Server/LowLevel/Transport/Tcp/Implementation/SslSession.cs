@@ -1,4 +1,5 @@
-﻿using System.Net.Security;
+﻿using System.Diagnostics;
+using System.Net.Security;
 using System.Net.Sockets;
 using System.Text;
 
@@ -10,19 +11,31 @@ namespace ScaleNet.Server.LowLevel.Transport.Tcp;
 /// <remarks>Thread-safe</remarks>
 public class SslSession : IDisposable
 {
+    private bool _isDisconnecting;
+    private SslStream? _sslStream;
+    private Guid? _sslStreamId;
+
+    // Receive buffer
+    private bool _isReceiving;
+    private Buffer? _receiveBuffer;
+
+    // Send buffer
+    private bool _isSending;
+    private readonly object _sendLock = new();
+    private Buffer? _sendBufferMain;
+    private Buffer? _sendBufferFlush;
+    private long _sendBufferFlushOffset;
+
     /// <summary>
-    /// Initialize the session with a given server
+    /// Is the session connected?
     /// </summary>
-    /// <param name="server">SSL server</param>
-    public SslSession(SslServer server)
-    {
-        Id = Guid.NewGuid();
-        Server = server;
-        OptionReceiveBufferSize = server.OptionReceiveBufferSize;
-        OptionSendBufferSize = server.OptionSendBufferSize;
-    }
+    public bool IsConnected { get; private set; }
 
-
+    /// <summary>
+    /// Is the session handshaked?
+    /// </summary>
+    public bool IsHandshaked { get; private set; }
+    
     /// <summary>
     /// Session Id
     /// </summary>
@@ -36,7 +49,7 @@ public class SslSession : IDisposable
     /// <summary>
     /// Socket
     /// </summary>
-    public Socket Socket { get; private set; }
+    public Socket? Socket { get; private set; }
 
     /// <summary>
     /// Number of bytes pending sent by the session
@@ -66,7 +79,7 @@ public class SslSession : IDisposable
     /// <summary>
     /// Option: receive buffer size
     /// </summary>
-    public int OptionReceiveBufferSize { get; set; } = 8192;
+    public int OptionReceiveBufferSize { get; set; }
 
     /// <summary>
     /// Option: send buffer limit
@@ -76,26 +89,23 @@ public class SslSession : IDisposable
     /// <summary>
     /// Option: send buffer size
     /// </summary>
-    public int OptionSendBufferSize { get; set; } = 8192;
+    public int OptionSendBufferSize { get; set; }
 
+    
+    /// <summary>
+    /// Initialize the session with a given server
+    /// </summary>
+    /// <param name="server">SSL server</param>
+    public SslSession(SslServer server)
+    {
+        Id = Guid.NewGuid();
+        Server = server;
+        OptionReceiveBufferSize = server.OptionReceiveBufferSize;
+        OptionSendBufferSize = server.OptionSendBufferSize;
+    }
 
 #region Connect/Disconnect session
-
-    private bool _disconnecting;
-    private SslStream _sslStream;
-    private Guid? _sslStreamId;
-
-    /// <summary>
-    /// Is the session connected?
-    /// </summary>
-    public bool IsConnected { get; private set; }
-
-    /// <summary>
-    /// Is the session handshaked?
-    /// </summary>
-    public bool IsHandshaked { get; private set; }
-
-
+    
     /// <summary>
     /// Connect the session
     /// </summary>
@@ -170,7 +180,7 @@ public class SslSession : IDisposable
 
             // Begin the SSL handshake
             _sslStream.BeginAuthenticateAsServer(
-                Server.Context.Certificate, Server.Context.ClientCertificateRequired, Server.Context.Protocols, false, ProcessHandshake, _sslStreamId);
+                Server.Context.Certificate, Server.Context.ClientCertificateRequired, ServerSslContext.Protocols, false, ProcessHandshake, _sslStreamId);
         }
         catch (Exception)
         {
@@ -189,17 +199,20 @@ public class SslSession : IDisposable
         if (!IsConnected)
             return false;
 
-        if (_disconnecting)
+        if (_isDisconnecting)
             return false;
 
         // Update the disconnecting flag
-        _disconnecting = true;
+        _isDisconnecting = true;
 
         // Call the session disconnecting handler
         OnDisconnecting();
 
         // Call the session disconnecting handler in the server
         Server.OnDisconnectingInternal(this);
+        
+        Debug.Assert(_sslStream != null, nameof(_sslStream) + " != null");
+        Debug.Assert(Socket != null, nameof(Socket) + " != null");
 
         try
         {
@@ -210,6 +223,7 @@ public class SslSession : IDisposable
             }
             catch (Exception)
             {
+                // ignored
             }
 
             // Dispose the SSL stream & buffer
@@ -245,8 +259,8 @@ public class SslSession : IDisposable
         IsConnected = false;
 
         // Update sending/receiving flags
-        _receiving = false;
-        _sending = false;
+        _isReceiving = false;
+        _isSending = false;
 
         // Clear send/receive buffers
         ClearBuffers();
@@ -261,7 +275,7 @@ public class SslSession : IDisposable
         Server.UnregisterSession(Id);
 
         // Reset the disconnecting flag
-        _disconnecting = false;
+        _isDisconnecting = false;
 
         return true;
     }
@@ -270,19 +284,6 @@ public class SslSession : IDisposable
 
 
 #region Send/Receive data
-
-    // Receive buffer
-    private bool _receiving;
-
-    private Buffer _receiveBuffer;
-
-    // Send buffer
-    private readonly object _sendLock = new();
-    private bool _sending;
-    private Buffer _sendBufferMain;
-    private Buffer _sendBufferFlush;
-    private long _sendBufferFlushOffset;
-
 
     /// <summary>
     /// Send data to the client (synchronous)
@@ -314,6 +315,8 @@ public class SslSession : IDisposable
 
         if (buffer.IsEmpty)
             return 0;
+        
+        Debug.Assert(_sslStream != null, nameof(_sslStream) + " != null");
 
         try
         {
@@ -338,22 +341,6 @@ public class SslSession : IDisposable
             return 0;
         }
     }
-
-
-    /// <summary>
-    /// Send text to the client (synchronous)
-    /// </summary>
-    /// <param name="text">Text string to send</param>
-    /// <returns>Size of sent text</returns>
-    public virtual long Send(string text) => Send(Encoding.UTF8.GetBytes(text));
-
-
-    /// <summary>
-    /// Send text to the client (synchronous)
-    /// </summary>
-    /// <param name="text">Text to send as a span of characters</param>
-    /// <returns>Size of sent text</returns>
-    public virtual long Send(ReadOnlySpan<char> text) => Send(Encoding.UTF8.GetBytes(text.ToArray()));
 
 
     /// <summary>
@@ -387,6 +374,8 @@ public class SslSession : IDisposable
         if (buffer.IsEmpty)
             return true;
 
+        Debug.Assert(_sendBufferMain != null, nameof(_sendBufferMain) + " != null");
+        
         lock (_sendLock)
         {
             // Check the send buffer limit
@@ -403,10 +392,9 @@ public class SslSession : IDisposable
             BytesPending = _sendBufferMain.Size;
 
             // Avoid multiple send handlers
-            if (_sending)
+            if (_isSending)
                 return true;
-            else
-                _sending = true;
+            _isSending = true;
 
             // Try to send the main buffer
             TrySend();
@@ -414,22 +402,6 @@ public class SslSession : IDisposable
 
         return true;
     }
-
-
-    /// <summary>
-    /// Send text to the client (asynchronous)
-    /// </summary>
-    /// <param name="text">Text string to send</param>
-    /// <returns>'true' if the text was successfully sent, 'false' if the session is not connected</returns>
-    public virtual bool SendAsync(string text) => SendAsync(Encoding.UTF8.GetBytes(text));
-
-
-    /// <summary>
-    /// Send text to the client (asynchronous)
-    /// </summary>
-    /// <param name="text">Text to send as a span of characters</param>
-    /// <returns>'true' if the text was successfully sent, 'false' if the session is not connected</returns>
-    public virtual bool SendAsync(ReadOnlySpan<char> text) => SendAsync(Encoding.UTF8.GetBytes(text.ToArray()));
 
 
     /// <summary>
@@ -454,20 +426,22 @@ public class SslSession : IDisposable
 
         if (size == 0)
             return 0;
+        
+        Debug.Assert(_sslStream != null, nameof(_sslStream) + " != null");
 
         try
         {
             // Receive data from the client
             long received = _sslStream.Read(buffer, (int)offset, (int)size);
-            if (received > 0)
-            {
-                // Update statistic
-                BytesReceived += received;
-                Interlocked.Add(ref Server.BytesReceivedStat, received);
+            if (received <= 0)
+                return received;
 
-                // Call the buffer received handler
-                OnReceived(buffer, 0, received);
-            }
+            // Update statistic
+            BytesReceived += received;
+            Interlocked.Add(ref Server.BytesReceivedStat, received);
+
+            // Call the buffer received handler
+            OnReceived(buffer, 0, received);
 
             return received;
         }
@@ -508,7 +482,7 @@ public class SslSession : IDisposable
     /// </summary>
     private void TryReceive()
     {
-        if (_receiving)
+        if (_isReceiving)
             return;
 
         if (!IsHandshaked)
@@ -516,15 +490,15 @@ public class SslSession : IDisposable
 
         try
         {
-            // Async receive with the receive handler
+            // Async receive with the receiver handler
             IAsyncResult result;
             do
             {
                 if (!IsHandshaked)
                     return;
 
-                _receiving = true;
-                result = _sslStream.BeginRead(_receiveBuffer.Data, 0, (int)_receiveBuffer.Capacity, ProcessReceive, _sslStreamId);
+                _isReceiving = true;
+                result = _sslStream!.BeginRead(_receiveBuffer!.Data, 0, (int)_receiveBuffer.Capacity, ProcessReceive, _sslStreamId);
             }
             while (result.CompletedSynchronously);
         }
@@ -547,7 +521,7 @@ public class SslSession : IDisposable
         lock (_sendLock)
         {
             // Is previous socket send in progress?
-            if (_sendBufferFlush.IsEmpty)
+            if (_sendBufferFlush!.IsEmpty)
             {
                 // Swap flush and main buffers
                 _sendBufferFlush = Interlocked.Exchange(ref _sendBufferMain, _sendBufferFlush);
@@ -555,7 +529,7 @@ public class SslSession : IDisposable
 
                 // Update statistic
                 BytesPending = 0;
-                BytesSending += _sendBufferFlush.Size;
+                BytesSending += _sendBufferFlush!.Size;
 
                 // Check if the flush buffer is empty
                 if (_sendBufferFlush.IsEmpty)
@@ -563,8 +537,8 @@ public class SslSession : IDisposable
                     // Need to call empty send buffer handler
                     empty = true;
 
-                    // End sending process
-                    _sending = false;
+                    // End the sending process
+                    _isSending = false;
                 }
             }
             else
@@ -581,8 +555,7 @@ public class SslSession : IDisposable
         try
         {
             // Async write with the write handler
-            _sslStream.BeginWrite(
-                _sendBufferFlush.Data, (int)_sendBufferFlushOffset, (int)(_sendBufferFlush.Size - _sendBufferFlushOffset), ProcessSend, _sslStreamId);
+            _sslStream!.BeginWrite(_sendBufferFlush.Data, (int)_sendBufferFlushOffset, (int)(_sendBufferFlush.Size - _sendBufferFlushOffset), ProcessSend, _sslStreamId);
         }
         catch (ObjectDisposedException)
         {
@@ -598,8 +571,8 @@ public class SslSession : IDisposable
         lock (_sendLock)
         {
             // Clear send buffers
-            _sendBufferMain.Clear();
-            _sendBufferFlush.Clear();
+            _sendBufferMain?.Clear();
+            _sendBufferFlush?.Clear();
             _sendBufferFlushOffset = 0;
 
             // Update statistic
@@ -629,7 +602,7 @@ public class SslSession : IDisposable
                 return;
 
             // End the SSL handshake
-            _sslStream.EndAuthenticateAsServer(result);
+            _sslStream!.EndAuthenticateAsServer(result);
 
             // Update the handshaked flag
             IsHandshaked = true;
@@ -648,7 +621,7 @@ public class SslSession : IDisposable
             Server.OnHandshakedInternal(this);
 
             // Call the empty send buffer handler
-            if (_sendBufferMain.IsEmpty)
+            if (_sendBufferMain!.IsEmpty)
                 OnEmpty();
         }
         catch (Exception)
@@ -675,7 +648,7 @@ public class SslSession : IDisposable
                 return;
 
             // End the SSL read
-            long size = _sslStream.EndRead(result);
+            long size = _sslStream!.EndRead(result);
 
             // Received some data from the client
             if (size > 0)
@@ -685,7 +658,7 @@ public class SslSession : IDisposable
                 Interlocked.Add(ref Server.BytesReceivedStat, size);
 
                 // Call the buffer received handler
-                OnReceived(_receiveBuffer.Data, 0, size);
+                OnReceived(_receiveBuffer!.Data, 0, size);
 
                 // If the receive buffer is full increase its size
                 if (_receiveBuffer.Capacity == size)
@@ -702,7 +675,7 @@ public class SslSession : IDisposable
                 }
             }
 
-            _receiving = false;
+            _isReceiving = false;
 
             // If zero is returned from a read operation, the remote end has closed the connection
             if (size > 0)
@@ -737,9 +710,9 @@ public class SslSession : IDisposable
                 return;
 
             // End the SSL write
-            _sslStream.EndWrite(result);
+            _sslStream!.EndWrite(result);
 
-            long size = _sendBufferFlush.Size;
+            long size = _sendBufferFlush!.Size;
 
             // Send some data to the client
             if (size > 0)

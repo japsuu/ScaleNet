@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
-using ScaleNet.Common.Ssl;
 
 namespace ScaleNet.Server.LowLevel.Transport.Tcp;
 
@@ -44,7 +43,7 @@ public class SslServer : IDisposable
     /// <summary>
     /// SSL context
     /// </summary>
-    public SslContext Context { get; }
+    public ServerSslContext Context { get; }
 
     /// <summary>
     /// Endpoint
@@ -171,7 +170,7 @@ public class SslServer : IDisposable
     /// <param name="context">SSL context</param>
     /// <param name="address">IP address</param>
     /// <param name="port">Port number</param>
-    public SslServer(SslContext context, IPAddress address, int port) : this(context, new IPEndPoint(address, port))
+    public SslServer(ServerSslContext context, IPAddress address, int port) : this(context, new IPEndPoint(address, port))
     {
     }
 
@@ -181,7 +180,7 @@ public class SslServer : IDisposable
     /// </summary>
     /// <param name="context">SSL context</param>
     /// <param name="endpoint">IP endpoint</param>
-    public SslServer(SslContext context, IPEndPoint endpoint) : this(context, endpoint, endpoint.Address.ToString(), endpoint.Port)
+    public SslServer(ServerSslContext context, IPEndPoint endpoint) : this(context, endpoint, endpoint.Address.ToString(), endpoint.Port)
     {
     }
 
@@ -193,7 +192,7 @@ public class SslServer : IDisposable
     /// <param name="endpoint">Endpoint</param>
     /// <param name="address">Server address</param>
     /// <param name="port">Server port</param>
-    private SslServer(SslContext context, EndPoint endpoint, string address, int port)
+    private SslServer(ServerSslContext context, EndPoint endpoint, string address, int port)
     {
         Id = Guid.NewGuid();
         Address = address;
