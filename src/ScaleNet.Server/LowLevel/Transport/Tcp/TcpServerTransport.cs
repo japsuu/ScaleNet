@@ -264,10 +264,13 @@ public class TcpServerTransport : SslServer, IServerTransport
         TcpClientSession tcpClientSession = (TcpClientSession)session;
         SessionId id = tcpClientSession.SessionId;
         
-        SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.SslHandshaked));
-        
         if (_rejectNewConnections || _sessions.Count >= MaxConnections)
+        {
             DisconnectSession(tcpClientSession, DisconnectReason.ServerFull);
+            return;
+        }
+        
+        SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.Ready));
     }
 
 

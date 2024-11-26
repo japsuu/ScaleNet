@@ -29,10 +29,10 @@ public enum ConnectionState : byte
     SslHandshaking = 3,
 
     /// <summary>
-    /// Connection has completed the SSL handshake.<br/>
+    /// Connection has completed the SSL handshake and is ready to send and receive data.<br/>
     /// Encrypted.
     /// </summary>
-    SslHandshaked = 4,
+    Ready = 4,
 
     /// <summary>
     /// Connection is stopping.<br/>

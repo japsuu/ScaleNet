@@ -231,7 +231,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
                 break;
             }
             case ConnectionState.SslHandshaking:
-            case ConnectionState.SslHandshaked:
+            case ConnectionState.Ready:
             case ConnectionState.Connected:
             case ConnectionState.Disconnecting:
             {
