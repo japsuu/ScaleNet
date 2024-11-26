@@ -4,11 +4,11 @@ namespace ScaleNet.Common.Transport.Components.Crypto.Certificate.Native
 {
     public class KeyExchangeKey : CryptKey
     {
-        internal KeyExchangeKey(CryptContext ctx, IntPtr handle) : base(ctx, handle)  {}
-        
-        public override KeyType Type
+        internal KeyExchangeKey(CryptContext ctx, IntPtr handle) : base(ctx, handle)
         {
-            get { return KeyType.Exchange; }
         }
+
+
+        public override KeyType Type => KeyType.Exchange;
     }
 }

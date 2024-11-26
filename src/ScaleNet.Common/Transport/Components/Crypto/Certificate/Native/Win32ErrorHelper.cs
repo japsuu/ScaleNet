@@ -11,11 +11,12 @@ namespace ScaleNet.Common.Transport.Components.Crypto.Certificate.Native
                 Marshal.ThrowExceptionForHR(HResultFromWin32(win32ErrorCode));
         }
 
+
         private static int HResultFromWin32(int win32ErrorCode)
         {
             if (win32ErrorCode > 0)
-                return (int)((((uint)win32ErrorCode) & 0x0000FFFF) | 0x80070000U);
-            else return win32ErrorCode;
+                return (int)(((uint)win32ErrorCode & 0x0000FFFF) | 0x80070000U);
+            return win32ErrorCode;
         }
     }
 }

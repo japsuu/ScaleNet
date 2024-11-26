@@ -9,83 +9,91 @@ namespace ScaleNet.Common.Transport.Components.MessageBuffer
 {
     internal sealed class MessageQueue<T> : IMessageQueue where T : IMessageProcessor
     {
-        public int CurrentIndexedMemory => Interlocked.CompareExchange(ref currentIndexedMemory,0,0);
-        public long TotalMessageDispatched => totalMessageFlushed;
+        private readonly int _maxIndexedMemory;
+        private int _currentIndexedMemory;
+        private bool _flushNext;
+        private T _processor;
 
-        internal ConcurrentQueue<byte[]> SendQueue = new ConcurrentQueue<byte[]>();
-        private int MaxIndexedMemory;
-        private int currentIndexedMemory = 0;
-        private T processor;
-        private bool flushNext;
-        private long totalMessageFlushed;
+        internal readonly ConcurrentQueue<byte[]> SendQueue = new();
+
 
         public MessageQueue(int maxIndexedMemory, T processor)
         {
-            MaxIndexedMemory = maxIndexedMemory;
-            this.processor = processor;
+            _maxIndexedMemory = maxIndexedMemory;
+            _processor = processor;
         }
+
+
+        public int CurrentIndexedMemory => Interlocked.CompareExchange(ref _currentIndexedMemory, 0, 0);
+        public long TotalMessageDispatched { get; private set; }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryEnqueueMessage(byte[] bytes)
         {
-            if ( Volatile.Read(ref currentIndexedMemory) < MaxIndexedMemory)
+            if (Volatile.Read(ref _currentIndexedMemory) < _maxIndexedMemory)
             {
-                Interlocked.Add(ref currentIndexedMemory, bytes.Length);
+                Interlocked.Add(ref _currentIndexedMemory, bytes.Length);
                 SendQueue.Enqueue(bytes);
                 return true;
             }
+
             return false;
         }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryFlushQueue(ref byte[] buffer, int offset, out int amountWritten)
         {
             amountWritten = 0;
-            processor.SetBuffer(ref buffer, offset);
-            if (flushNext)
+            _processor.SetBuffer(ref buffer, offset);
+            if (_flushNext)
             {
-                if (!processor.Flush())
+                if (!_processor.Flush())
                 {
-                    processor.GetBuffer(out buffer, out _, out amountWritten);
+                    _processor.GetBuffer(out buffer, out _, out amountWritten);
                     return true;
                 }
-                flushNext = false;
+
+                _flushNext = false;
             }
+
             int memcount = 0;
             while (SendQueue.TryDequeue(out byte[] bytes))
             {
-                totalMessageFlushed++;
+                TotalMessageDispatched++;
 
                 memcount += bytes.Length;
-                if (!processor.ProcessMessage(bytes))
-                {
-                    flushNext = true;
-                    break;
-                };
-
+                if (_processor.ProcessMessage(bytes))
+                    continue;
+                _flushNext = true;
+                break;
             }
-            Interlocked.Add(ref currentIndexedMemory,-memcount);
-            processor.GetBuffer(out buffer, out _, out amountWritten);
+
+            Interlocked.Add(ref _currentIndexedMemory, -memcount);
+            _processor.GetBuffer(out buffer, out _, out amountWritten);
             return amountWritten != 0;
-
         }
 
-        public bool IsEmpty()
-        {
-            return SendQueue.IsEmpty && !processor.IsHoldingMessage;
-        }
+
+        public bool IsEmpty() => SendQueue.IsEmpty && !_processor.IsHoldingMessage;
+
 
         public bool TryEnqueueMessage(byte[] bytes, int offset, int count)
         {
-            var array = ByteCopy.ToArray(bytes, offset, count);
+            byte[] array = ByteCopy.ToArray(bytes, offset, count);
             return TryEnqueueMessage(array);
         }
 
+
         public void Dispose()
         {
-            processor.Dispose();
+            _processor.Dispose();
         }
 
-        public void Flush() { }
+
+        public void Flush()
+        {
+        }
     }
 }

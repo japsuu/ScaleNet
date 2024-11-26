@@ -4,29 +4,29 @@ using ScaleNet.Common.Transport.Components.MessageProcessor.Interface;
 
 namespace ScaleNet.Common.Transport.Components.MessageProcessor.Unmanaged
 {
-    internal class MessageWriter
-        : IMessageProcessor
+    internal class MessageWriter : IMessageProcessor
     {
-        public byte[] bufferInternal { get; private set; }
-        private int offset;
-        private int origialOffset;
-        public int count;
+        private int _count;
+        private int _offset;
+        private int _originalOffset;
+
+        private byte[] _pendingMessage = null!;
+        private int _pendingMessageOffset;
+        private int _pendingRemaining;
+        private byte[] _bufferInternal = null!;
 
         public bool IsHoldingMessage { get; private set; }
 
-        byte[] pendingMessage;
-        int pendingMessageOffset;
-        int pendingRemaining;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetBuffer(ref byte[] buffer, int offset)
         {
-            bufferInternal = buffer;
-            this.offset = offset;
-            origialOffset = offset;
-            count = 0;
-
+            _bufferInternal = buffer;
+            _offset = offset;
+            _originalOffset = offset;
+            _count = 0;
         }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool ProcessMessage(byte[] message)
@@ -34,83 +34,85 @@ namespace ScaleNet.Common.Transport.Components.MessageProcessor.Unmanaged
             if (IsHoldingMessage)
                 throw new InvalidOperationException("You can not process new message before heldover message is fully flushed");
 
-            if (bufferInternal.Length - offset >= message.Length)
+            if (_bufferInternal.Length - _offset >= message.Length)
             {
-                //System.Buffer.BlockCopy(message, 0, bufferInternal, offset, message.Length);
-                fixed (byte* destination = &bufferInternal[offset])
+                fixed (byte* destination = &_bufferInternal[_offset])
                 {
-                    fixed (byte* message_ = message)
-                        Buffer.MemoryCopy(message_, destination, message.Length, message.Length);
+                    fixed (byte* msgPin = message)
+                    {
+                        Buffer.MemoryCopy(msgPin, destination, message.Length, message.Length);
+                    }
                 }
 
-                offset += message.Length;
-                count += message.Length;
+                _offset += message.Length;
+                _count += message.Length;
                 return true;
             }
-            else
-            {
-                pendingMessage = message;
-                pendingMessageOffset = 0;
-                pendingRemaining = pendingMessage.Length;
-                // write whatever you can
-                _ = Flush();
-                IsHoldingMessage = true;
-                return false;
 
-            }
+            _pendingMessage = message;
+            _pendingMessageOffset = 0;
+            _pendingRemaining = _pendingMessage.Length;
+
+            // write whatever you can
+            _ = Flush();
+            IsHoldingMessage = true;
+            return false;
         }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool Flush()
         {
-
-            if (pendingRemaining <= bufferInternal.Length - offset)
+            if (_pendingRemaining <= _bufferInternal.Length - _offset)
             {
                 //System.Buffer.BlockCopy(pendingMessage, pendingMessageOffset, bufferInternal, offset, pendingRemaining);
-                fixed (byte* destination = &bufferInternal[offset])
+                fixed (byte* destination = &_bufferInternal[_offset])
                 {
-                    fixed (byte* message_ = &pendingMessage[pendingMessageOffset])
-                        Buffer.MemoryCopy(message_, destination, pendingRemaining, pendingRemaining);
+                    fixed (byte* msgPin = &_pendingMessage[_pendingMessageOffset])
+                    {
+                        Buffer.MemoryCopy(msgPin, destination, _pendingRemaining, _pendingRemaining);
+                    }
                 }
-                offset += pendingRemaining;
-                count += pendingRemaining;
 
-                pendingMessage = null;
+                _offset += _pendingRemaining;
+                _count += _pendingRemaining;
+
+                _pendingMessage = null!;
                 IsHoldingMessage = false;
-                pendingRemaining = 0;
-                pendingMessageOffset = 0;
+                _pendingRemaining = 0;
+                _pendingMessageOffset = 0;
                 return true;
             }
-            else
+
+            //System.Buffer.BlockCopy(pendingMessage, pendingMessageOffset, bufferInternal, offset, bufferInternal.Length - offset);
+            fixed (byte* destination = &_bufferInternal[_offset])
             {
-                //System.Buffer.BlockCopy(pendingMessage, pendingMessageOffset, bufferInternal, offset, bufferInternal.Length - offset);
-                fixed (byte* destination = &bufferInternal[offset])
+                fixed (byte* msgPin = &_pendingMessage[_pendingMessageOffset])
                 {
-                    fixed (byte* message_ = &pendingMessage[pendingMessageOffset])
-                        Buffer.MemoryCopy(message_, destination, bufferInternal.Length - offset, bufferInternal.Length - offset);
+                    Buffer.MemoryCopy(msgPin, destination, _bufferInternal.Length - _offset, _bufferInternal.Length - _offset);
                 }
-
-                count += (bufferInternal.Length - offset);
-
-                pendingMessageOffset += (bufferInternal.Length - offset);
-                pendingRemaining -= (bufferInternal.Length - offset);
-                return false;
             }
+
+            _count += _bufferInternal.Length - _offset;
+
+            _pendingMessageOffset += _bufferInternal.Length - _offset;
+            _pendingRemaining -= _bufferInternal.Length - _offset;
+            return false;
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void GetBuffer(out byte[] Buffer, out int offset, out int count)
+        public void GetBuffer(out byte[] buffer, out int offset, out int count)
         {
-            Buffer = this.bufferInternal;
-            offset = origialOffset;
-            count = this.count;
+            buffer = _bufferInternal;
+            offset = _originalOffset;
+            count = _count;
         }
+
 
         public void Dispose()
         {
-            //bufferInternal= null;
+            
         }
     }
 }
-

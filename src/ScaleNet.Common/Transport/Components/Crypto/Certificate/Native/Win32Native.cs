@@ -9,7 +9,8 @@ namespace ScaleNet.Common.Transport.Components.Crypto.Certificate.Native
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool CryptReleaseContext(IntPtr ctx, int flags);
 
-        [DllImport("AdvApi32.dll", EntryPoint="CryptAcquireContextW", ExactSpelling = true, CharSet=CharSet.Unicode, SetLastError = true)]
+
+        [DllImport("AdvApi32.dll", EntryPoint = "CryptAcquireContextW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool CryptAcquireContext(
             out IntPtr providerContext,
@@ -18,9 +19,11 @@ namespace ScaleNet.Common.Transport.Components.Crypto.Certificate.Native
             int providerType,
             int flags);
 
+
         [DllImport("AdvApi32.dll", ExactSpelling = true, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool CryptDestroyKey(IntPtr cryptKeyHandle);
+
 
         [DllImport("AdvApi32.dll", ExactSpelling = true, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -29,6 +32,7 @@ namespace ScaleNet.Common.Transport.Components.Crypto.Certificate.Native
             int algorithmId,
             uint flags,
             out IntPtr cryptKeyHandle);
+
 
         [DllImport("Crypt32.dll", ExactSpelling = true, SetLastError = true)]
         internal static extern IntPtr CertCreateSelfSignCertificate(
@@ -41,9 +45,11 @@ namespace ScaleNet.Common.Transport.Components.Crypto.Certificate.Native
             [In] SystemTime endTime,
             IntPtr extensions);
 
+
         [DllImport("Crypt32.dll", ExactSpelling = true, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool CertFreeCertificateContext(IntPtr certContext);
+
 
         [DllImport("kernel32.dll", SetLastError = true, ExactSpelling = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -51,16 +57,18 @@ namespace ScaleNet.Common.Transport.Components.Crypto.Certificate.Native
             [In] ref long fileTime,
             [Out] SystemTime systemTime);
 
+
         [StructLayout(LayoutKind.Sequential)]
         internal class CryptoApiBlob
         {
             public int DataLength;
             public IntPtr Data;
 
+
             public CryptoApiBlob(int dataLength, IntPtr data)
             {
-                this.DataLength = dataLength;
-                this.Data = data;
+                DataLength = dataLength;
+                Data = data;
             }
         }
 
@@ -77,7 +85,7 @@ namespace ScaleNet.Common.Transport.Components.Crypto.Certificate.Native
             public short Milliseconds;
         }
 
-        [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         internal class CryptKeyProviderInformation
         {
             public string ContainerName;

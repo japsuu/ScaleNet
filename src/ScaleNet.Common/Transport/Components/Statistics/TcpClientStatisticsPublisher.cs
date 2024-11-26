@@ -1,34 +1,33 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ScaleNet.Common.Transport.Tcp.Base.Core;
 
 namespace ScaleNet.Common.Transport.Components.Statistics
 {
     internal class TcpClientStatisticsPublisher
     {
-        internal ConcurrentDictionary<Guid, TcpStatistics> Stats { get; } = new ConcurrentDictionary<Guid, TcpStatistics>();
+        private readonly TcpStatistics _generalStats = new();
         internal readonly IAsyncSession Session;
-        private TcpStatistics generalStats = new TcpStatistics();
-        private Stopwatch sw = new Stopwatch();
-        public TcpClientStatisticsPublisher(IAsyncSession session, in Guid sessionId)
+        private readonly Stopwatch _sw = new();
+
+
+        public TcpClientStatisticsPublisher(IAsyncSession session)
         {
             Session = session;
-            sw.Start();
+            _sw.Start();
         }
+
 
         private void GetSessionStats()
         {
-            var stats = Session.GetSessionStatistics();
-            generalStats.Update(stats, sw.ElapsedMilliseconds);
-
+            SessionStatistics stats = Session.GetSessionStatistics();
+            _generalStats.Update(stats, _sw.ElapsedMilliseconds);
         }
+
 
         internal void GetStatistics(out TcpStatistics generalStats)
         {
             GetSessionStats();
-            generalStats = this.generalStats;
+            generalStats = _generalStats;
         }
-
     }
 }

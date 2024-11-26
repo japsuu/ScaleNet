@@ -8,19 +8,14 @@ namespace ScaleNet.Common.Transport.Tcp.SSL.ByteMessage
 {
     public class SslByteMessageClient : SslClient
     {
-
         public SslByteMessageClient(X509Certificate2 certificate) : base(certificate)
-        {
-        }
-
-        public SslByteMessageClient() : base()
         {
         }
 
 
         private protected override IAsyncSession CreateSession(Guid guid, ValueTuple<SslStream, IPEndPoint> tuple)
         {
-            var ses = new SslByteMessageSession(guid, tuple.Item1);
+            SslByteMessageSession ses = new(guid, tuple.Item1);
             ses.MaxIndexedMemory = MaxIndexedMemory;
             ses.RemoteEndpoint = tuple.Item2;
             if (GatherConfig == ScatterGatherConfig.UseQueue)
@@ -30,7 +25,5 @@ namespace ScaleNet.Common.Transport.Tcp.SSL.ByteMessage
 
             return ses;
         }
-        
     }
-
 }

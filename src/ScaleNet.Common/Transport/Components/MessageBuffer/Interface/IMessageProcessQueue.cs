@@ -4,38 +4,42 @@ namespace ScaleNet.Common.Transport.Components.MessageBuffer.Interface
 {
     public interface IMessageQueue : IDisposable
     {
+        int CurrentIndexedMemory { get; }
+        long TotalMessageDispatched { get; }
+
+
         /// <summary>
-        /// Enqueues the message if there is enough space available
+        ///     Enqueues the message if there is enough space available
         /// </summary>
         /// <param name="bytes"></param>
         /// <returns>true if message is enqueued.</returns>
         bool TryEnqueueMessage(byte[] bytes);
 
+
         /// <summary>
-        /// Enqueues the message if there is enough space available
+        ///     Enqueues the message if there is enough space available
         /// </summary>
-        /// <param name="bytes"></param>
         /// <returns>true if message is enqueued.</returns>
         bool TryEnqueueMessage(byte[] bytes, int offset, int count);
 
+
         /// <summary>
-        /// Flushes the queue if there is anything to flush.
+        ///     Flushes the queue if there is anything to flush.
         /// </summary>
         /// <param name="buffer"></param>
         /// <param name="offset"></param>
         /// <param name="amountWritten"></param>
-        /// <returns>true if something succesfully flushed.</returns>
+        /// <returns>true if something successfully flushed.</returns>
         bool TryFlushQueue(ref byte[] buffer, int offset, out int amountWritten);
 
+
         /// <summary>
-        /// Is Queue empty
+        ///     Is Queue empty
         /// </summary>
         /// <returns></returns>
         bool IsEmpty();
 
-        void Flush();
 
-        int CurrentIndexedMemory { get; }
-        long TotalMessageDispatched { get; }
+        void Flush();
     }
 }

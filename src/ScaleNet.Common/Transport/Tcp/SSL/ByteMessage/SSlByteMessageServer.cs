@@ -12,13 +12,10 @@ namespace ScaleNet.Common.Transport.Tcp.SSL.ByteMessage
         {
         }
 
-        public SslByteMessageServer(int port) : base(port)
-        {
-        }
 
         private protected override IAsyncSession CreateSession(Guid guid, ValueTuple<SslStream, IPEndPoint> tuple)
         {
-            var ses = new SslByteMessageSession(guid, tuple.Item1);
+            SslByteMessageSession ses = new(guid, tuple.Item1);
             ses.MaxIndexedMemory = MaxIndexedMemoryPerClient;
             ses.RemoteEndpoint = tuple.Item2;
 

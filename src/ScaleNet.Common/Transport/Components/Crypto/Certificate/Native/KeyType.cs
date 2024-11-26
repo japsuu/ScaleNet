@@ -1,8 +1,8 @@
 ﻿namespace ScaleNet.Common.Transport.Components.Crypto.Certificate.Native
 {
-    public enum KeyType : int
+    public enum KeyType
     {
         Exchange = 1,
-        Signature = 2,
+        Signature = 2
     }
 }

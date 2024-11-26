@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 
@@ -7,42 +8,21 @@ namespace ScaleNet.Common.Transport.Components.Statistics
 {
     public class UdpStatisticsStringData
     {
-        public string TotalDatagramSent { get; set; }
-        public string TotalDatagramReceived { get; set; }
-        public string TotalBytesSent { get; set; }
-        public string TotalBytesReceived { get; set; }
-        public string TotalMessageDropped { get; set; }
+        public string? TotalDatagramSent { get; set; }
+        public string? TotalDatagramReceived { get; set; }
+        public string? TotalBytesSent { get; set; }
+        public string? TotalBytesReceived { get; set; }
+        public string? TotalMessageDropped { get; set; }
 
-        public string SendRate { get; set; }
-        public string ReceiveRate { get; set; }
-        public string SendPPS { get; set; }
-        public string ReceivePPS { get; set; }
-
-
+        public string? SendRate { get; set; }
+        public string? ReceiveRate { get; set; }
+        public string? SendPps { get; set; }
+        public string? ReceivePps { get; set; }
     }
+
     public class UdpStatistics
     {
-        UdpStatisticsStringData data = new UdpStatisticsStringData();
-        public long TotalDatagramSent = 0;
-        public long TotalDatagramReceived = 0;
-        public long TotalBytesSent = 0;
-        public long TotalBytesReceived = 0;
-        public long TotalMessageDropped = 0;
-
-        public float SendRate;
-        public float ReceiveRate;
-        public float SendPPS;
-        public float ReceivePPS;
-
-        public long TotalDatagramSentPrev = 0;
-        public long TotalDatagramReceivedPrev = 0;
-        public long TotalBytesSentPrev = 0;
-        public long TotalBytesReceivedPrev = 0;
-        public long TotalMessageDroppedPrev = 0;
-
-        public long PrevTimeStamp;
-
-        private const string seed =
+        private const string SEED =
             "\n# Udp:\n" +
             "Total Datagram Sent:         {0}\n" +
             "Total Datagram Received:     {1}\n" +
@@ -54,36 +34,56 @@ namespace ScaleNet.Common.Transport.Components.Statistics
             "Total Send Data Rate:        {7}\n" +
             "Total Receive Data Rate:     {8} ";
 
+        private readonly UdpStatisticsStringData _data = new();
+
+        public long PrevTimeStamp;
+        public float ReceivePps;
+        public float ReceiveRate;
+        public float SendPps;
+
+        public float SendRate;
+        public long TotalBytesReceived;
+        public long TotalBytesReceivedPrev;
+        public long TotalBytesSent;
+        public long TotalBytesSentPrev;
+        public long TotalDatagramReceived;
+        public long TotalDatagramReceivedPrev;
+        public long TotalDatagramSent;
+
+        public long TotalDatagramSentPrev;
+        public long TotalMessageDropped;
+        public long TotalMessageDroppedPrev;
 
 
-        public override string ToString()
-        {
-            return string.Format(seed,
-                          TotalDatagramSent.ToString(),
-                          TotalDatagramReceived.ToString(),
-                          TotalMessageDropped,
-                          UdpStatisticsPublisher.BytesToString(TotalBytesSent),
-                          UdpStatisticsPublisher.BytesToString(TotalBytesReceived),
-                          SendPPS.ToString("N1"),
-                          ReceivePPS.ToString("N1"),
-                          TcpServerStatisticsPublisher.BytesToString((long)SendRate) + "/s",
-                          TcpServerStatisticsPublisher.BytesToString((long)ReceiveRate) + "/s");
-        }
+        public override string ToString() =>
+            string.Format(
+                SEED,
+                TotalDatagramSent.ToString(),
+                TotalDatagramReceived.ToString(),
+                TotalMessageDropped,
+                UdpStatisticsPublisher.BytesToString(TotalBytesSent),
+                UdpStatisticsPublisher.BytesToString(TotalBytesReceived),
+                SendPps.ToString("N1"),
+                ReceivePps.ToString("N1"),
+                TcpServerStatisticsPublisher.BytesToString((long)SendRate) + "/s",
+                TcpServerStatisticsPublisher.BytesToString((long)ReceiveRate) + "/s");
+
 
         public UdpStatisticsStringData Stringify()
         {
-            data.TotalDatagramSent = TotalDatagramSent.ToString();
-            data.TotalDatagramReceived = TotalDatagramReceived.ToString();
-            data.TotalMessageDropped = TotalMessageDropped.ToString();
-            data.TotalBytesSent = UdpStatisticsPublisher.BytesToString(TotalBytesSent);
-            data.TotalBytesReceived = UdpStatisticsPublisher.BytesToString(TotalBytesReceived);
-            data.SendPPS = SendPPS.ToString("N1");
-            data.ReceivePPS = ReceivePPS.ToString("N1");
-            data.SendRate = TcpServerStatisticsPublisher.BytesToString((long)SendRate) + "/s";
-            data.ReceiveRate = TcpServerStatisticsPublisher.BytesToString((long)ReceiveRate) + "/s";
+            _data.TotalDatagramSent = TotalDatagramSent.ToString();
+            _data.TotalDatagramReceived = TotalDatagramReceived.ToString();
+            _data.TotalMessageDropped = TotalMessageDropped.ToString();
+            _data.TotalBytesSent = UdpStatisticsPublisher.BytesToString(TotalBytesSent);
+            _data.TotalBytesReceived = UdpStatisticsPublisher.BytesToString(TotalBytesReceived);
+            _data.SendPps = SendPps.ToString("N1");
+            _data.ReceivePps = ReceivePps.ToString("N1");
+            _data.SendRate = TcpServerStatisticsPublisher.BytesToString((long)SendRate) + "/s";
+            _data.ReceiveRate = TcpServerStatisticsPublisher.BytesToString((long)ReceiveRate) + "/s";
 
-            return data;
+            return _data;
         }
+
 
         internal void Reset()
         {
@@ -94,8 +94,8 @@ namespace ScaleNet.Common.Transport.Components.Statistics
             TotalMessageDropped = 0;
             SendRate = 0;
             ReceiveRate = 0;
-            SendPPS = 0;
-            ReceivePPS = 0;
+            SendPps = 0;
+            ReceivePps = 0;
             TotalDatagramSentPrev = 0;
             TotalDatagramReceivedPrev = 0;
             TotalBytesSentPrev = 0;
@@ -103,33 +103,34 @@ namespace ScaleNet.Common.Transport.Components.Statistics
             TotalMessageDroppedPrev = 0;
         }
     }
+
     internal class UdpStatisticsPublisher
     {
-        private ConcurrentDictionary<IPEndPoint, UdpStatistics> Statistics;
-        private UdpStatistics generalstats = new UdpStatistics();
-        private Stopwatch sw = new Stopwatch();
-        static string[] dataSuffix = { "B", "KB", "MB", "GB", "TB", "PB", "EB" };
+        private static readonly string[] DataSuffix = { "B", "KB", "MB", "GB", "TB", "PB", "EB" };
+        private readonly UdpStatistics _generalstats = new();
+        private readonly ConcurrentDictionary<IPEndPoint, UdpStatistics> _statistics;
+        private readonly Stopwatch _sw = new();
 
 
         public UdpStatisticsPublisher(ConcurrentDictionary<IPEndPoint, UdpStatistics> statistics)
         {
-            sw.Start();
-            Statistics = statistics;
+            _sw.Start();
+            _statistics = statistics;
         }
-
 
 
         private void GatherStatistics()
         {
-            generalstats.Reset();
+            _generalstats.Reset();
+
             // Statistics object is shared dict between udp server and this.
-            foreach (var stat in Statistics)
+            foreach (KeyValuePair<IPEndPoint, UdpStatistics> stat in _statistics)
             {
-                long tsCurrent = sw.ElapsedMilliseconds;
+                long tsCurrent = _sw.ElapsedMilliseconds;
                 double deltaT = tsCurrent - stat.Value.PrevTimeStamp;
 
-                stat.Value.SendPPS = (float)((stat.Value.TotalDatagramSent - stat.Value.TotalDatagramSentPrev) / deltaT) * 1000f;
-                stat.Value.ReceivePPS = (float)((stat.Value.TotalDatagramReceived - stat.Value.TotalDatagramReceivedPrev) / deltaT) * 1000f;
+                stat.Value.SendPps = (float)((stat.Value.TotalDatagramSent - stat.Value.TotalDatagramSentPrev) / deltaT) * 1000f;
+                stat.Value.ReceivePps = (float)((stat.Value.TotalDatagramReceived - stat.Value.TotalDatagramReceivedPrev) / deltaT) * 1000f;
                 stat.Value.SendRate = (float)((stat.Value.TotalBytesSent - stat.Value.TotalBytesSentPrev) / deltaT) * 1000;
                 stat.Value.ReceiveRate = (float)((stat.Value.TotalBytesReceived - stat.Value.TotalBytesReceivedPrev) / deltaT) * 1000;
 
@@ -141,17 +142,16 @@ namespace ScaleNet.Common.Transport.Components.Statistics
                 stat.Value.PrevTimeStamp = tsCurrent;
 
 
-
-                var data1 = stat.Value;
-                generalstats.SendPPS += data1.SendPPS;
-                generalstats.SendRate += data1.SendRate;
-                generalstats.ReceiveRate += data1.ReceiveRate;
-                generalstats.TotalBytesReceived += data1.TotalBytesReceived;
-                generalstats.TotalBytesSent += data1.TotalBytesSent;
-                generalstats.TotalMessageDropped += data1.TotalMessageDropped;
-                generalstats.ReceivePPS += data1.ReceivePPS;
-                generalstats.TotalDatagramReceived += data1.TotalDatagramReceived;
-                generalstats.TotalDatagramSent += data1.TotalDatagramSent;
+                UdpStatistics? data1 = stat.Value;
+                _generalstats.SendPps += data1.SendPps;
+                _generalstats.SendRate += data1.SendRate;
+                _generalstats.ReceiveRate += data1.ReceiveRate;
+                _generalstats.TotalBytesReceived += data1.TotalBytesReceived;
+                _generalstats.TotalBytesSent += data1.TotalBytesSent;
+                _generalstats.TotalMessageDropped += data1.TotalMessageDropped;
+                _generalstats.ReceivePps += data1.ReceivePps;
+                _generalstats.TotalDatagramReceived += data1.TotalDatagramReceived;
+                _generalstats.TotalDatagramSent += data1.TotalDatagramSent;
             }
         }
 
@@ -159,18 +159,19 @@ namespace ScaleNet.Common.Transport.Components.Statistics
         public static string BytesToString(long byteCount)
         {
             if (byteCount == 0)
-                return "0" + dataSuffix[0];
+                return "0" + DataSuffix[0];
             long bytes = Math.Abs(byteCount);
             int place = Convert.ToInt32(Math.Floor(Math.Log(bytes, 1024)));
             double num = Math.Round(bytes / Math.Pow(1024, place), 1);
-            return (Math.Sign(byteCount) * num).ToString() + " " + dataSuffix[place];
+            return Math.Sign(byteCount) * num + " " + DataSuffix[place];
         }
+
 
         internal void GetStatistics(out UdpStatistics generalStats, out ConcurrentDictionary<IPEndPoint, UdpStatistics> sessionStats)
         {
             GatherStatistics();
-            generalStats = generalstats;
-            sessionStats = Statistics;
+            generalStats = _generalstats;
+            sessionStats = _statistics;
         }
     }
 }

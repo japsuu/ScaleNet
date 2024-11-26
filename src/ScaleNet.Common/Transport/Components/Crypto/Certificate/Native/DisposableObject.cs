@@ -6,12 +6,14 @@ namespace ScaleNet.Common.Transport.Components.Crypto.Certificate.Native
     [StructLayout(LayoutKind.Sequential)]
     public abstract class DisposeableObject : IDisposable
     {
-        private bool disposed = false;
+        private bool disposed;
+
 
         ~DisposeableObject()
         {
             CleanUp(false);
         }
+
 
         public void Dispose()
         {
@@ -26,18 +28,21 @@ namespace ScaleNet.Common.Transport.Components.Crypto.Certificate.Native
             }
         }
 
+
         protected abstract void CleanUp(bool viaDispose);
 
+
         /// <summary>
-        /// Typical check for derived classes
+        ///     Typical check for derived classes
         /// </summary>
         protected void ThrowIfDisposed()
         {
-            ThrowIfDisposed(this.GetType().FullName);
+            ThrowIfDisposed(GetType().FullName);
         }
 
+
         /// <summary>
-        /// Typical check for derived classes
+        ///     Typical check for derived classes
         /// </summary>
         protected void ThrowIfDisposed(string objectName)
         {

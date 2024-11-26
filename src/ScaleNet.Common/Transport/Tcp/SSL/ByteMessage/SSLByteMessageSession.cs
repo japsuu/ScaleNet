@@ -9,7 +9,8 @@ namespace ScaleNet.Common.Transport.Tcp.SSL.ByteMessage
 {
     internal class SslByteMessageSession : SslSession
     {
-        ByteMessageReader reader;
+        private readonly ByteMessageReader reader;
+
 
         public SslByteMessageSession(Guid sessionId, SslStream sessionStream) : base(sessionId, sessionStream)
         {
@@ -17,23 +18,25 @@ namespace ScaleNet.Common.Transport.Tcp.SSL.ByteMessage
             reader.OnMessageReady += HandleMessage;
         }
 
+
         private void HandleMessage(byte[] arg1, int arg2, int arg3)
         {
             base.HandleReceived(arg1, arg2, arg3);
         }
+
+
         protected override void HandleReceived(byte[] buffer, int offset, int count)
         {
             reader.ParseBytes(buffer, offset, count);
         }
+
 
         protected override IMessageQueue CreateMessageQueue()
         {
             if (UseQueue)
                 return new MessageQueue<DelimitedMessageWriter>(MaxIndexedMemory, new DelimitedMessageWriter());
 
-            else
-                return new MessageBuffer(MaxIndexedMemory, writeLengthPrefix: true);
+            return new MessageBuffer(MaxIndexedMemory);
         }
-
     }
 }

@@ -5,46 +5,40 @@ namespace ScaleNet.Common.Transport.Utils
 {
     public class Spinlock
     {
-        private int lockValue = 0;
-        SpinWait spinWait = new SpinWait();
+        private int _lockValue;
+        private SpinWait _spinWait;
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Take()
         {
-            if (Interlocked.CompareExchange(ref lockValue, 1, 0) != 0)
+            if (Interlocked.CompareExchange(ref _lockValue, 1, 0) != 0)
             {
                 int spinCount = 0;
 
-                while (Interlocked.CompareExchange(ref lockValue, 1, 0) != 0)
+                while (Interlocked.CompareExchange(ref _lockValue, 1, 0) != 0)
                 {
-
                     if (spinCount < 22)
-                    {
                         spinCount++;
-                    }
 
                     else
-                    {
-                        spinWait.SpinOnce();
-                    }
+                        _spinWait.SpinOnce();
                 }
             }
-
         }
 
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsTaken() => Interlocked.CompareExchange(ref lockValue, 1, 1) == 1;
+        public bool IsTaken() => Interlocked.CompareExchange(ref _lockValue, 1, 1) == 1;
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Release()
         {
-            Interlocked.Exchange(ref lockValue, 0);
+            Interlocked.Exchange(ref _lockValue, 0);
         }
 
-        internal bool TryTake()
-        {
-            return Interlocked.CompareExchange(ref lockValue, 1, 0) == 0;
-        }
+
+        internal bool TryTake() => Interlocked.CompareExchange(ref _lockValue, 1, 0) == 0;
     }
 }

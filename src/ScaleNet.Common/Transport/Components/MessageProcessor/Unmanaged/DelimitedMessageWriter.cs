@@ -4,129 +4,139 @@ using ScaleNet.Common.Transport.Components.MessageProcessor.Interface;
 
 namespace ScaleNet.Common.Transport.Components.MessageProcessor.Unmanaged
 {
-    internal sealed class DelimitedMessageWriter
-
-        : IMessageProcessor
+    internal sealed class DelimitedMessageWriter : IMessageProcessor
     {
-        private byte[] bufferInternal;
-        private int offset;
-        private int origialOffset;
-        public int count;
+        private byte[] _bufferInternal = null!;
+        private int _count;
+        private int _offset;
+        private int _originalOffset;
+
+        private byte[] _pendingMessage = null!;
+        private int _pendingMessageOffset;
+        private int _pendingRemaining;
+        private bool _writeHeaderOnFlush;
 
         public bool IsHoldingMessage { get; private set; }
 
-        byte[] pendingMessage;
-        int pendingMessageOffset;
-        int pendingRemaining;
-        private bool writeHeaderOnflush;
 
         public void SetBuffer(ref byte[] buffer, int offset)
         {
-            bufferInternal = buffer;
-            this.offset = offset;
-            origialOffset = offset;
-            count = 0;
-
+            _bufferInternal = buffer;
+            _offset = offset;
+            _originalOffset = offset;
+            _count = 0;
         }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool ProcessMessage(byte[] message)
         {
             if (IsHoldingMessage)
                 throw new InvalidOperationException("You can not process new message before heldover message is fully flushed");
-            if (bufferInternal == null)
+            if (_bufferInternal == null)
                 return false;
-            else if (bufferInternal.Length - offset >= 36)
+            if (_bufferInternal.Length - _offset >= 36)
             {
-                fixed (byte* b = &bufferInternal[offset])
+                fixed (byte* b = &_bufferInternal[_offset])
+                {
                     *(int*)b = message.Length;
-               
-                offset += 4;
-                count += 4;
+                }
+
+                _offset += 4;
+                _count += 4;
             }
             else
             {
-                writeHeaderOnflush = true;
-                pendingMessage = message;
-                pendingMessageOffset = 0;
-                pendingRemaining = pendingMessage.Length;
+                _writeHeaderOnFlush = true;
+                _pendingMessage = message;
+                _pendingMessageOffset = 0;
+                _pendingRemaining = _pendingMessage.Length;
                 IsHoldingMessage = true;
                 return false;
-
             }
 
-            if (bufferInternal.Length - offset >= message.Length)
+            if (_bufferInternal.Length - _offset >= message.Length)
             {
-                fixed (byte* destination = &bufferInternal[offset])
+                fixed (byte* destination = &_bufferInternal[_offset])
                 {
-                    fixed (byte* message_ = message)
-                        Buffer.MemoryCopy(message_, destination, message.Length, message.Length);
+                    fixed (byte* msgPtr = message)
+                    {
+                        Buffer.MemoryCopy(msgPtr, destination, message.Length, message.Length);
+                    }
                 }
-                offset += message.Length;
-                count += message.Length;
+
+                _offset += message.Length;
+                _count += message.Length;
                 return true;
             }
-            else
-            {
-                pendingMessage = message;
-                pendingMessageOffset = 0;
-                pendingRemaining = pendingMessage.Length;
-                _ = Flush();
-                IsHoldingMessage = true;
-                return false;
 
-            }
+            _pendingMessage = message;
+            _pendingMessageOffset = 0;
+            _pendingRemaining = _pendingMessage.Length;
+            _ = Flush();
+            IsHoldingMessage = true;
+            return false;
         }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool Flush()
         {
-            if (writeHeaderOnflush)
+            if (_writeHeaderOnFlush)
             {
-                writeHeaderOnflush = false;
-                fixed (byte* b = &bufferInternal[offset])
-                    *(int*)b = pendingMessage.Length;
-                offset += 4;
-                count += 4;
-
-            }
-            if (pendingRemaining <= bufferInternal.Length - offset)
-            {
-                fixed (byte* destination = &bufferInternal[offset])
+                _writeHeaderOnFlush = false;
+                fixed (byte* b = &_bufferInternal[_offset])
                 {
-                    fixed (byte* message_ = &pendingMessage[pendingMessageOffset])
-                        Buffer.MemoryCopy(message_, destination, pendingRemaining, pendingRemaining);
+                    *(int*)b = _pendingMessage.Length;
                 }
-                offset += pendingRemaining;
-                count += pendingRemaining;
 
-                pendingMessage = null;
-                pendingRemaining = 0;
-                pendingMessageOffset = 0;
+                _offset += 4;
+                _count += 4;
+            }
+
+            if (_pendingRemaining <= _bufferInternal.Length - _offset)
+            {
+                fixed (byte* destination = &_bufferInternal[_offset])
+                {
+                    fixed (byte* msgPtr = &_pendingMessage[_pendingMessageOffset])
+                    {
+                        Buffer.MemoryCopy(msgPtr, destination, _pendingRemaining, _pendingRemaining);
+                    }
+                }
+
+                _offset += _pendingRemaining;
+                _count += _pendingRemaining;
+
+                _pendingMessage = null!;
+                _pendingRemaining = 0;
+                _pendingMessageOffset = 0;
                 IsHoldingMessage = false;
                 return true;
             }
-            else
+
+            fixed (byte* destination = &_bufferInternal[_offset])
             {
-                fixed (byte* destination = &bufferInternal[offset])
+                fixed (byte* msgPtr = &_pendingMessage[_pendingMessageOffset])
                 {
-                    fixed (byte* message_ = &pendingMessage[pendingMessageOffset])
-                        Buffer.MemoryCopy(message_, destination, bufferInternal.Length - offset, bufferInternal.Length - offset);
+                    Buffer.MemoryCopy(msgPtr, destination, _bufferInternal.Length - _offset, _bufferInternal.Length - _offset);
                 }
-                count += bufferInternal.Length - offset;
-
-                pendingMessageOffset += bufferInternal.Length - offset;
-                pendingRemaining -= bufferInternal.Length - offset;
-                return false;
             }
+
+            _count += _bufferInternal.Length - _offset;
+
+            _pendingMessageOffset += _bufferInternal.Length - _offset;
+            _pendingRemaining -= _bufferInternal.Length - _offset;
+            return false;
         }
 
-        public void GetBuffer(out byte[] Buffer, out int offset, out int count)
+
+        public void GetBuffer(out byte[] buffer, out int offset, out int count)
         {
-            Buffer = bufferInternal;
-            offset = origialOffset;
-            count = this.count;
+            buffer = _bufferInternal;
+            offset = _originalOffset;
+            count = _count;
         }
+
 
         public void Dispose()
         {
