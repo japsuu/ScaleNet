@@ -3,12 +3,11 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.IO;
 using System.Net.Sockets;
-using System.Threading.Tasks;
 using ScaleNet.Common;
 
 namespace ScaleNet.Client.LowLevel.Transport.Tcp
 {
-    public class TcpClientTransport : SslClient, IClientTransport, IAsyncDisposable
+    public sealed class TcpClientTransport : SslClient, IClientTransport
     {
         // Buffer for accumulating incomplete packet data
         private readonly MemoryStream _receiveBuffer = new();
@@ -27,19 +26,19 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
         public void ConnectClient()
         {
-            base.ConnectAsync();
+            ConnectAsync();
         }
 
 
         public void ReconnectClient()
         {
-            base.ReconnectAsync();
+            ReconnectAsync();
         }
 
 
         public void DisconnectClient()
         {
-            base.DisconnectAsync();
+            DisconnectAsync();
         }
 
 
@@ -229,19 +228,6 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
             }
 
             base.Dispose(disposing);
-        }
-
-
-        protected virtual async ValueTask DisposeAsyncCore()
-        {
-            await _receiveBuffer.DisposeAsync();
-        }
-
-
-        public async ValueTask DisposeAsync()
-        {
-            await DisposeAsyncCore();
-            GC.SuppressFinalize(this);
         }
     }
 }
