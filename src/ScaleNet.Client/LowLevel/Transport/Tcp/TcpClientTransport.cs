@@ -10,22 +10,6 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 {
     public class TcpClientTransport : SslClient, IClientTransport, IAsyncDisposable
     {
-        /// <summary>
-        /// A raw packet of data.
-        /// </summary>
-        internal readonly struct Packet
-        {
-            public readonly ushort TypeID;
-            public readonly byte[] Data;
-
-
-            public Packet(ushort typeID, byte[] data)
-            {
-                TypeID = typeID;
-                Data = data;
-            }
-        }
-        
         // Buffer for accumulating incomplete packet data
         private readonly MemoryStream _receiveBuffer = new();
         private readonly IPacketMiddleware? _middleware;
