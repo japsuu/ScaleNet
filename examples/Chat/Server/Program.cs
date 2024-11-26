@@ -1,5 +1,4 @@
-﻿using System.Net;
-using System.Net.Security;
+﻿using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using ScaleNet.Common.Ssl;
@@ -28,7 +27,6 @@ internal static class Program
         // Create the server
         using ChatServer server = new(
             context,
-            IPAddress.Any,
             SharedConstants.SERVER_PORT,
             ConfigManager.CurrentConfiguration.MaxConnections,
             ConfigManager.CurrentConfiguration.AllowAccountRegistration);

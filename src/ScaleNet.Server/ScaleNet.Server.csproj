@@ -7,6 +7,7 @@
         <Nullable>enable</Nullable>
         <AssemblyName>ScaleNet.Server</AssemblyName>
         <RootNamespace>ScaleNet.Server</RootNamespace>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>

@@ -15,10 +15,10 @@ public abstract class Connection
     /// ID of the session/connection.
     /// Changes when the client reconnects.
     /// </summary>
-    public SessionId SessionId { get; private set; }
+    public Guid SessionId { get; private set; }
     
     
-    internal void Initialize(SessionId sessionId, IServerTransport transport)
+    internal void Initialize(Guid sessionId, IServerTransport transport)
     {
         _transport = transport;
         SessionId = sessionId;

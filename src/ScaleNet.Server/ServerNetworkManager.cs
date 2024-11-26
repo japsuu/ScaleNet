@@ -166,7 +166,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
 
 #region Message processing
     
-    private void OnMessageReceived(SessionId sessionId, DeserializedNetMessage msg)
+    private void OnMessageReceived(Guid sessionId, DeserializedNetMessage msg)
     {
         if (!_connectionManager.TryGetConnection(sessionId, out TConnection? connection))
         {
@@ -202,14 +202,14 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
 
     private void OnSessionStateChanged(SessionStateChangeArgs sessionStateChangeArgs)
     {
-        SessionId sessionId = sessionStateChangeArgs.SessionId;
+        Guid sessionId = sessionStateChangeArgs.SessionId;
         TConnection? connection;
         
         ScaleNetManager.Logger.LogInfo($"Session {sessionId} is {sessionStateChangeArgs.NewState.ToString().ToLower()}");
         
         switch (sessionStateChangeArgs.NewState)
         {
-            case ConnectionState.Connecting:
+            case ConnectionState.Connected:
             {
                 if (!_connectionManager.TryCreateConnection(sessionId, out connection))
                 {
@@ -228,19 +228,6 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
                     return;
                 }
                 
-                break;
-            }
-            case ConnectionState.SslHandshaking:
-            case ConnectionState.SslHandshaked:
-            case ConnectionState.Connected:
-            case ConnectionState.Disconnecting:
-            {
-                if (!_connectionManager.TryGetConnection(sessionId, out connection))
-                {
-                    ScaleNetManager.Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
-                    return;
-                }
-
                 break;
             }
             default:

@@ -18,7 +18,7 @@ public interface IServerTransport : IDisposable
     /// Called to handle incoming messages.<br/>
     /// Implementations are required to be thread-safe, as this event may be raised from multiple threads.
     /// </summary>
-    public event Action<SessionId, DeserializedNetMessage>? MessageReceived;
+    public event Action<Guid, DeserializedNetMessage>? MessageReceived;
 
 
     /// <summary>
@@ -27,7 +27,7 @@ public interface IServerTransport : IDisposable
     /// </summary>
     /// <param name="sessionId">The session to send the message to.</param>
     /// <param name="message">The message to send.</param>
-    public void QueueSendAsync<T>(SessionId sessionId, T message) where T : INetMessage;
+    public void QueueSendAsync<T>(Guid sessionId, T message) where T : INetMessage;
 
 
     /// <summary>
@@ -40,21 +40,19 @@ public interface IServerTransport : IDisposable
     /// <remarks>
     /// The disconnect reason will only be sent to the session if <paramref name="iterateOutgoing"/> is true.
     /// </remarks>
-    public void DisconnectSession(SessionId sessionId, DisconnectReason reason, bool iterateOutgoing = true);
+    public void DisconnectSession(Guid sessionId, DisconnectReason reason, bool iterateOutgoing = true);
 
 
     /// <summary>
     /// Starts the server.
     /// </summary>
-    /// <returns>True if the server was started successfully, false otherwise.</returns>
-    public bool StartServer();
+    public void StartServer();
 
 
     /// <summary>
     /// Stops the server.
     /// </summary>
-    /// <returns>True if the server was stopped, false if it was already stopped.</returns>
-    public bool StopServer(bool gracefully = true);
+    public void StopServer(bool gracefully = true);
 
 
     /// <summary>

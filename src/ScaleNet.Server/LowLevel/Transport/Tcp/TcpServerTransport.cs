@@ -1,114 +1,142 @@
 ﻿using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
-using System.Net;
+using System.Diagnostics;
 using System.Net.Sockets;
+using NetworkLibrary.TCP.SSL.ByteMessage;
 using ScaleNet.Common;
 using ScaleNet.Common.Ssl;
 
 namespace ScaleNet.Server.LowLevel.Transport.Tcp;
 
-public class TcpServerTransport : SslServer, IServerTransport
+public sealed class TcpServerTransport : IServerTransport
 {
-    /// <summary>
-    /// A raw packet of data.
-    /// </summary>
-    internal readonly struct Packet
-    {
-        public readonly ushort TypeID;
-        public readonly byte[] Data;
-
-
-        public Packet(ushort typeID, byte[] data)
-        {
-            TypeID = typeID;
-            Data = data;
-        }
-    }
-    
-    private readonly ConcurrentBag<uint> _availableSessionIds = [];
-    private readonly ConcurrentDictionary<SessionId, TcpClientSession> _sessions = new();
+    private readonly SslByteMessageServer _server;
+    private readonly ConcurrentDictionary<Guid, Session> _sessions = new();
+    private readonly NetMessageBufferWriter _writer = new();
     
     private ServerState _serverState = ServerState.Stopped;
-    private bool _rejectNewConnections;
-    private bool _rejectNewMessages;
+    private bool _isShuttingDown;
 
-    public readonly IPacketMiddleware? Middleware;
+    public int Port { get; set; }
     public int MaxConnections { get; }
     
     public event Action<ServerStateChangeArgs>? ServerStateChanged;
     public event Action<SessionStateChangeArgs>? SessionStateChanged;
-    public event Action<SessionId, DeserializedNetMessage>? MessageReceived;
+    public event Action<Guid, DeserializedNetMessage>? MessageReceived;
 
 
-    public TcpServerTransport(SslContext sslContext, IPAddress address, int port, int maxConnections, IPacketMiddleware? middleware = null) : base(sslContext, address, port)
+    public TcpServerTransport(SslContext sslContext, int port, int maxConnections)
     {
+        Port = port;
         MaxConnections = maxConnections;
-        Middleware = middleware;
-
-        // Fill the available session IDs bag.
-        for (uint i = 1; i < maxConnections; i++)
-            _availableSessionIds.Add(i);
+        
+        _server = new SslByteMessageServer(Port, sslContext.Certificate);
+        _server.RemoteCertificateValidationCallback = sslContext.CertificateValidationCallback;
+        _server.GatherConfig = ScatterGatherConfig.UseBuffer;
+        
+        _server.OnBytesReceived += OnBytesReceived;
+        _server.OnClientRequestedConnection += OnClientRequestedConnection;
+        _server.OnClientAccepted += OnClientConnected;
+        _server.OnClientDisconnected += OnClientDisconnected;
     }
 
 
-    public bool StartServer()
+    private void OnBytesReceived(Guid session, byte[] bytes, int offset, int count)
     {
-        ScaleNetManager.Logger.LogInfo($"Starting TCP transport on {Address}:{Port}...");
-
-        bool started = Start();
+        // Framing is handled automatically by SslByteMessageClient.
         
-        if (started)
-            ScaleNetManager.Logger.LogInfo("TCP transport started successfully.");
-        else
-            ScaleNetManager.Logger.LogError("Failed to start TCP transport.");
+        // Get the session's packet queue.
+        if (!_sessions.TryGetValue(session, out Session? queue))
+        {
+            ScaleNetManager.Logger.LogError($"No packet queue found for session {session}. Skipping.");
+            return;
+        }
         
-        return started;
+        // Check for packet spam.
+        if (queue.IncomingMessages.Count > ServerConstants.MAX_PACKETS_PER_TICK)
+        {
+            ScaleNetManager.Logger.LogWarning($"Session {session} is sending too many packets. Kicking immediately.");
+            DisconnectSession(session, DisconnectReason.TooManyPackets);
+            return;
+        }
+        
+        // Check for oversized packets.
+        if (count > SharedConstants.MAX_PACKET_SIZE_BYTES)
+        {
+            ScaleNetManager.Logger.LogWarning($"Session {session} sent a packet that is too large. Kicking immediately.");
+            DisconnectSession(session, DisconnectReason.OversizedPacket);
+            return;
+        }
+            
+        // Ensure the message is at least 2 bytes long.
+        if (count < 2)
+        {
+            ScaleNetManager.Logger.LogWarning($"Received a message without a type ID. Kicking session {session} immediately.");
+            DisconnectSession(session, DisconnectReason.MalformedData);
+            return;
+        }
+            
+        // Extract message type ID from the first 2 bytes.
+        ushort typeId = BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(offset, 2));
+            
+        // Extract the message data as read-only memory.
+        ReadOnlyMemory<byte> memory = new(bytes, offset + 2, count - 2);
+            
+        if (!NetMessages.TryDeserialize(typeId, memory, out DeserializedNetMessage message))
+        {
+            ScaleNetManager.Logger.LogWarning($"Received a packet that could not be deserialized. Kicking session {session} immediately.");
+            DisconnectSession(session, DisconnectReason.MalformedData);
+            return;
+        }
+        
+        queue.IncomingMessages.Enqueue(message);
     }
 
 
-    public bool StopServer(bool gracefully)
+    public void StartServer()
     {
+        ScaleNetManager.Logger.LogInfo($"Starting TCP transport on {Port}...");
+        
+        OnStarting();
+
+        _server.StartServer();
+        
+        OnStarted();
+    }
+
+
+    public void StopServer(bool gracefully)
+    {
+        _isShuttingDown = true;
         ScaleNetManager.Logger.LogInfo("Stopping TCP transport...");
-        _rejectNewConnections = true;
-        _rejectNewMessages = true;
+        
+        OnStopping();
         
         if (gracefully)
         {
-            foreach (TcpClientSession session in _sessions.Values)
+            foreach (Guid session in _sessions.Keys)
                 DisconnectSession(session, DisconnectReason.ServerShutdown);
         }
         
-        bool stopped = Stop();
+        _server.ShutdownServer();
         
-        if (stopped)
-            ScaleNetManager.Logger.LogInfo("TCP transport stopped successfully.");
-        else
-            ScaleNetManager.Logger.LogError("Failed to stop TCP transport.");
-        
-        return stopped;
+        OnStopped();
     }
 
 
     public void HandleIncomingMessages()
     {
-        if (_rejectNewMessages)
+        if (_isShuttingDown)
             return;
         
         //TODO: Parallelize.
         //NOTE: Sessions that are iterated first have packet priority.
-        foreach (TcpClientSession session in _sessions.Values)
+        foreach ((Guid sessionId, Session? session) in _sessions)
         {
-            while (session.IncomingPackets.TryDequeue(out Packet packet))
+            while (session.IncomingMessages.TryDequeue(out DeserializedNetMessage msg))
             {
-                if (!NetMessages.TryDeserialize(packet.TypeID, packet.Data, out DeserializedNetMessage msg))
-                {
-                    ScaleNetManager.Logger.LogWarning($"Received a packet that could not be deserialized. Kicking session {session.SessionId} immediately.");
-                    DisconnectSession(session, DisconnectReason.MalformedData);
-                    return;
-                }
-                
-                MessageReceived?.Invoke(session.SessionId, msg);
+                MessageReceived?.Invoke(sessionId, msg);
             }
         }
     }
@@ -118,16 +146,16 @@ public class TcpServerTransport : SslServer, IServerTransport
     {
         //TODO: Parallelize.
         //NOTE: Sessions that are iterated first have packet priority.
-        foreach (TcpClientSession session in _sessions.Values)
+        foreach ((Guid id, Session? session) in _sessions)
         {
-            SendOutgoingPackets(session);
+            SendOutgoingPackets(id, session);
         }
     }
 
 
-    public void QueueSendAsync<T>(SessionId sessionId, T message) where T : INetMessage
+    public void QueueSendAsync<T>(Guid sessionId, T message) where T : INetMessage
     {
-        if (!_sessions.TryGetValue(sessionId, out TcpClientSession? session))
+        if (!_sessions.TryGetValue(sessionId, out Session? session))
         {
             ScaleNetManager.Logger.LogWarning($"Tried to send a packet to a non-existent/disconnected session with ID {sessionId}");
             return;
@@ -137,7 +165,7 @@ public class TcpServerTransport : SslServer, IServerTransport
     }
 
 
-    private void QueueSendAsync<T>(TcpClientSession session, T message) where T : INetMessage
+    private void QueueSendAsync<T>(Session session, T message) where T : INetMessage
     {
         if (!NetMessages.TryGetMessageId(message.GetType(), out ushort id))
         {
@@ -146,146 +174,77 @@ public class TcpServerTransport : SslServer, IServerTransport
         }
         
         // Write to buffer.
-        byte[] bytes = NetMessages.Serialize(message);
+        _writer.Initialize(id);
+        
+        NetMessages.Serialize(message, _writer);
+        byte[] bytes = ArrayPool<byte>.Shared.Rent(_writer.WrittenBytes);
+        
+        _writer.CopyToAndReset(bytes);
         
         // Enqueue the packet.
-        Packet p = new(id, bytes);
+        SerializedNetMessage p = new(bytes);
         
         session.OutgoingPackets.Enqueue(p);
     }
 
 
-    public void DisconnectSession(SessionId sessionId, DisconnectReason reason, bool iterateOutgoing = true)
+    public void DisconnectSession(Guid sessionId, DisconnectReason reason, bool iterateOutgoing = true)
     {
-        if (!_sessions.TryGetValue(sessionId, out TcpClientSession? session))
+        if (!_sessions.TryGetValue(sessionId, out Session? session))
         {
-            ScaleNetManager.Logger.LogWarning($"Tried to disconnect a non-existent/disconnected session with ID {sessionId}");
+            ScaleNetManager.Logger.LogWarning($"Tried to send packets to a non-existent/disconnected session with ID {sessionId}");
             return;
         }
         
-        DisconnectSession(session, reason, iterateOutgoing);
-    }
-
-
-    internal void DisconnectSession(TcpClientSession session, DisconnectReason reason, bool iterateOutgoing = true)
-    {
         if (iterateOutgoing)
         {
             QueueSendAsync(session, new DisconnectMessage(reason));
-            SendOutgoingPackets(session);
+            SendOutgoingPackets(sessionId, session);
         }
         
-        session.Disconnect();
+        _server.CloseSession(sessionId);
     }
 
 
-    private void SendOutgoingPackets(TcpClientSession session)
+    private void SendOutgoingPackets(Guid sessionId, Session session)
     {
-        while (session.OutgoingPackets.TryDequeue(out Packet packet))
+        while (session.OutgoingPackets.TryDequeue(out SerializedNetMessage packet))
         {
-            byte[] bytes = packet.Data;
-                
-            Middleware?.HandleOutgoingPacket(ref bytes);
+            _server.SendBytesToClient(sessionId, packet.Data);
             
-            // Get a pooled buffer to add the length prefix and message id.
-            int messageLength = bytes.Length;
-            int packetLength = messageLength + 4;
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(packetLength);
-            
-            // Add the 16-bit packet length prefix.
-            BinaryPrimitives.WriteUInt16LittleEndian(buffer, (ushort)messageLength);
-            
-            // Add the 16-bit message type ID.
-            ushort typeId = packet.TypeID;
-            BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan(2), typeId);
-            
-            // Copy the message data to the buffer.
-            bytes.CopyTo(buffer.AsSpan(4));
-        
-            session.SendAsync(buffer, 0, packetLength);
-        
-            // Return the buffer to the pool.
-            ArrayPool<byte>.Shared.Return(buffer);
+            packet.Dispose();
         }
     }
 
 
 #region Session Lifetime
 
-    protected override SslSession CreateSession()
-    {
-        bool isIdAvailable = _availableSessionIds.TryTake(out uint uId);
-        
-        if (!isIdAvailable)
-            throw new InvalidOperationException("No available session IDs.");
-        
-        SessionId id = new(uId);
 
-        TcpClientSession session = new(id, this);
-        _sessions.TryAdd(id, session);
-        
-        return session;
-    }
-    
-    
-    private void OnEndSession(SessionId id)
+    private void OnClientConnected(Guid guid)
     {
-        if (_sessions.TryRemove(id, out _))
-            _availableSessionIds.Add(id.Value);
+        _sessions.TryAdd(guid, new Session());
+        
+        SessionStateChanged?.Invoke(new SessionStateChangeArgs(guid, ConnectionState.Connected));
     }
 
 
-    protected override void OnConnecting(SslSession session)
+    private void OnClientDisconnected(Guid guid)
     {
-        SessionId id = ((TcpClientSession)session).SessionId;
+        SessionStateChanged?.Invoke(new SessionStateChangeArgs(guid, ConnectionState.Disconnected));
         
-        SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.Connecting));
+        bool removed = _sessions.TryRemove(guid, out Session? queue);
+        if (removed)
+        {
+            queue!.Dispose();
+        }
+        Debug.Assert(removed, "Failed to remove packet queue for disconnected session.");
     }
 
 
-    protected override void OnConnected(SslSession session)
+    private bool OnClientRequestedConnection(Socket socket)
     {
-        SessionId id = ((TcpClientSession)session).SessionId;
-        
-        SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.Connected));
-    }
-
-
-    protected override void OnHandshaking(SslSession session)
-    {
-        SessionId id = ((TcpClientSession)session).SessionId;
-        
-        SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.SslHandshaking));
-    }
-
-
-    protected override void OnHandshaked(SslSession session)
-    {
-        TcpClientSession tcpClientSession = (TcpClientSession)session;
-        SessionId id = tcpClientSession.SessionId;
-        
-        SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.SslHandshaked));
-        
-        if (_rejectNewConnections || _sessions.Count >= MaxConnections)
-            DisconnectSession(tcpClientSession, DisconnectReason.ServerFull);
-    }
-
-
-    protected override void OnDisconnecting(SslSession session)
-    {
-        SessionId id = ((TcpClientSession)session).SessionId;
-        
-        SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.Disconnecting));
-    }
-
-
-    protected override void OnDisconnected(SslSession session)
-    {
-        SessionId id = ((TcpClientSession)session).SessionId;
-        
-        SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.Disconnected));
-        
-        OnEndSession(id);
+        //TODO: Send a message to the client if the server is full.
+        return !_isShuttingDown && _sessions.Count < MaxConnections;
     }
 
 #endregion
@@ -293,7 +252,7 @@ public class TcpServerTransport : SslServer, IServerTransport
 
 #region Server Lifetime
 
-    protected override void OnStarting()
+    private void OnStarting()
     {
         ServerState prevState = _serverState;
         _serverState = ServerState.Starting;
@@ -301,7 +260,7 @@ public class TcpServerTransport : SslServer, IServerTransport
     }
 
 
-    protected override void OnStarted()
+    private void OnStarted()
     {
         ServerState prevState = _serverState;
         _serverState = ServerState.Started;
@@ -309,7 +268,7 @@ public class TcpServerTransport : SslServer, IServerTransport
     }
 
     
-    protected override void OnStopping()
+    private void OnStopping()
     {
         ServerState prevState = _serverState;
         _serverState = ServerState.Stopping;
@@ -317,7 +276,7 @@ public class TcpServerTransport : SslServer, IServerTransport
     }
 
 
-    protected override void OnStopped()
+    private void OnStopped()
     {
         ServerState prevState = _serverState;
         _serverState = ServerState.Stopped;
@@ -327,22 +286,8 @@ public class TcpServerTransport : SslServer, IServerTransport
 #endregion
 
 
-    protected override void OnError(SocketError error)
+    public void Dispose()
     {
-        ScaleNetManager.Logger.LogError($"TCP server caught an error: {error}");
-    }
-
-
-    protected override void Dispose(bool disposingManagedResources)
-    {
-        if (disposingManagedResources)
-        {
-            StopServer(true);
-            
-            foreach (TcpClientSession session in _sessions.Values)
-                session.Dispose();
-        }
-        
-        base.Dispose(disposingManagedResources);
+        StopServer(true);
     }
 }

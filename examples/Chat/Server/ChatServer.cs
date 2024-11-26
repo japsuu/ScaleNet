@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Net;
 using ScaleNet.Common;
 using ScaleNet.Common.Ssl;
 using ScaleNet.Server;
@@ -18,14 +17,14 @@ internal sealed class ChatServer : IDisposable
     private readonly IDatabaseAccess _databaseAccess;
 
 
-    public ChatServer(SslContext context, IPAddress address, int port, int maxConnections, bool allowAccountRegistration)
+    public ChatServer(SslContext context, int port, int maxConnections, bool allowAccountRegistration)
     {
         ScaleNetManager.Initialize();
         
         InMemoryDatabase db = new();
         _databaseAccess = db;
         
-        _netManager = new ServerNetworkManager<ClientConnection>(new TcpServerTransport(context, address, port, maxConnections));
+        _netManager = new ServerNetworkManager<ClientConnection>(new TcpServerTransport(context, port, maxConnections));
         
         _authenticator = new Authenticator(_netManager, _databaseAccess, allowAccountRegistration);
         _authenticator.ClientAuthSuccess += OnClientAuthenticated;
@@ -57,7 +56,7 @@ internal sealed class ChatServer : IDisposable
     {
         switch (args.NewState)
         {
-            case ConnectionState.SslHandshaking:
+            case ConnectionState.Connected:
             {
                 _authenticator.OnNewClientReadyForAuthentication(args.Connection);
                 break;

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -8,19 +9,6 @@ using ScaleNet.Common.Utils;
 
 namespace ScaleNet.Common
 {
-    public readonly struct DeserializedNetMessage
-    {
-        public readonly INetMessage Message;
-        public readonly Type Type;
-
-
-        public DeserializedNetMessage(INetMessage message, Type type)
-        {
-            Message = message;
-            Type = type;
-        }
-    }
-
     /// <summary>
     /// Marks a class as a network message.
     /// </summary>
@@ -129,12 +117,20 @@ namespace ScaleNet.Common
 
 
 #region Serialization
-
+        
         public static byte[] Serialize<T>(T msg)
         {
             byte[] bytes = MessagePackSerializer.Serialize(msg);
         
             return bytes;
+        }
+
+        
+        public static void Serialize<T>(T msg, IBufferWriter<byte> writer)
+        {
+            MessagePackWriter messagePackWriter = new MessagePackWriter(writer);
+            
+            MessagePackSerializer.Serialize(ref messagePackWriter, msg);
         }
 
 
