@@ -32,8 +32,8 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
             _client.GatherConfig = ScatterGatherConfig.UseBuffer;
             
             _client.OnBytesReceived += OnBytesReceived;
-            _client.OnConnected += OnConnected;
-            _client.OnDisconnected += OnDisconnected;
+            _client.Connected += OnConnected;
+            _client.Disconnected += OnDisconnected;
         }
 
 

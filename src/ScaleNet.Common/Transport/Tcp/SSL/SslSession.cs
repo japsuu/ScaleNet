@@ -15,63 +15,60 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
 {
     public class SslSession : IAsyncSession
     {
-        private int disposedValue;
-        protected Spinlock enqueueLock = new();
+        private int _disposedValue;
+        protected readonly Spinlock EnqueueLock = new();
         public int MaxIndexedMemory = 128000000;
 
-        protected IMessageQueue messageQueue;
-        protected byte[] receiveBuffer;
+        protected IMessageQueue MessageQueue = null!;
+        protected byte[] ReceiveBuffer = null!;
         public int ReceiveBufferSize = 128000;
 
-        protected IPEndPoint RemoteEP;
+        protected IPEndPoint? RemoteEp;
 
-        //#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
-        //        protected Memory<byte> receiveMemory;
-        //#endif
-        protected byte[] sendBuffer;
+        protected byte[] SendBuffer = null!;
         public int SendBufferSize = 128000;
-        protected Spinlock SendSemaphore = new();
-        private int SessionClosing;
-        protected Guid sessionId;
-        protected SslStream sessionStream;
+        protected readonly Spinlock SendSemaphore = new();
+        private int _sessionClosing;
+        protected Guid SessionId;
+        protected readonly SslStream SessionStream;
 
-        private int started;
-        private long totalBytesReceived;
-        private long totalBytesReceivedPrev;
-        private long totalBytesSend;
-        private long totalBytesSendPrev;
-        private long totalMessageReceived;
-        private long totalMessageSentPrev;
-        private long totalMsgReceivedPrev;
+
+        public bool DropOnCongestion { get; internal set; }
+        public event Action<Guid, byte[], int, int>? BytesReceived;
+        public event Action<Guid>? SessionClosed;
+
+        public IPEndPoint RemoteEndpoint
+        {
+            get => RemoteEp ?? throw new InvalidOperationException("Remote endpoint is not set");
+            set => RemoteEp = value;
+        }
+
+        private int _started;
+        private long _totalBytesReceived;
+        private long _totalBytesReceivedPrev;
+        private long _totalBytesSend;
+        private long _totalBytesSendPrev;
+        private long _totalMessageReceived;
+        private long _totalMessageSentPrev;
+        private long _totalMsgReceivedPrev;
 
         protected internal bool UseQueue = false;
 
 
         public SslSession(Guid sessionId, SslStream sessionStream)
         {
-            this.sessionId = sessionId;
-            this.sessionStream = sessionStream;
-        }
-
-
-        public bool DropOnCongestion { get; internal set; }
-        public event Action<Guid, byte[], int, int> OnBytesRecieved;
-        public event Action<Guid> OnSessionClosed;
-
-        public IPEndPoint RemoteEndpoint
-        {
-            get => RemoteEP;
-            set => RemoteEP = value;
+            SessionId = sessionId;
+            SessionStream = sessionStream;
         }
 
 
         public void StartSession()
         {
-            if (Interlocked.Exchange(ref started, 1) == 0)
+            if (Interlocked.Exchange(ref _started, 1) == 0)
             {
                 ConfigureBuffers();
-                messageQueue = CreateMessageQueue();
-                ThreadPool.UnsafeQueueUserWorkItem(s => Receive(), null);
+                MessageQueue = CreateMessageQueue();
+                ThreadPool.UnsafeQueueUserWorkItem(_ => Receive(), null);
             }
         }
 
@@ -90,7 +87,7 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
                 {
                     TransportLogger.Log(
                         TransportLogger.LogLevel.Error,
-                        "Unexpected error while sending async with ssl session" + e.Message + "Trace " + e.StackTrace);
+                        $"Unexpected error while sending async with ssl session{e.Message}Trace {e.StackTrace}");
                 }
             }
         }
@@ -110,7 +107,7 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
                 {
                     TransportLogger.Log(
                         TransportLogger.LogLevel.Error,
-                        "Unexpected error while sending async with ssl session" + e.Message + "Trace " + e.StackTrace);
+                        $"Unexpected error while sending async with ssl session{e.Message}Trace {e.StackTrace}");
                 }
             }
         }
@@ -118,7 +115,7 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
 
         protected virtual void ConfigureBuffers()
         {
-            receiveBuffer = /*new byte[ReceiveBufferSize];*/ BufferPool.RentBuffer(ReceiveBufferSize);
+            ReceiveBuffer = /*new byte[ReceiveBufferSize];*/ BufferPool.RentBuffer(ReceiveBufferSize);
 
             //#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
 
@@ -126,7 +123,7 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
             //#endif
 
             if (UseQueue)
-                sendBuffer = BufferPool.RentBuffer(SendBufferSize);
+                SendBuffer = BufferPool.RentBuffer(SendBufferSize);
         }
 
 
@@ -140,7 +137,7 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
 
         private void SendAsync_(byte[] buffer, int offset, int count)
         {
-            enqueueLock.Take();
+            EnqueueLock.Take();
             if (IsSessionClosing())
             {
                 ReleaseSendResourcesIdempotent();
@@ -149,14 +146,14 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
 
             if (SendSemaphore.IsTaken())
             {
-                if (messageQueue.TryEnqueueMessage(buffer, offset, count))
+                if (MessageQueue.TryEnqueueMessage(buffer, offset, count))
                 {
-                    enqueueLock.Release();
+                    EnqueueLock.Release();
                     return;
                 }
             }
 
-            enqueueLock.Release();
+            EnqueueLock.Release();
 
             if (DropOnCongestion && SendSemaphore.IsTaken())
                 return;
@@ -170,7 +167,7 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
             }
 
             // you have to push it to queue because queue also does the processing.
-            if (!messageQueue.TryEnqueueMessage(buffer, offset, count))
+            if (!MessageQueue.TryEnqueueMessage(buffer, offset, count))
             {
                 TransportLogger.Log(TransportLogger.LogLevel.Error, "Message is too large to fit on buffer");
                 EndSession();
@@ -183,7 +180,7 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
 
         private void SendAsync_(byte[] buffer)
         {
-            enqueueLock.Take();
+            EnqueueLock.Take();
             if (IsSessionClosing())
             {
                 ReleaseSendResourcesIdempotent();
@@ -192,14 +189,14 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
 
             if (SendSemaphore.IsTaken())
             {
-                if (messageQueue.TryEnqueueMessage(buffer))
+                if (MessageQueue.TryEnqueueMessage(buffer))
                 {
-                    enqueueLock.Release();
+                    EnqueueLock.Release();
                     return;
                 }
             }
 
-            enqueueLock.Release();
+            EnqueueLock.Release();
 
             if (DropOnCongestion && SendSemaphore.IsTaken())
                 return;
@@ -212,7 +209,7 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
                 return;
             }
 
-            if (!messageQueue.TryEnqueueMessage(buffer))
+            if (!MessageQueue.TryEnqueueMessage(buffer))
             {
                 TransportLogger.Log(TransportLogger.LogLevel.Error, "Message is too large to fit on buffer");
                 EndSession();
@@ -230,7 +227,7 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
             //{
             try
             {
-                messageQueue.TryFlushQueue(ref sendBuffer, 0, out int amountWritten);
+                MessageQueue.TryFlushQueue(ref SendBuffer, 0, out int amountWritten);
                 WriteOnSessionStream(amountWritten);
             }
             catch
@@ -252,14 +249,14 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
 
             try
             {
-                sessionStream.BeginWrite(sendBuffer, 0, count, SentInternal, null);
+                SessionStream.BeginWrite(SendBuffer, 0, count, SentInternal, null);
             }
             catch (Exception ex)
             {
                 HandleError("While attempting to send an error occured", ex);
             }
 
-            totalBytesSend += count;
+            _totalBytesSend += count;
         }
 
 
@@ -329,7 +326,7 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
         private void SentInternal(IAsyncResult ar)
         {
             if (ar.CompletedSynchronously)
-                ThreadPool.UnsafeQueueUserWorkItem(s => Sent(ar), null);
+                ThreadPool.UnsafeQueueUserWorkItem(_ => Sent(ar), null);
             else
                 Sent(ar);
         }
@@ -347,7 +344,7 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
 
                 try
                 {
-                    sessionStream.EndWrite(ar);
+                    SessionStream.EndWrite(ar);
                 }
                 catch (Exception e)
                 {
@@ -356,38 +353,33 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
                     return;
                 }
 
-                if (messageQueue.TryFlushQueue(ref sendBuffer, 0, out int amountWritten))
+                if (MessageQueue.TryFlushQueue(ref SendBuffer, 0, out int amountWritten))
                 {
                     WriteOnSessionStream(amountWritten);
                     return;
                 }
 
                 // here there was nothing to flush
-                bool flush = false;
 
-                enqueueLock.Take();
+                EnqueueLock.Take();
 
                 // ask again safely
-                if (messageQueue.IsEmpty())
+                if (MessageQueue.IsEmpty())
                 {
-                    messageQueue.Flush();
+                    MessageQueue.Flush();
 
                     SendSemaphore.Release();
-                    enqueueLock.Release();
+                    EnqueueLock.Release();
                     if (IsSessionClosing())
                         ReleaseSendResourcesIdempotent();
                     return;
                 }
 
-                flush = true;
-                enqueueLock.Release();
+                EnqueueLock.Release();
 
-                // something got into queue just before i exit, we need to flush it
-                if (flush)
-                {
-                    if (messageQueue.TryFlushQueue(ref sendBuffer, 0, out int amountWritten_))
-                        WriteOnSessionStream(amountWritten_);
-                }
+                // something got into the queue just before exit, we need to flush it
+                if (MessageQueue.TryFlushQueue(ref SendBuffer, 0, out int amountWrittenTemp))
+                    WriteOnSessionStream(amountWrittenTemp);
             }
             catch (Exception e)
             {
@@ -410,7 +402,7 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
 
             try
             {
-                sessionStream.BeginRead(receiveBuffer, 0, receiveBuffer.Length, Received, null);
+                SessionStream.BeginRead(ReceiveBuffer, 0, ReceiveBuffer.Length, Received, null);
             }
             catch (Exception ex)
             {
@@ -462,10 +454,10 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
                 return;
             }
 
-            int amountRead = 0;
+            int amountRead;
             try
             {
-                amountRead = sessionStream.EndRead(ar);
+                amountRead = SessionStream.EndRead(ar);
             }
             catch (Exception e)
             {
@@ -475,19 +467,19 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
             }
 
             if (amountRead > 0)
-                HandleReceived(receiveBuffer, 0, amountRead);
+                HandleReceived(ReceiveBuffer, 0, amountRead);
             else
             {
                 EndSession();
                 ReleaseReceiveResourcesIdempotent();
             }
 
-            totalBytesReceived += amountRead;
+            _totalBytesReceived += amountRead;
 
             // Stack overflow prevention.
             if (ar.CompletedSynchronously)
             {
-                ThreadPool.UnsafeQueueUserWorkItem(e => Receive(), null);
+                ThreadPool.UnsafeQueueUserWorkItem(_ => Receive(), null);
                 return;
             }
 
@@ -497,8 +489,8 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
 
         protected virtual void HandleReceived(byte[] buffer, int offset, int count)
         {
-            totalMessageReceived++;
-            OnBytesRecieved?.Invoke(sessionId, buffer, offset, count);
+            _totalMessageReceived++;
+            BytesReceived?.Invoke(SessionId, buffer, offset, count);
         }
 
 
@@ -508,48 +500,50 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
         {
             if (IsSessionClosing())
                 return;
-            TransportLogger.Log(TransportLogger.LogLevel.Error, "Context : " + context + " Message : " + e.Message);
+            TransportLogger.Log(TransportLogger.LogLevel.Error, $"Context : {context} Message : {e.Message}");
             EndSession();
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected bool IsSessionClosing() => Interlocked.CompareExchange(ref SessionClosing, 1, 1) == 1;
+        protected bool IsSessionClosing() => Interlocked.CompareExchange(ref _sessionClosing, 1, 1) == 1;
 
 
         // This method is Idempotent
         public void EndSession()
         {
-            if (Interlocked.CompareExchange(ref SessionClosing, 1, 0) == 0)
+            if (Interlocked.CompareExchange(ref _sessionClosing, 1, 0) != 0)
+                return;
+            
+            try
             {
-                try
-                {
-                    sessionStream.Close();
-                }
-                catch
-                {
-                }
-
-                try
-                {
-                    OnSessionClosed?.Invoke(sessionId);
-                }
-                catch
-                {
-                }
-
-                OnSessionClosed = null;
-                Dispose();
+                SessionStream.Close();
             }
+            catch
+            {
+                // ignored
+            }
+
+            try
+            {
+                SessionClosed?.Invoke(SessionId);
+            }
+            catch
+            {
+                // ignored
+            }
+
+            SessionClosed = null;
+            Dispose();
         }
 
 
-        private int sendResReleased;
+        private int _sendResReleased;
 
 
         protected void ReleaseSendResourcesIdempotent()
         {
-            if (Interlocked.CompareExchange(ref sendResReleased, 1, 0) == 0)
+            if (Interlocked.CompareExchange(ref _sendResReleased, 1, 0) == 0)
                 ReleaseSendResources();
         }
 
@@ -559,60 +553,61 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
             try
             {
                 if (UseQueue)
-                    BufferPool.ReturnBuffer(sendBuffer);
+                    BufferPool.ReturnBuffer(SendBuffer);
 
-                Interlocked.Exchange(ref messageQueue, null)?.Dispose();
+                Interlocked.Exchange(ref MessageQueue!, null)?.Dispose();
             }
             catch (Exception e)
             {
                 TransportLogger.Log(
                     TransportLogger.LogLevel.Error,
-                    "Error eccured while releasing ssl session send resources:" + e.Message);
+                    $"Error occurred while releasing ssl session send resources:{e.Message}");
             }
             finally
             {
-                enqueueLock.Release();
+                EnqueueLock.Release();
             }
         }
 
 
-        private int receiveResReleased;
+        private int _receiveResReleased;
 
 
         private void ReleaseReceiveResourcesIdempotent()
         {
-            if (Interlocked.CompareExchange(ref receiveResReleased, 1, 0) == 0)
+            if (Interlocked.CompareExchange(ref _receiveResReleased, 1, 0) == 0)
                 ReleaseReceiveResources();
         }
 
 
         protected virtual void ReleaseReceiveResources()
         {
-            BufferPool.ReturnBuffer(receiveBuffer);
+            BufferPool.ReturnBuffer(ReceiveBuffer);
         }
 
 
         protected virtual void Dispose(bool disposing)
         {
-            if (Interlocked.Exchange(ref disposedValue, 1) == 0)
+            if (Interlocked.Exchange(ref _disposedValue, 1) != 0)
+                return;
+            
+            try
             {
-                try
-                {
-                    sessionStream.Close();
-                    sessionStream.Dispose();
-                }
-                catch
-                {
-                }
-
-                OnBytesRecieved = null;
-
-                if (!SendSemaphore.IsTaken())
-                    ReleaseSendResourcesIdempotent();
-
-                enqueueLock.Release();
-                SendSemaphore.Release();
+                SessionStream.Close();
+                SessionStream.Dispose();
             }
+            catch
+            {
+                // ignored
+            }
+
+            BytesReceived = null;
+
+            if (!SendSemaphore.IsTaken())
+                ReleaseSendResourcesIdempotent();
+
+            EnqueueLock.Release();
+            SendSemaphore.Release();
         }
 
 
@@ -624,26 +619,27 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
 
         public SessionStatistics GetSessionStatistics()
         {
-            long deltaReceived = totalBytesReceived - totalBytesReceivedPrev;
-            long deltaSent = totalBytesSend - totalBytesSendPrev;
-            totalBytesSendPrev = totalBytesSend;
-            totalBytesReceivedPrev = totalBytesReceived;
+            long deltaReceived = _totalBytesReceived - _totalBytesReceivedPrev;
+            long deltaSent = _totalBytesSend - _totalBytesSendPrev;
+            _totalBytesSendPrev = _totalBytesSend;
+            _totalBytesReceivedPrev = _totalBytesReceived;
 
-            long deltaMSgReceived = totalMessageReceived - totalMsgReceivedPrev;
-            long deltaMsgSent = messageQueue.TotalMessageDispatched - totalMessageSentPrev;
+            long deltaMSgReceived = _totalMessageReceived - _totalMsgReceivedPrev;
+            long deltaMsgSent = MessageQueue.TotalMessageDispatched - _totalMessageSentPrev;
 
-            totalMsgReceivedPrev = totalMessageReceived;
-            totalMessageSentPrev = messageQueue.TotalMessageDispatched;
+            _totalMsgReceivedPrev = _totalMessageReceived;
+            _totalMessageSentPrev = MessageQueue.TotalMessageDispatched;
 
             return new SessionStatistics(
-                messageQueue.CurrentIndexedMemory,
-                messageQueue.CurrentIndexedMemory / MaxIndexedMemory,
-                totalBytesReceived,
-                totalBytesSend,
+                MessageQueue.CurrentIndexedMemory,
+                // ReSharper disable once PossibleLossOfFraction
+                MessageQueue.CurrentIndexedMemory / MaxIndexedMemory,
+                _totalBytesReceived,
+                _totalBytesSend,
                 deltaSent,
                 deltaReceived,
-                messageQueue.TotalMessageDispatched,
-                totalMessageReceived,
+                MessageQueue.TotalMessageDispatched,
+                _totalMessageReceived,
                 deltaMsgSent,
                 deltaMSgReceived);
         }

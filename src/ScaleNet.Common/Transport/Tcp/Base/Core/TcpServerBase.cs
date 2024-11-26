@@ -15,7 +15,7 @@ namespace ScaleNet.Common.Transport.Tcp.Base.Core
         /// <param name="bytes"></param>
         /// <param name="offset"></param>
         /// <param name="count"></param>
-        public delegate void BytesRecieved(Guid guid, byte[] bytes, int offset, int count);
+        public delegate void BytesReceived(Guid guid, byte[] bytes, int offset, int count);
 
         /// <summary>
         ///     Client accepted callback delegate with session id as Guid
@@ -39,23 +39,11 @@ namespace ScaleNet.Common.Transport.Tcp.Base.Core
         /// <summary>
         ///     <br /> Determines whether to use queue or buffer for message gathering mechanism.
         ///     <br /><br /> UseQueue requires your byte[] sources to be not modified after send because your data may be copied
-        ///     asyncronusly.
+        ///     asynchronously.
         ///     <br /><br /> UseBuffer will copy your data into a buffer on caller thread. Socket will perform buffer swaps.
         ///     You can modify or reuse your data safely.
         /// </summary>
         public ScatterGatherConfig GatherConfig = ScatterGatherConfig.UseQueue;
-
-        /// <summary>
-        ///     Client send buffer size
-        ///     Does nothing if server is already started.
-        /// </summary>
-        public int ClientSendBufsize { get; set; } = 128000;
-
-        /// <summary>
-        ///     Client receive buffer size.
-        ///     Does nothing if server is already started.
-        /// </summary>
-        public int ClientReceiveBufsize { get; set; } = 128000;
 
         /// <summary>
         ///     Maximum amount of indexed memory to be held inside the message queue.
@@ -74,11 +62,6 @@ namespace ScaleNet.Common.Transport.Tcp.Base.Core
         ///     if the messages will not dropped, sender thread will block until operation is finished.
         /// </summary>
         public bool DropOnBackPressure { get; set; } = false;
-
-        /// <summary>
-        ///     Enables or disables naggle no  delay property of the server.
-        /// </summary>
-        public bool NaggleNoDelay { get; set; } = false;
 
         /// <summary>
         ///     Server port
@@ -120,7 +103,7 @@ namespace ScaleNet.Common.Transport.Tcp.Base.Core
 
 
         /// <summary>
-        ///     Multicats message to all clients.
+        ///     Multicasts message to all clients.
         /// </summary>
         /// <param name="bytes"></param>
         public abstract void SendBytesToAllClients(byte[] bytes);

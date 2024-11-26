@@ -8,7 +8,7 @@ namespace ScaleNet.Common.Transport.Components.MessageProcessor.Interface
 
         
         /// <summary>
-        ///     Sets a buffer where the messages will be processed into
+        /// Sets a buffer where the messages will be processed into
         /// </summary>
         /// <param name="buffer"></param>
         /// <param name="offset"></param>
@@ -16,25 +16,24 @@ namespace ScaleNet.Common.Transport.Components.MessageProcessor.Interface
 
 
         /// <summary>
-        ///     Processes a given message into a buffer set by <see cref="SetBuffer" />
+        /// Processes a given message into a buffer set by <see cref="SetBuffer" />
         /// </summary>
         /// <param name="message"></param>
         /// <returns>
-        ///     true, if the message is completely processed, false means message is partially processed and its heldover,
-        ///     indicates flush is required
+        /// true, if the message is completely processed, false means the message was partially processed and a flush is required
         /// </returns>
         bool ProcessMessage(byte[] message);
 
 
         /// <summary>
-        ///     Flushes a heldover message into buffer set by <see cref="SetBuffer" />.
+        /// Flushes a heldover message into buffer set by <see cref="SetBuffer" />.
         /// </summary>
-        /// <returns>true if heldover message is completel flushed, false if the messages isnt fully processed.</returns>
+        /// <returns>true if heldover message is completely flushed, false if the message isn't fully processed.</returns>
         bool Flush();
 
 
         /// <summary>
-        ///     Returns the buffer set by <see cref="SetBuffer" />
+        /// Returns the buffer set by <see cref="SetBuffer" />
         /// </summary>
         /// <param name="buffer"></param>
         /// <param name="offset"></param>

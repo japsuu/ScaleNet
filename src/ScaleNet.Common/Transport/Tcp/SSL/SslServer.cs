@@ -16,46 +16,46 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
 {
     public class SslServer : TcpServerBase
     {
-        private readonly X509Certificate2 certificate;
-        private readonly TcpServerStatisticsPublisher statisticsPublisher;
+        private readonly X509Certificate2 _certificate;
+        private readonly TcpServerStatisticsPublisher _statisticsPublisher;
 
         /// <summary>
         ///     Invoked when bytes are received. New receive operation will not be performed until this callback is finalised.
         ///     <br /><br />Callback data is region of the socket buffer.
         ///     <br />Do a copy if you intend to store the data or use it on different thread.
         /// </summary>
-        public BytesRecieved OnBytesReceived;
+        public BytesReceived? OnBytesReceived;
 
         /// <summary>
         ///     Invoked when client is connected to server.
         /// </summary>
-        public ClientAccepted OnClientAccepted;
+        public ClientAccepted? OnClientAccepted;
 
         /// <summary>
         ///     Invoked when client is disconnected
         /// </summary>
-        public ClientDisconnected OnClientDisconnected;
+        public ClientDisconnected? OnClientDisconnected;
 
-        public ClientConnectionRequest OnClientRequestedConnection;
+        public ClientConnectionRequest? OnClientRequestedConnection;
 
         /// <summary>
         ///     Assign if you need to validate certificates. By default all certificates are accepted.
         /// </summary>
         public RemoteCertificateValidationCallback RemoteCertificateValidationCallback;
 
-        private Socket serverSocket;
+        private Socket? _serverSocket;
 
-        private protected ConcurrentDictionary<Guid, IAsyncSession> Sessions = new();
+        private protected readonly ConcurrentDictionary<Guid, IAsyncSession> Sessions = new();
 
 
         public SslServer(int port, X509Certificate2 certificate)
         {
             ServerPort = port;
-            this.certificate = certificate ?? throw new ArgumentNullException(nameof(certificate));
-            OnClientRequestedConnection = socket => true;
+            _certificate = certificate ?? throw new ArgumentNullException(nameof(certificate));
+            OnClientRequestedConnection = _ => true;
             RemoteCertificateValidationCallback += DefaultValidationCallback;
 
-            statisticsPublisher = new TcpServerStatisticsPublisher(Sessions);
+            _statisticsPublisher = new TcpServerStatisticsPublisher(Sessions);
         }
 
 
@@ -67,38 +67,38 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
 
         public override void StartServer()
         {
-            serverSocket = new Socket(SocketType.Stream, ProtocolType.Tcp);
-            serverSocket.ReceiveBufferSize = ServerSockerReceiveBufferSize;
-            serverSocket.Bind(new IPEndPoint(IPAddress.Any, ServerPort));
+            _serverSocket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+            _serverSocket.ReceiveBufferSize = ServerSockerReceiveBufferSize;
+            _serverSocket.Bind(new IPEndPoint(IPAddress.Any, ServerPort));
 
-            serverSocket.Listen(10000);
+            _serverSocket.Listen(10000);
 
             // serverSocket.BeginAccept(Accepted, null);
             for (int i = 0; i < Environment.ProcessorCount; i++)
             {
                 SocketAsyncEventArgs e = new();
-                e.Completed += Accepted;
-                if (!serverSocket.AcceptAsync(e))
-                    ThreadPool.UnsafeQueueUserWorkItem(s => Accepted(null, e), null);
+                e.Completed += AcceptedHandler;
+                if (!_serverSocket.AcceptAsync(e))
+                    ThreadPool.UnsafeQueueUserWorkItem(_ => AcceptedHandler(null, e), null);
             }
         }
 
 
-        private void Accepted(object sender, SocketAsyncEventArgs acceptedArg)
+        private void AcceptedHandler(object? sender, SocketAsyncEventArgs acceptedArg)
         {
             if (Stopping)
                 return;
 
             SocketAsyncEventArgs nextClient = new();
-            nextClient.Completed += Accepted;
+            nextClient.Completed += AcceptedHandler;
 
-            if (!serverSocket.AcceptAsync(nextClient))
-                ThreadPool.UnsafeQueueUserWorkItem(s => Accepted(null, nextClient), null);
+            if (!_serverSocket!.AcceptAsync(nextClient))
+                ThreadPool.UnsafeQueueUserWorkItem(_ => AcceptedHandler(null, nextClient), null);
 
             if (acceptedArg.SocketError != SocketError.Success)
             {
                 TransportLogger.Log(
-                    TransportLogger.LogLevel.Error, "While Accepting Client an Error Occured:" + Enum.GetName(typeof(SocketError), acceptedArg.SocketError));
+                    TransportLogger.LogLevel.Error, $"While Accepting Client an Error Occured:{Enum.GetName(typeof(SocketError), acceptedArg.SocketError)}");
                 return;
             }
 
@@ -110,12 +110,12 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
             {
                 Authenticate(
                     (IPEndPoint)acceptedArg.AcceptSocket.RemoteEndPoint, sslStream,
-                    certificate, true, SslProtocols.None, false);
+                    _certificate, true, SslProtocols.None, false);
             }
             catch (Exception ex)
                 when (ex is AuthenticationException || ex is ObjectDisposedException)
             {
-                TransportLogger.Log(TransportLogger.LogLevel.Error, "Athentication as server failed: " + ex.Message);
+                TransportLogger.Log(TransportLogger.LogLevel.Error, $"Athentication as server failed: {ex.Message}");
             }
 
             acceptedArg.Dispose();
@@ -132,8 +132,8 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
                     //await task;
                     Guid sessionId = Guid.NewGuid();
                     IAsyncSession ses = CreateSession(sessionId, (sslStream, remoteEndPoint));
-                    ses.OnBytesRecieved += HandleBytesReceived;
-                    ses.OnSessionClosed += HandeDeadSession;
+                    ses.BytesReceived += HandleBytesReceived;
+                    ses.SessionClosed += HandeDeadSession;
                     Sessions.TryAdd(sessionId, ses);
                     ses.StartSession();
 
@@ -141,7 +141,7 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
                 }
                 catch (Exception ex)
                 {
-                    TransportLogger.Log(TransportLogger.LogLevel.Error, "Athentication as server failed: " + ex.Message);
+                    TransportLogger.Log(TransportLogger.LogLevel.Error, $"Athentication as server failed: {ex.Message}");
                     sslStream.Close();
                     sslStream.Dispose();
                 }
@@ -155,7 +155,7 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
         }
 
 
-        protected virtual bool ValidateConnection(Socket clientsocket) => OnClientRequestedConnection.Invoke(clientsocket);
+        protected virtual bool ValidateConnection(Socket clientsocket) => OnClientRequestedConnection!.Invoke(clientsocket);
 
 
         private bool ValidateCeriticate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>
@@ -223,8 +223,8 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
         public override void ShutdownServer()
         {
             Stopping = true;
-            serverSocket.Close();
-            serverSocket.Dispose();
+            _serverSocket?.Close();
+            _serverSocket?.Dispose();
             foreach (KeyValuePair<Guid, IAsyncSession> item in Sessions)
                 item.Value.EndSession();
             Sessions.Clear();
@@ -240,7 +240,7 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
 
         public override void GetStatistics(out TcpStatistics generalStats, out ConcurrentDictionary<Guid, TcpStatistics> sessionStats)
         {
-            statisticsPublisher.GetStatistics(out generalStats, out sessionStats);
+            _statisticsPublisher.GetStatistics(out generalStats, out sessionStats);
         }
 
 
@@ -249,7 +249,7 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
             if (Sessions.TryGetValue(sessionId, out IAsyncSession? session))
                 return session.RemoteEndpoint;
 
-            return null;
+            return null!;
         }
     }
 }

@@ -15,33 +15,33 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
     /// </summary>
     public class SslClient : TcpClientBase, IDisposable
     {
-        private readonly X509Certificate2 certificate;
-        private protected IAsyncSession clientSession;
-        protected Socket clientSocket;
+        private readonly X509Certificate2 _certificate;
+        private protected IAsyncSession? ClientSession;
+        protected Socket? ClientSocket;
+        protected SslStream? SslStream;
+        private TcpClientStatisticsPublisher? _statisticsPublisher;
 
         /// <summary>
         ///     Assign if you need to validate certificates. By default all certificates are accepted.
         /// </summary>
         public RemoteCertificateValidationCallback RemoteCertificateValidationCallback;
 
-        protected SslStream sslStream;
-        private TcpClientStatisticsPublisher statisticsPublisher;
 
 
         /// <summary>
-        ///     initialises new instace with given certificate
+        ///     initializes new instance with given certificate
         /// </summary>
         /// <param name="certificate"></param>
         public SslClient(X509Certificate2 certificate)
         {
-            this.certificate = certificate ?? throw new ArgumentNullException(nameof(certificate));
+            _certificate = certificate ?? throw new ArgumentNullException(nameof(certificate));
             RemoteCertificateValidationCallback += DefaultValidationCallbackHandler;
         }
 
 
         public virtual void Dispose()
         {
-            clientSession?.EndSession();
+            ClientSession?.EndSession();
         }
 
 
@@ -78,10 +78,9 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
         ///     <br />If ScatterGatherConfig.UseQueue is selected message will be added to queue without copy.
         ///     <br />If ScatterGatherConfig.UseBuffer message will be copied to message buffer on caller thread.
         /// </summary>
-        /// <param name="buffer"></param>
         public override void SendAsync(byte[] bytes)
         {
-            clientSession.SendAsync(bytes);
+            ClientSession?.SendAsync(bytes);
         }
 
 
@@ -89,26 +88,29 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
         ///     Sends a message without blocking
         ///     <br />If ScatterGatherConfig.UseQueue is selected message will be copied to single buffer before added into queue.
         ///     <br />If ScatterGatherConfig.UseBuffer message will be copied to message buffer on caller thread,
-        ///     <br /> <br />ScatterGatherConfig.UseBuffer is the reccomeded configuration if your sends are buffer region
+        ///     <br /> <br />ScatterGatherConfig.UseBuffer is the recommended configuration if your sends are buffer region
         /// </summary>
         /// <param name="buffer"></param>
         /// <param name="offset"></param>
         /// <param name="count"></param>
         public override void SendAsync(byte[] buffer, int offset, int count)
         {
-            clientSession.SendAsync(buffer, offset, count);
+            ClientSession?.SendAsync(buffer, offset, count);
         }
 
 
         public override void Disconnect()
         {
-            clientSession?.EndSession();
+            ClientSession?.EndSession();
         }
 
 
         public override void GetStatistics(out TcpStatistics generalStats)
         {
-            statisticsPublisher.GetStatistics(out generalStats);
+            if (_statisticsPublisher == null)
+                throw new InvalidOperationException("Client is not connected");
+            
+            _statisticsPublisher.GetStatistics(out generalStats);
         }
 
 
@@ -122,7 +124,7 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
                 Socket clientSocket = GetSocket();
 
                 clientSocket.Connect(new IPEndPoint(IPAddress.Parse(ip), port));
-                Connected(ip, clientSocket);
+                OnConnected(ip, clientSocket);
             }
             finally
             {
@@ -138,22 +140,20 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
                 IsConnecting = true;
                 Socket clientSocket = GetSocket();
 
-                // this shit is terrible..
-
                 TaskCompletionSource<bool> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-                SocketAsyncEventArgs earg = new();
-                earg.RemoteEndPoint = new IPEndPoint(IPAddress.Parse(ip), port);
-                earg.Completed += (ignored, arg) => { HandleResult(arg); };
+                SocketAsyncEventArgs args = new();
+                args.RemoteEndPoint = new IPEndPoint(IPAddress.Parse(ip), port);
+                args.Completed += (_, arg) => { HandleResult(arg); };
 
-                if (!clientSocket.ConnectAsync(earg))
-                    HandleResult(earg);
+                if (!clientSocket.ConnectAsync(args))
+                    HandleResult(args);
 
                 void HandleResult(SocketAsyncEventArgs arg)
                 {
                     if (arg.SocketError == SocketError.Success)
                     {
-                        Connected(ip, clientSocket);
+                        OnConnected(ip, clientSocket);
                         tcs.SetResult(true);
                     }
                     else
@@ -175,14 +175,14 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
                 async () =>
                 {
                     IsConnecting = true;
-                    bool result = false;
+                    bool result;
                     try
                     {
                         result = await ConnectAsyncAwaitable(IP, port).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
-                        OnConnectFailed?.Invoke(ex);
+                        ConnectFailed?.Invoke(ex);
                         return;
                     }
                     finally
@@ -191,27 +191,27 @@ namespace ScaleNet.Common.Transport.Tcp.SSL
                     }
 
                     if (result)
-                        OnConnected?.Invoke();
+                        Connected?.Invoke();
                 });
         }
 
 
-        private void Connected(string domainName, Socket clientSocket)
+        private void OnConnected(string domainName, Socket clientSocket)
         {
-            sslStream = new SslStream(new NetworkStream(clientSocket, true), false, ValidateCeriticate);
-            sslStream.AuthenticateAsClient(
+            SslStream = new SslStream(new NetworkStream(clientSocket, true), false, ValidateCeriticate);
+            SslStream.AuthenticateAsClient(
                 domainName,
-                new X509CertificateCollection(new[] { certificate }), SslProtocols.None, true);
+                new X509CertificateCollection(new X509Certificate[] { _certificate }), SslProtocols.None, true);
 
-            this.clientSocket = clientSocket;
-            Guid Id = Guid.NewGuid();
+            ClientSocket = clientSocket;
+            Guid id = Guid.NewGuid();
 
-            clientSession = CreateSession(Id, new ValueTuple<SslStream, IPEndPoint>(sslStream, (IPEndPoint)clientSocket.RemoteEndPoint));
-            clientSession.OnSessionClosed += id => OnDisconnected?.Invoke();
-            clientSession.OnBytesRecieved += HandleBytesReceived;
-            clientSession.StartSession();
+            ClientSession = CreateSession(id, new ValueTuple<SslStream, IPEndPoint>(SslStream, (IPEndPoint)clientSocket.RemoteEndPoint));
+            ClientSession.SessionClosed += _ => Disconnected?.Invoke();
+            ClientSession.BytesReceived += HandleBytesReceived;
+            ClientSession.StartSession();
 
-            statisticsPublisher = new TcpClientStatisticsPublisher(clientSession);
+            _statisticsPublisher = new TcpClientStatisticsPublisher(ClientSession);
             IsConnecting = false;
             IsConnected = true;
         }

@@ -10,10 +10,10 @@ namespace ScaleNet.Common.Transport.Components.MessageProcessor.Unmanaged
         private int _offset;
         private int _originalOffset;
 
-        private byte[] _pendingMessage = null!;
+        private byte[]? _pendingMessage;
         private int _pendingMessageOffset;
         private int _pendingRemaining;
-        private byte[] _bufferInternal = null!;
+        private byte[]? _bufferInternal;
 
         public bool IsHoldingMessage { get; private set; }
 
@@ -33,6 +33,9 @@ namespace ScaleNet.Common.Transport.Components.MessageProcessor.Unmanaged
         {
             if (IsHoldingMessage)
                 throw new InvalidOperationException("You can not process new message before heldover message is fully flushed");
+            
+            if (_bufferInternal == null)
+                throw new InvalidOperationException("Buffer is not set");
 
             if (_bufferInternal.Length - _offset >= message.Length)
             {
@@ -63,6 +66,12 @@ namespace ScaleNet.Common.Transport.Components.MessageProcessor.Unmanaged
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool Flush()
         {
+            if (_bufferInternal == null)
+                throw new InvalidOperationException("Buffer is not set");
+
+            if (_pendingMessage == null)
+                throw new InvalidOperationException("There is no message to flush");
+
             if (_pendingRemaining <= _bufferInternal.Length - _offset)
             {
                 //System.Buffer.BlockCopy(pendingMessage, pendingMessageOffset, bufferInternal, offset, pendingRemaining);
@@ -104,7 +113,7 @@ namespace ScaleNet.Common.Transport.Components.MessageProcessor.Unmanaged
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void GetBuffer(out byte[] buffer, out int offset, out int count)
         {
-            buffer = _bufferInternal;
+            buffer = _bufferInternal ?? throw new InvalidOperationException("Buffer is not set");
             offset = _originalOffset;
             count = _count;
         }

@@ -19,10 +19,7 @@ namespace ScaleNet.Common.Transport.Tcp.SSL.ByteMessage
             ses.MaxIndexedMemory = MaxIndexedMemoryPerClient;
             ses.RemoteEndpoint = tuple.Item2;
 
-            if (GatherConfig == ScatterGatherConfig.UseQueue)
-                ses.UseQueue = true;
-            else
-                ses.UseQueue = false;
+            ses.UseQueue = GatherConfig == ScatterGatherConfig.UseQueue;
 
             return ses;
         }

@@ -9,13 +9,13 @@ namespace ScaleNet.Common.Transport.Tcp.SSL.ByteMessage
 {
     internal class SslByteMessageSession : SslSession
     {
-        private readonly ByteMessageReader reader;
+        private readonly ByteMessageReader _reader;
 
 
         public SslByteMessageSession(Guid sessionId, SslStream sessionStream) : base(sessionId, sessionStream)
         {
-            reader = new ByteMessageReader();
-            reader.OnMessageReady += HandleMessage;
+            _reader = new ByteMessageReader();
+            _reader.OnMessageReady += HandleMessage;
         }
 
 
@@ -27,7 +27,7 @@ namespace ScaleNet.Common.Transport.Tcp.SSL.ByteMessage
 
         protected override void HandleReceived(byte[] buffer, int offset, int count)
         {
-            reader.ParseBytes(buffer, offset, count);
+            _reader.ParseBytes(buffer, offset, count);
         }
 
 

@@ -6,12 +6,12 @@ namespace ScaleNet.Common.Transport.Components.MessageProcessor.Unmanaged
 {
     internal sealed class DelimitedMessageWriter : IMessageProcessor
     {
-        private byte[] _bufferInternal = null!;
+        private byte[]? _bufferInternal;
         private int _count;
         private int _offset;
         private int _originalOffset;
 
-        private byte[] _pendingMessage = null!;
+        private byte[]? _pendingMessage;
         private int _pendingMessageOffset;
         private int _pendingRemaining;
         private bool _writeHeaderOnFlush;
@@ -82,8 +82,15 @@ namespace ScaleNet.Common.Transport.Components.MessageProcessor.Unmanaged
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool Flush()
         {
+            if (_bufferInternal == null)
+                throw new InvalidOperationException("Buffer is not set");
+            
+            if (_pendingMessage == null)
+                throw new InvalidOperationException("There is no message to flush");
+            
             if (_writeHeaderOnFlush)
             {
+                
                 _writeHeaderOnFlush = false;
                 fixed (byte* b = &_bufferInternal[_offset])
                 {
@@ -132,7 +139,7 @@ namespace ScaleNet.Common.Transport.Components.MessageProcessor.Unmanaged
 
         public void GetBuffer(out byte[] buffer, out int offset, out int count)
         {
-            buffer = _bufferInternal;
+            buffer = _bufferInternal ?? throw new InvalidOperationException("Buffer is not set");
             offset = _originalOffset;
             count = _count;
         }

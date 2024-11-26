@@ -7,51 +7,44 @@ namespace ScaleNet.Common.Transport.Tcp.Base.Core
     internal interface IAsyncSession : IDisposable
     {
         /// <summary>
-        ///     RemoteEnpoint of this sesssion
+        /// Remote endpoint of this session
         /// </summary>
         IPEndPoint RemoteEndpoint { get; }
 
-        /// <summary>
-        ///     Bytes received event
-        /// </summary>
-        event Action<Guid, byte[], int, int> OnBytesRecieved;
+        event Action<Guid, byte[], int, int>? BytesReceived;
 
         /// <summary>
-        ///     Called when session is closed.
+        /// Called when session is closed.
         /// </summary>
-        event Action<Guid> OnSessionClosed;
+        event Action<Guid>? SessionClosed;
 
 
         /// <summary>
-        ///     Sends buffer asycronusly.
+        /// Sends buffer asynchronously.
         /// </summary>
-        /// <param name="buffer"></param>
         void SendAsync(byte[] buffer);
 
 
         /// <summary>
-        ///     Sends buffer region asyncronusly
+        /// Sends a buffer region asynchronously
         /// </summary>
-        /// <param name="buffer"></param>
-        /// <param name="offset"></param>
-        /// <param name="count"></param>
         void SendAsync(byte[] buffer, int offset, int count);
 
 
         /// <summary>
-        ///     Starts the session
+        /// Starts the session
         /// </summary>
         void StartSession();
 
 
         /// <summary>
-        ///     Disconnects the client and disposes the resources.
+        /// Disconnects the client and disposes the resources.
         /// </summary>
         void EndSession();
 
 
         /// <summary>
-        ///     gets the session statistics.
+        /// gets the session statistics.
         /// </summary>
         /// <returns></returns>
         SessionStatistics GetSessionStatistics();

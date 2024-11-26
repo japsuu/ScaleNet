@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace ScaleNet.Common.Transport.Components
 {
-    // statefully parse byte messages with 4 byte length header,
+    // statefully parses byte messages with 4 byte length header,
     // under any fragmentation condition
     public class ByteMessageReader
     {
@@ -238,17 +237,6 @@ namespace ScaleNet.Common.Transport.Components
         {
             BufferPool.ReturnBuffer(_internalBuffer);
             _internalBuffer = BufferPool.RentBuffer(_originalCapacity);
-        }
-
-
-        public void ReleaseResources()
-        {
-            OnMessageReady = null;
-
-            byte[]? b = Interlocked.Exchange(ref _internalBuffer!, null);
-
-            if (b != null)
-                BufferPool.ReturnBuffer(b);
         }
 
 #endregion
