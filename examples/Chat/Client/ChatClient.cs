@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading;
 using ScaleNet.Client;
-using ScaleNet.Client.LowLevel.Transport.Tcp;
+using ScaleNet.Client.LowLevel.Transport.TCP.StandardNetworkLibrary;
 using ScaleNet.Common;
 using ScaleNet.Common.Ssl;
 using Shared.Authentication;

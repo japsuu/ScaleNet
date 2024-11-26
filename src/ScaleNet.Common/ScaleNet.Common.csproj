@@ -32,7 +32,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Transport\Tcp\" />
+      <Folder Include="Transport\TCP\StandardNetworkLibrary\" />
     </ItemGroup>
 
 </Project>

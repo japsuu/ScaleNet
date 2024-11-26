@@ -3,6 +3,7 @@ using ScaleNet.Common;
 using ScaleNet.Common.Ssl;
 using ScaleNet.Server;
 using ScaleNet.Server.LowLevel.Transport.Tcp;
+using ScaleNet.Server.LowLevel.Transport.TCP.StandardNetworkLibrary;
 using Server.Authentication;
 using Server.Database;
 using Shared.Authentication;

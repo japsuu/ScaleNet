@@ -1,0 +1,111 @@
+﻿using System;
+using System.Collections.Concurrent;
+using System.Net;
+using System.Net.Sockets;
+using ScaleNet.Common.Transport.TCP.StandardNetworkLibrary.Components.Statistics;
+
+namespace ScaleNet.Common.Transport.TCP.StandardNetworkLibrary.Base.Core
+{
+    public abstract class TcpServerBase
+    {
+        /// <summary>
+        ///     Bytes received callback delegate with client session Id
+        /// </summary>
+        /// <param name="guid"></param>
+        /// <param name="bytes"></param>
+        /// <param name="offset"></param>
+        /// <param name="count"></param>
+        public delegate void BytesReceived(Guid guid, byte[] bytes, int offset, int count);
+
+        /// <summary>
+        ///     Client accepted callback delegate with session id as Guid
+        /// </summary>
+        /// <param name="guid"></param>
+        public delegate void ClientAccepted(Guid guid);
+
+        /// <summary>
+        ///     Connection Request callback delegate
+        /// </summary>
+        /// <param name="acceptedSocket"></param>
+        /// <returns></returns>
+        public delegate bool ClientConnectionRequest(Socket acceptedSocket);
+
+        /// <summary>
+        ///     Client is disconnected.
+        /// </summary>
+        /// <param name="guid"></param>
+        public delegate void ClientDisconnected(Guid guid);
+
+        /// <summary>
+        ///     <br /> Determines whether to use queue or buffer for message gathering mechanism.
+        ///     <br /><br /> UseQueue requires your byte[] sources to be not modified after send because your data may be copied
+        ///     asynchronously.
+        ///     <br /><br /> UseBuffer will copy your data into a buffer on caller thread. Socket will perform buffer swaps.
+        ///     You can modify or reuse your data safely.
+        /// </summary>
+        public ScatterGatherConfig GatherConfig = ScatterGatherConfig.UseQueue;
+
+        /// <summary>
+        ///     Maximum amount of indexed memory to be held inside the message queue.
+        ///     it is the maximum cumulative message lengths that are queued per client.
+        /// </summary>
+        public int MaxIndexedMemoryPerClient { get; set; } = 128000000;
+
+        /// <summary>
+        ///     Server socket receive buffer size. Keep it large for high number of clients.
+        /// </summary>
+        public int ServerSockerReceiveBufferSize { get; set; } = 2080000000;
+
+        /// <summary>
+        ///     Indicates whether if we should drop the messages on congestion pressure
+        ///     this condition occurs when queue is full and send operation is still in progress.
+        ///     if the messages will not dropped, sender thread will block until operation is finished.
+        /// </summary>
+        public bool DropOnBackPressure { get; set; } = false;
+
+        /// <summary>
+        ///     Server port
+        /// </summary>
+        public int ServerPort { get; protected set; }
+
+
+        /// <summary>
+        ///     Starts the server.
+        /// </summary>
+        public abstract void StartServer();
+
+
+        public abstract void GetStatistics(out TcpStatistics generalStats, out ConcurrentDictionary<Guid, TcpStatistics> sessionStats);
+
+        public abstract IPEndPoint GetSessionEndpoint(Guid sessionId);
+
+
+        /// <summary>
+        ///     Shuts down the server.
+        ///     Shutdown disposes all client resources.
+        /// </summary>
+        public abstract void ShutdownServer();
+
+
+        /// <summary>
+        ///     closes a given session
+        /// </summary>
+        /// <param name="sessionId"></param>
+        public abstract void CloseSession(Guid sessionId);
+
+
+        /// <summary>
+        ///     Sends or enqueues bytes to be send to a given client
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="bytes"></param>
+        public abstract void SendBytesToClient(Guid id, byte[] bytes);
+
+
+        /// <summary>
+        ///     Multicasts message to all clients.
+        /// </summary>
+        /// <param name="bytes"></param>
+        public abstract void SendBytesToAllClients(byte[] bytes);
+    }
+}
