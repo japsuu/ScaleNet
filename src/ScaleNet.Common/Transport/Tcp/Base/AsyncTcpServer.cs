@@ -1,8 +1,11 @@
-﻿using NetworkLibrary.Components.Statistics;
+﻿using System;
+using NetworkLibrary.Components.Statistics;
 using NetworkLibrary.Utils;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace NetworkLibrary.TCP.Base
 {

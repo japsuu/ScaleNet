@@ -1,4 +1,5 @@
-﻿using NetworkLibrary.TCP.Base;
+﻿using System;
+using NetworkLibrary.TCP.Base;
 using NetworkLibrary.TCP.SSL.Base;
 using System.Net;
 using System.Net.Security;

@@ -1,4 +1,5 @@
-﻿using NetworkLibrary.Components.Crypto.Certificate;
+﻿using System;
+using NetworkLibrary.Components.Crypto.Certificate;
 using NetworkLibrary.Components.Statistics;
 using NetworkLibrary.TCP.Base;
 using NetworkLibrary.Utils;
@@ -8,6 +9,8 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace NetworkLibrary.TCP.SSL.Base
 {

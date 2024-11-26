@@ -1,13 +1,9 @@
-﻿using NetworkLibrary.Components.Statistics;
+﻿using System;
+using NetworkLibrary.Components.Statistics;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 
-public enum ScatterGatherConfig
-{
-    UseQueue,
-    UseBuffer
-}
 namespace NetworkLibrary.TCP.Base
 {
     public abstract class TcpServerBase
