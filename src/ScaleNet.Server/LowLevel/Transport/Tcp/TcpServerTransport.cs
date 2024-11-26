@@ -235,6 +235,15 @@ public class TcpServerTransport : SslServer, IServerTransport
     }
 
 
+    protected override bool AcceptClient(Socket client)
+    {
+        if (_rejectNewConnections || _sessions.Count >= MaxConnections)
+            return false;
+        
+        return base.AcceptClient(client);
+    }
+
+
     protected override void OnConnecting(SslSession session)
     {
         SessionId id = ((TcpClientSession)session).SessionId;
@@ -261,14 +270,7 @@ public class TcpServerTransport : SslServer, IServerTransport
 
     protected override void OnHandshaked(SslSession session)
     {
-        TcpClientSession tcpClientSession = (TcpClientSession)session;
-        SessionId id = tcpClientSession.SessionId;
-        
-        if (_rejectNewConnections || _sessions.Count >= MaxConnections)
-        {
-            DisconnectSession(tcpClientSession, DisconnectReason.ServerFull);
-            return;
-        }
+        SessionId id = ((TcpClientSession)session).SessionId;
         
         SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.Ready));
     }

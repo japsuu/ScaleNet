@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using ScaleNet.Common.Ssl;
 
 namespace ScaleNet.Server.LowLevel.Transport.Tcp;
@@ -13,65 +12,20 @@ namespace ScaleNet.Server.LowLevel.Transport.Tcp;
 /// <remarks>Thread-safe</remarks>
 public class SslServer : IDisposable
 {
-    /// <summary>
-    /// Initialize SSL server with a given IP address and port number
-    /// </summary>
-    /// <param name="context">SSL context</param>
-    /// <param name="address">IP address</param>
-    /// <param name="port">Port number</param>
-    public SslServer(SslContext context, IPAddress address, int port) : this(context, new IPEndPoint(address, port))
-    {
-    }
-
+    // Server acceptor
+    private Socket? _acceptorSocket;
+    private SocketAsyncEventArgs? _acceptorEventArg;
 
     /// <summary>
-    /// Initialize SSL server with a given IP address and port number
+    /// Server sessions
     /// </summary>
-    /// <param name="context">SSL context</param>
-    /// <param name="address">IP address</param>
-    /// <param name="port">Port number</param>
-    public SslServer(SslContext context, string address, int port) : this(context, new IPEndPoint(IPAddress.Parse(address), port))
-    {
-    }
+    protected readonly ConcurrentDictionary<Guid, SslSession> Sessions = new();
 
-
-    /// <summary>
-    /// Initialize SSL server with a given DNS endpoint
-    /// </summary>
-    /// <param name="context">SSL context</param>
-    /// <param name="endpoint">DNS endpoint</param>
-    public SslServer(SslContext context, DnsEndPoint endpoint) : this(context, endpoint as EndPoint, endpoint.Host, endpoint.Port)
-    {
-    }
-
-
-    /// <summary>
-    /// Initialize SSL server with a given IP endpoint
-    /// </summary>
-    /// <param name="context">SSL context</param>
-    /// <param name="endpoint">IP endpoint</param>
-    public SslServer(SslContext context, IPEndPoint endpoint) : this(context, endpoint as EndPoint, endpoint.Address.ToString(), endpoint.Port)
-    {
-    }
-
-
-    /// <summary>
-    /// Initialize SSL server with a given SSL context, endpoint, address and port
-    /// </summary>
-    /// <param name="context">SSL context</param>
-    /// <param name="endpoint">Endpoint</param>
-    /// <param name="address">Server address</param>
-    /// <param name="port">Server port</param>
-    private SslServer(SslContext context, EndPoint endpoint, string address, int port)
-    {
-        Id = Guid.NewGuid();
-        Address = address;
-        Port = port;
-        Context = context;
-        Endpoint = endpoint;
-    }
-
-
+    // Server statistic
+    internal long BytesPendingStat;
+    internal long BytesSentStat;
+    internal long BytesReceivedStat;
+    
     /// <summary>
     /// Server Id
     /// </summary>
@@ -96,6 +50,16 @@ public class SslServer : IDisposable
     /// Endpoint
     /// </summary>
     public EndPoint Endpoint { get; private set; }
+    
+    /// <summary>
+    /// Is the server started?
+    /// </summary>
+    public bool IsStarted { get; private set; }
+
+    /// <summary>
+    /// Is the server accepting new clients?
+    /// </summary>
+    public bool IsAccepting { get; private set; }
 
     /// <summary>
     /// Number of sessions connected to the server
@@ -105,17 +69,17 @@ public class SslServer : IDisposable
     /// <summary>
     /// Number of bytes pending sent by the server
     /// </summary>
-    public long BytesPending => _bytesPending;
+    public long BytesPending => BytesPendingStat;
 
     /// <summary>
     /// Number of bytes sent by the server
     /// </summary>
-    public long BytesSent => _bytesSent;
+    public long BytesSent => BytesSentStat;
 
     /// <summary>
     /// Number of bytes received by the server
     /// </summary>
-    public long BytesReceived => _bytesReceived;
+    public long BytesReceived => BytesReceivedStat;
 
     /// <summary>
     /// Option: acceptor backlog size
@@ -200,34 +164,52 @@ public class SslServer : IDisposable
     /// </summary>
     public int OptionSendBufferSize { get; set; } = 8192;
 
+    
+    /// <summary>
+    /// Initialize SSL server with a given IP address and port number
+    /// </summary>
+    /// <param name="context">SSL context</param>
+    /// <param name="address">IP address</param>
+    /// <param name="port">Port number</param>
+    public SslServer(SslContext context, IPAddress address, int port) : this(context, new IPEndPoint(address, port))
+    {
+    }
+
+
+    /// <summary>
+    /// Initialize SSL server with a given IP endpoint
+    /// </summary>
+    /// <param name="context">SSL context</param>
+    /// <param name="endpoint">IP endpoint</param>
+    public SslServer(SslContext context, IPEndPoint endpoint) : this(context, endpoint, endpoint.Address.ToString(), endpoint.Port)
+    {
+    }
+
+
+    /// <summary>
+    /// Initialize SSL server with a given SSL context, endpoint, address and port
+    /// </summary>
+    /// <param name="context">SSL context</param>
+    /// <param name="endpoint">Endpoint</param>
+    /// <param name="address">Server address</param>
+    /// <param name="port">Server port</param>
+    private SslServer(SslContext context, EndPoint endpoint, string address, int port)
+    {
+        Id = Guid.NewGuid();
+        Address = address;
+        Port = port;
+        Context = context;
+        Endpoint = endpoint;
+    }
+    
 
 #region Start/Stop server
-
-    // Server acceptor
-    private Socket _acceptorSocket;
-    private SocketAsyncEventArgs _acceptorEventArg;
-
-    // Server statistic
-    internal long _bytesPending;
-    internal long _bytesSent;
-    internal long _bytesReceived;
-
-    /// <summary>
-    /// Is the server started?
-    /// </summary>
-    public bool IsStarted { get; private set; }
-
-    /// <summary>
-    /// Is the server accepting new clients?
-    /// </summary>
-    public bool IsAccepting { get; private set; }
-
-
+    
     /// <summary>
     /// Create a new socket object
     /// </summary>
     /// <remarks>
-    /// Method may be override if you need to prepare some specific socket object in your implementation.
+    /// Method may be overridden if you need to prepare some specific socket object in your implementation.
     /// </remarks>
     /// <returns>Socket object</returns>
     protected virtual Socket CreateSocket() => new(Endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -245,7 +227,7 @@ public class SslServer : IDisposable
 
         // Setup acceptor event arg
         _acceptorEventArg = new SocketAsyncEventArgs();
-        _acceptorEventArg.Completed += OnAsyncCompleted;
+        _acceptorEventArg.Completed += OnSocketAcceptorCompletedAsync;
 
         // Create a new acceptor socket
         _acceptorSocket = CreateSocket();
@@ -267,7 +249,7 @@ public class SslServer : IDisposable
         _acceptorSocket.Bind(Endpoint);
 
         // Refresh the endpoint property based on the actual endpoint created
-        Endpoint = _acceptorSocket.LocalEndPoint;
+        Endpoint = _acceptorSocket.LocalEndPoint!;
 
         // Call the server starting handler
         OnStarting();
@@ -276,9 +258,9 @@ public class SslServer : IDisposable
         _acceptorSocket.Listen(OptionAcceptorBacklog);
 
         // Reset statistic
-        _bytesPending = 0;
-        _bytesSent = 0;
-        _bytesReceived = 0;
+        BytesPendingStat = 0;
+        BytesSentStat = 0;
+        BytesReceivedStat = 0;
 
         // Update the started flag
         IsStarted = true;
@@ -308,7 +290,7 @@ public class SslServer : IDisposable
         IsAccepting = false;
 
         // Reset acceptor event arg
-        _acceptorEventArg.Completed -= OnAsyncCompleted;
+        _acceptorEventArg!.Completed -= OnSocketAcceptorCompletedAsync;
 
         // Call the server stopping handler
         OnStopping();
@@ -316,7 +298,7 @@ public class SslServer : IDisposable
         try
         {
             // Close the acceptor socket
-            _acceptorSocket.Close();
+            _acceptorSocket!.Close();
 
             // Dispose the acceptor socket
             _acceptorSocket.Dispose();
@@ -373,7 +355,7 @@ public class SslServer : IDisposable
         e.AcceptSocket = null;
 
         // Async accept a new client connection
-        if (!_acceptorSocket.AcceptAsync(e))
+        if (!_acceptorSocket!.AcceptAsync(e))
             ProcessAccept(e);
     }
 
@@ -383,16 +365,35 @@ public class SslServer : IDisposable
     /// </summary>
     private void ProcessAccept(SocketAsyncEventArgs e)
     {
+        // Check for errors
         if (e.SocketError == SocketError.Success)
         {
-            // Create a new session to register
-            SslSession session = CreateSession();
+            Socket socket = e.AcceptSocket!;
 
-            // Register the session
-            RegisterSession(session);
+            if (AcceptClient(socket))
+            {
+                // Create a new session to register
+                SslSession session = CreateSession();
 
-            // Connect new session
-            session.Connect(e.AcceptSocket);
+                // Register the session
+                RegisterSession(session);
+
+                // Connect new session
+                session.Connect(socket);
+            }
+            else
+            {
+                // Close the socket
+                try
+                {
+                    socket.Shutdown(SocketShutdown.Both);
+                    socket.Close();
+                    socket.Dispose();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            }
         }
         else
             SendError(e.SocketError);
@@ -407,7 +408,7 @@ public class SslServer : IDisposable
     /// This method is the callback method associated with Socket.AcceptAsync()
     /// operations and is invoked when an accept operation is complete
     /// </summary>
-    private void OnAsyncCompleted(object sender, SocketAsyncEventArgs e)
+    private void OnSocketAcceptorCompletedAsync(object? sender, SocketAsyncEventArgs e)
     {
         if (IsSocketDisposed)
             return;
@@ -431,11 +432,6 @@ public class SslServer : IDisposable
 
 #region Session management
 
-    /// <summary>
-    /// Server sessions
-    /// </summary>
-    protected readonly ConcurrentDictionary<Guid, SslSession> Sessions = new();
-
 
     /// <summary>
     /// Disconnect all connected sessions
@@ -455,14 +451,11 @@ public class SslServer : IDisposable
 
 
     /// <summary>
-    /// Find a session with a given Id
+    /// Find a session with a given id.
     /// </summary>
     /// <param name="id">Session Id</param>
     /// <returns>Session with a given Id or null if the session it not connected</returns>
-    public SslSession FindSession(Guid id) =>
-
-        // Try to find the required session
-        Sessions.TryGetValue(id, out SslSession result) ? result : null;
+    public SslSession? FindSession(Guid id) => Sessions.GetValueOrDefault(id);
 
 
     /// <summary>
@@ -529,26 +522,18 @@ public class SslServer : IDisposable
         return true;
     }
 
-
-    /// <summary>
-    /// Multicast text to all connected clients
-    /// </summary>
-    /// <param name="text">Text string to multicast</param>
-    /// <returns>'true' if the text was successfully multicasted, 'false' if the text was not multicasted</returns>
-    public virtual bool Multicast(string text) => Multicast(Encoding.UTF8.GetBytes(text));
-
-
-    /// <summary>
-    /// Multicast text to all connected clients
-    /// </summary>
-    /// <param name="text">Text to multicast as a span of characters</param>
-    /// <returns>'true' if the text was successfully multicasted, 'false' if the text was not multicasted</returns>
-    public virtual bool Multicast(ReadOnlySpan<char> text) => Multicast(Encoding.UTF8.GetBytes(text.ToArray()));
-
 #endregion
 
 
 #region Server handlers
+
+    /// <summary>
+    /// Accept client connection
+    /// </summary>
+    protected virtual bool AcceptClient(Socket client)
+    {
+        return true;
+    }
 
     /// <summary>
     /// Handle server starting notification

@@ -29,6 +29,5 @@
         OversizedPacket,
         CorruptPlayerData,
         TooManyPackets,
-        ServerFull
     }
 }

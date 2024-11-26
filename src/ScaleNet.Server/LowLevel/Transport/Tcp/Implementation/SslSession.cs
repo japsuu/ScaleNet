@@ -324,7 +324,7 @@ public class SslSession : IDisposable
 
             // Update statistic
             BytesSent += sent;
-            Interlocked.Add(ref Server._bytesSent, sent);
+            Interlocked.Add(ref Server.BytesSentStat, sent);
 
             // Call the buffer sent handler
             OnSent(sent, BytesPending + BytesSending);
@@ -463,7 +463,7 @@ public class SslSession : IDisposable
             {
                 // Update statistic
                 BytesReceived += received;
-                Interlocked.Add(ref Server._bytesReceived, received);
+                Interlocked.Add(ref Server.BytesReceivedStat, received);
 
                 // Call the buffer received handler
                 OnReceived(buffer, 0, received);
@@ -682,7 +682,7 @@ public class SslSession : IDisposable
             {
                 // Update statistic
                 BytesReceived += size;
-                Interlocked.Add(ref Server._bytesReceived, size);
+                Interlocked.Add(ref Server.BytesReceivedStat, size);
 
                 // Call the buffer received handler
                 OnReceived(_receiveBuffer.Data, 0, size);
@@ -747,7 +747,7 @@ public class SslSession : IDisposable
                 // Update statistic
                 BytesSending -= size;
                 BytesSent += size;
-                Interlocked.Add(ref Server._bytesSent, size);
+                Interlocked.Add(ref Server.BytesSentStat, size);
 
                 // Increase the flush buffer offset
                 _sendBufferFlushOffset += size;
