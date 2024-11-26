@@ -1,8 +1,8 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using Buffer = ScaleNet.Common.Transport.TCP.Buffer;
@@ -15,64 +15,41 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
     /// <remarks>Thread-safe</remarks>
     public class SslClient : IDisposable
     {
-        /// <summary>
-        /// Initialize SSL client with a given server IP address and port number
-        /// </summary>
-        /// <param name="context">SSL context</param>
-        /// <param name="address">IP address</param>
-        /// <param name="port">Port number</param>
-        public SslClient(ClientSslContext context, IPAddress address, int port) : this(context, new IPEndPoint(address, port))
-        {
-        }
+        private bool _disconnecting;
+        private SocketAsyncEventArgs? _connectEventArg;
+        private SslStream? _sslStream;
+        private Guid? _sslStreamId;
 
+        // Receive buffer
+        private bool _receiving;
+        private Buffer? _receiveBuffer;
 
-        /// <summary>
-        /// Initialize SSL client with a given server IP address and port number
-        /// </summary>
-        /// <param name="context">SSL context</param>
-        /// <param name="address">IP address</param>
-        /// <param name="port">Port number</param>
-        public SslClient(ClientSslContext context, string address, int port) : this(context, new IPEndPoint(IPAddress.Parse(address), port))
-        {
-        }
-
+        // Send buffer
+        private readonly object _sendLock = new();
+        private bool _sending;
+        private Buffer? _sendBufferMain;
+        private Buffer? _sendBufferFlush;
+        private long _sendBufferFlushOffset;
 
         /// <summary>
-        /// Initialize SSL client with a given DNS endpoint
+        /// Is the client connecting?
         /// </summary>
-        /// <param name="context">SSL context</param>
-        /// <param name="endpoint">DNS endpoint</param>
-        public SslClient(ClientSslContext context, DnsEndPoint endpoint) : this(context, endpoint as EndPoint, endpoint.Host, endpoint.Port)
-        {
-        }
-
+        public bool IsConnecting { get; private set; }
 
         /// <summary>
-        /// Initialize SSL client with a given IP endpoint
+        /// Is the client connected?
         /// </summary>
-        /// <param name="context">SSL context</param>
-        /// <param name="endpoint">IP endpoint</param>
-        public SslClient(ClientSslContext context, IPEndPoint endpoint) : this(context, endpoint as EndPoint, endpoint.Address.ToString(), endpoint.Port)
-        {
-        }
-
+        public bool IsConnected { get; private set; }
 
         /// <summary>
-        /// Initialize SSL client with a given SSL context, endpoint, address and port
+        /// Is the client handshaking?
         /// </summary>
-        /// <param name="context">SSL context</param>
-        /// <param name="endpoint">Endpoint</param>
-        /// <param name="address">Server address</param>
-        /// <param name="port">Server port</param>
-        private SslClient(ClientSslContext context, EndPoint endpoint, string address, int port)
-        {
-            Id = Guid.NewGuid();
-            Address = address;
-            Port = port;
-            Context = context;
-            Endpoint = endpoint;
-        }
+        public bool IsHandshaking { get; private set; }
 
+        /// <summary>
+        /// Is the client handshaked?
+        /// </summary>
+        public bool IsHandshaked { get; private set; }
 
         /// <summary>
         /// Client Id
@@ -102,7 +79,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         /// <summary>
         /// Socket
         /// </summary>
-        public Socket Socket { get; private set; }
+        public Socket? Socket { get; private set; }
 
         /// <summary>
         /// Number of bytes pending sent by the client
@@ -170,33 +147,56 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         public int OptionSendBufferSize { get; set; } = 8192;
 
 
+        /// <summary>
+        /// Initialize SSL client with a given server IP address and port number
+        /// </summary>
+        /// <param name="context">SSL context</param>
+        /// <param name="address">IP address</param>
+        /// <param name="port">Port number</param>
+        public SslClient(ClientSslContext context, IPAddress address, int port) : this(context, new IPEndPoint(address, port))
+        {
+        }
+
+
+        /// <summary>
+        /// Initialize SSL client with a given server IP address and port number
+        /// </summary>
+        /// <param name="context">SSL context</param>
+        /// <param name="address">IP address</param>
+        /// <param name="port">Port number</param>
+        public SslClient(ClientSslContext context, string address, int port) : this(context, new IPEndPoint(IPAddress.Parse(address), port))
+        {
+        }
+
+
+        /// <summary>
+        /// Initialize SSL client with a given IP endpoint
+        /// </summary>
+        /// <param name="context">SSL context</param>
+        /// <param name="endpoint">IP endpoint</param>
+        public SslClient(ClientSslContext context, IPEndPoint endpoint) : this(context, endpoint, endpoint.Address.ToString(), endpoint.Port)
+        {
+        }
+
+
+        /// <summary>
+        /// Initialize SSL client with a given SSL context, endpoint, address and port
+        /// </summary>
+        /// <param name="context">SSL context</param>
+        /// <param name="endpoint">Endpoint</param>
+        /// <param name="address">Server address</param>
+        /// <param name="port">Server port</param>
+        private SslClient(ClientSslContext context, EndPoint endpoint, string address, int port)
+        {
+            Id = Guid.NewGuid();
+            Address = address;
+            Port = port;
+            Context = context;
+            Endpoint = endpoint;
+        }
+
+
 #region Connect/Disconnect client
-
-        private bool _disconnecting;
-        private SocketAsyncEventArgs _connectEventArg;
-        private SslStream _sslStream;
-        private Guid? _sslStreamId;
-
-        /// <summary>
-        /// Is the client connecting?
-        /// </summary>
-        public bool IsConnecting { get; private set; }
-
-        /// <summary>
-        /// Is the client connected?
-        /// </summary>
-        public bool IsConnected { get; private set; }
-
-        /// <summary>
-        /// Is the client handshaking?
-        /// </summary>
-        public bool IsHandshaking { get; private set; }
-
-        /// <summary>
-        /// Is the client handshaked?
-        /// </summary>
-        public bool IsHandshaked { get; private set; }
-
 
         /// <summary>
         /// Create a new socket object
@@ -278,14 +278,6 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
             // Apply the option: keep alive
             if (OptionKeepAlive)
                 Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
-#if !NETSTANDARD // Not supported in .NET Standard
-        if (OptionTcpKeepAliveTime >= 0)
-            Socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, OptionTcpKeepAliveTime);
-        if (OptionTcpKeepAliveInterval >= 0)
-            Socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, OptionTcpKeepAliveInterval);
-        if (OptionTcpKeepAliveRetryCount >= 0)
-            Socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveRetryCount, OptionTcpKeepAliveRetryCount);
-#endif
 
             // Apply the option: no delay
             if (OptionNoDelay)
@@ -355,6 +347,10 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
             if (!IsConnected && !IsConnecting)
                 return false;
 
+            Debug.Assert(_connectEventArg != null, nameof(_connectEventArg) + " != null");
+            Debug.Assert(_sslStream != null, nameof(_sslStream) + " != null");
+            Debug.Assert(Socket != null, nameof(Socket) + " != null");
+            
             // Cancel connecting operation
             if (IsConnecting)
                 Socket.CancelConnectAsync(_connectEventArg);
@@ -362,7 +358,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
             if (_disconnecting)
                 return false;
 
-            // Reset connecting & handshaking flags
+            // Reset connecting and handshaking flags
             IsConnecting = false;
             IsHandshaking = false;
 
@@ -522,19 +518,6 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
 #region Send/Receive data
 
-        // Receive buffer
-        private bool _receiving;
-
-        private Buffer _receiveBuffer;
-
-        // Send buffer
-        private readonly object _sendLock = new();
-        private bool _sending;
-        private Buffer _sendBufferMain;
-        private Buffer _sendBufferFlush;
-        private long _sendBufferFlushOffset;
-
-
         /// <summary>
         /// Send data to the server (synchronous)
         /// </summary>
@@ -565,6 +548,8 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
             if (buffer.IsEmpty)
                 return 0;
+
+            Debug.Assert(_sslStream != null, nameof(_sslStream) + " != null");
 
             try
             {
@@ -637,6 +622,8 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
             if (buffer.IsEmpty)
                 return true;
 
+            Debug.Assert(_sendBufferMain != null, nameof(_sendBufferMain) + " != null");
+
             lock (_sendLock)
             {
                 // Check the send buffer limit
@@ -704,6 +691,8 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
             if (size == 0)
                 return 0;
+            
+            Debug.Assert(_sslStream != null, nameof(_sslStream) + " != null");
 
             try
             {
@@ -762,6 +751,9 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
             if (!IsHandshaked)
                 return;
+            
+            Debug.Assert(_sslStream != null, nameof(_sslStream) + " != null");
+            Debug.Assert(_receiveBuffer != null, nameof(_receiveBuffer) + " != null");
 
             try
             {
@@ -790,13 +782,13 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         {
             if (!IsHandshaked)
                 return;
-
+            
             bool empty = false;
 
             lock (_sendLock)
             {
                 // Is previous socket send in progress?
-                if (_sendBufferFlush.IsEmpty)
+                if (_sendBufferFlush!.IsEmpty)
                 {
                     // Swap flush and main buffers
                     _sendBufferFlush = Interlocked.Exchange(ref _sendBufferMain, _sendBufferFlush);
@@ -804,7 +796,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
                     // Update statistic
                     BytesPending = 0;
-                    BytesSending += _sendBufferFlush.Size;
+                    BytesSending += _sendBufferFlush!.Size;
 
                     // Check if the flush buffer is empty
                     if (_sendBufferFlush.IsEmpty)
@@ -830,8 +822,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
             try
             {
                 // Async write with the write handler
-                _sslStream.BeginWrite(
-                    _sendBufferFlush.Data, (int)_sendBufferFlushOffset, (int)(_sendBufferFlush.Size - _sendBufferFlushOffset), ProcessSend, _sslStreamId);
+                _sslStream!.BeginWrite(_sendBufferFlush.Data, (int)_sendBufferFlushOffset, (int)(_sendBufferFlush.Size - _sendBufferFlushOffset), ProcessSend, _sslStreamId);
             }
             catch (ObjectDisposedException)
             {
@@ -847,8 +838,8 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
             lock (_sendLock)
             {
                 // Clear send buffers
-                _sendBufferMain.Clear();
-                _sendBufferFlush.Clear();
+                _sendBufferMain?.Clear();
+                _sendBufferFlush?.Clear();
                 _sendBufferFlushOffset = 0;
 
                 // Update statistic
@@ -893,24 +884,16 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
             {
                 // Apply the option: keep alive
                 if (OptionKeepAlive)
-                    Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
-#if !NETSTANDARD // Not supported in .NET Standard
-            if (OptionTcpKeepAliveTime >= 0)
-                Socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, OptionTcpKeepAliveTime);
-            if (OptionTcpKeepAliveInterval >= 0)
-                Socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, OptionTcpKeepAliveInterval);
-            if (OptionTcpKeepAliveRetryCount >= 0)
-                Socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveRetryCount, OptionTcpKeepAliveRetryCount);
-#endif
+                    Socket!.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
 
                 // Apply the option: no delay
                 if (OptionNoDelay)
-                    Socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, true);
+                    Socket!.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, true);
 
                 // Prepare receive & send buffers
-                _receiveBuffer.Reserve(OptionReceiveBufferSize);
-                _sendBufferMain.Reserve(OptionSendBufferSize);
-                _sendBufferFlush.Reserve(OptionSendBufferSize);
+                _receiveBuffer!.Reserve(OptionReceiveBufferSize);
+                _sendBufferMain!.Reserve(OptionSendBufferSize);
+                _sendBufferFlush!.Reserve(OptionSendBufferSize);
 
                 // Reset statistic
                 BytesPending = 0;
@@ -929,8 +912,8 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
                     // Create SSL stream
                     _sslStreamId = Guid.NewGuid();
                     _sslStream = Context.CertificateValidationCallback != null
-                        ? new SslStream(new NetworkStream(Socket, false), false, Context.CertificateValidationCallback)
-                        : new SslStream(new NetworkStream(Socket, false), false);
+                        ? new SslStream(new NetworkStream(Socket!, false), false, Context.CertificateValidationCallback)
+                        : new SslStream(new NetworkStream(Socket!, false), false);
 
                     // Call the session handshaking handler
                     OnHandshaking();
@@ -975,7 +958,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
                     return;
 
                 // End the SSL handshake
-                _sslStream.EndAuthenticateAsClient(result);
+                _sslStream!.EndAuthenticateAsClient(result);
 
                 // Update the handshaked flag
                 IsHandshaked = true;
@@ -991,7 +974,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
                 OnHandshaked();
 
                 // Call the empty send buffer handler
-                if (_sendBufferMain.IsEmpty)
+                if (_sendBufferMain!.IsEmpty)
                     OnEmpty();
             }
             catch (Exception)
@@ -1011,6 +994,9 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
             {
                 if (!IsHandshaked)
                     return;
+            
+                Debug.Assert(_sslStream != null, nameof(_sslStream) + " != null");
+                Debug.Assert(_receiveBuffer != null, nameof(_receiveBuffer) + " != null");
 
                 // Validate SSL stream Id
                 Guid? sslStreamId = result.AsyncState as Guid?;
@@ -1072,6 +1058,9 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
             {
                 if (!IsHandshaked)
                     return;
+            
+                Debug.Assert(_sslStream != null, nameof(_sslStream) + " != null");
+                Debug.Assert(_sendBufferFlush != null, nameof(_sendBufferFlush) + " != null");
 
                 // Validate SSL stream Id
                 Guid? sslStreamId = result.AsyncState as Guid?;
