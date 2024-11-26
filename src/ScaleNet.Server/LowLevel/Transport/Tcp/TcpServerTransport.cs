@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using NetworkLibrary.TCP.SSL.ByteMessage;
 using ScaleNet.Common;
 using ScaleNet.Common.Ssl;
+using ScaleNet.Common.Utils;
 
 namespace ScaleNet.Server.LowLevel.Transport.Tcp;
 

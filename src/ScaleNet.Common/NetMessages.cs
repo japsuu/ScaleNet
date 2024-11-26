@@ -128,9 +128,7 @@ namespace ScaleNet.Common
         
         public static void Serialize<T>(T msg, IBufferWriter<byte> writer)
         {
-            MessagePackWriter messagePackWriter = new MessagePackWriter(writer);
-            
-            MessagePackSerializer.Serialize(ref messagePackWriter, msg);
+            MessagePackSerializer.Serialize(writer, msg);
         }
 
 
