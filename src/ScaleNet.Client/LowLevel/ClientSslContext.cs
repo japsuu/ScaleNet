@@ -10,10 +10,17 @@ namespace ScaleNet.Client.LowLevel
     public class ClientSslContext
     {
         /// <summary>
+        /// Initialize SSL context without a client certificate
+        /// </summary>
+        public ClientSslContext(RemoteCertificateValidationCallback? certificateValidationCallback = null)
+        {
+            CertificateValidationCallback = certificateValidationCallback;
+        }
+        
+        
+        /// <summary>
         /// Initialize SSL context with given certificate and validation callback
         /// </summary>
-        /// <param name="certificate">SSL certificate</param>
-        /// <param name="certificateValidationCallback">SSL certificate</param>
         public ClientSslContext(X509Certificate2 certificate, RemoteCertificateValidationCallback? certificateValidationCallback = null)
         {
             Certificates = new X509Certificate2Collection(new[] {certificate});
@@ -24,8 +31,6 @@ namespace ScaleNet.Client.LowLevel
         /// <summary>
         /// Initialize SSL context with given certificates collection and validation callback
         /// </summary>
-        /// <param name="certificates">SSL certificates collection</param>
-        /// <param name="certificateValidationCallback">SSL certificate</param>
         public ClientSslContext(X509Certificate2Collection certificates, RemoteCertificateValidationCallback? certificateValidationCallback = null)
         {
             Certificates = certificates;
