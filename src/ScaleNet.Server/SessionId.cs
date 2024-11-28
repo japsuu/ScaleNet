@@ -35,6 +35,18 @@ public readonly struct SessionId(uint value) : IEquatable<SessionId>
     {
         return !(left == right);
     }
+    
+    public static bool TryParse(string s, out SessionId sessionId)
+    {
+        if (uint.TryParse(s, out uint value))
+        {
+            sessionId = new SessionId(value);
+            return true;
+        }
+
+        sessionId = Invalid;
+        return false;
+    }
 
 
     public bool Equals(SessionId other) => Value == other.Value;

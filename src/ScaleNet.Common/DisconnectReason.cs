@@ -29,5 +29,6 @@
         OversizedPacket,
         CorruptPlayerData,
         TooManyPackets,
+        KickedByAdmin,
     }
 }
