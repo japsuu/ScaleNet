@@ -4,14 +4,26 @@ using ScaleNet.Server.LowLevel.Transport;
 
 namespace ScaleNet.Server;
 
-internal class ConnectionManager<TConnection>(IServerTransport transport) where TConnection : Connection, new()
+public class ConnectionManager<TConnection>(IServerTransport transport) where TConnection : Connection, new()
 {
     private readonly ConcurrentDictionary<SessionId, TConnection> _clientsBySessionId = new();
     
     public IEnumerable<TConnection> Connections => _clientsBySessionId.Values;
+    
+    
+    public bool HasConnection(SessionId id)
+    {
+        return _clientsBySessionId.ContainsKey(id);
+    }
+    
+    
+    public bool TryGetConnection(SessionId id, [NotNullWhen(true)]out TConnection? connection)
+    {
+        return _clientsBySessionId.TryGetValue(id, out connection);
+    }
 
 
-    public bool TryCreateConnection(SessionId sessionId, [NotNullWhen(true)]out TConnection? connection)
+    internal bool TryCreateConnection(SessionId sessionId, [NotNullWhen(true)]out TConnection? connection)
     {
         // Ensure that the session is not already associated with a Connection
         if (HasConnection(sessionId))
@@ -26,19 +38,7 @@ internal class ConnectionManager<TConnection>(IServerTransport transport) where 
     }
     
     
-    public bool HasConnection(SessionId id)
-    {
-        return _clientsBySessionId.ContainsKey(id);
-    }
-    
-    
-    public bool TryGetConnection(SessionId id, [NotNullWhen(true)]out TConnection? connection)
-    {
-        return _clientsBySessionId.TryGetValue(id, out connection);
-    }
-    
-    
-    public bool TryRemoveConnection(SessionId id, [NotNullWhen(true)]out TConnection? connection)
+    internal bool TryRemoveConnection(SessionId id, [NotNullWhen(true)]out TConnection? connection)
     {
         return _clientsBySessionId.TryRemove(id, out connection);
     }

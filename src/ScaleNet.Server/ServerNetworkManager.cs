@@ -7,8 +7,8 @@ namespace ScaleNet.Server;
 public sealed class ServerNetworkManager<TConnection> : IDisposable where TConnection : Connection, new()
 {
     private readonly MessageHandlerManager<TConnection> _messageHandlerManager;
-    private readonly ConnectionManager<TConnection> _connectionManager;
 
+    public readonly ConnectionManager<TConnection> ConnectionManager;
     public readonly IServerTransport Transport;
     
     /// <summary>
@@ -17,7 +17,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
     public bool IsStarted { get; private set; }
     
     /// <returns>All connections.</returns>
-    public IEnumerable<TConnection> Connections => _connectionManager.Connections;
+    public IEnumerable<TConnection> Connections => ConnectionManager.Connections;
 
     /// <summary>
     /// Called after the server state changes.
@@ -37,7 +37,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
 
         Transport = transport;
         _messageHandlerManager = new MessageHandlerManager<TConnection>();
-        _connectionManager = new ConnectionManager<TConnection>(Transport);
+        ConnectionManager = new ConnectionManager<TConnection>(Transport);
         
         Transport.ServerStateChanged += OnServerStateChanged;
         Transport.SessionStateChanged += OnSessionStateChanged;
@@ -108,7 +108,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
             return;
         }
 
-        foreach (TConnection c in _connectionManager.Connections)
+        foreach (TConnection c in ConnectionManager.Connections)
         {
             if (precondition != null && !precondition(c))
                 continue;
@@ -129,7 +129,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
             return;
         }
 
-        foreach (TConnection c in _connectionManager.Connections)
+        foreach (TConnection c in ConnectionManager.Connections)
         {
             if (c == except)
                 continue;
@@ -153,7 +153,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
             return;
         }
 
-        foreach (TConnection c in _connectionManager.Connections)
+        foreach (TConnection c in ConnectionManager.Connections)
         {
             if (except.Contains(c))
                 continue;
@@ -172,7 +172,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
     
     private void OnMessageReceived(SessionId sessionId, DeserializedNetMessage msg)
     {
-        if (!_connectionManager.TryGetConnection(sessionId, out TConnection? connection))
+        if (!ConnectionManager.TryGetConnection(sessionId, out TConnection? connection))
         {
             ScaleNetManager.Logger.LogWarning($"Received a message from an unknown session {sessionId}. Ignoring, and ending the session.");
             Transport.DisconnectSession(sessionId, DisconnectReason.UnexpectedProblem);
@@ -215,7 +215,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
         {
             case ConnectionState.Connecting:
             {
-                if (!_connectionManager.TryCreateConnection(sessionId, out connection))
+                if (!ConnectionManager.TryCreateConnection(sessionId, out connection))
                 {
                     ScaleNetManager.Logger.LogWarning($"Client for session {sessionId} already exists. Kicking.");
                     Transport.DisconnectSession(sessionId, DisconnectReason.UnexpectedProblem);
@@ -226,7 +226,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
             }
             case ConnectionState.Disconnected:
             {
-                if (!_connectionManager.TryRemoveConnection(sessionId, out connection))
+                if (!ConnectionManager.TryRemoveConnection(sessionId, out connection))
                 {
                     ScaleNetManager.Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
                     return;
@@ -239,7 +239,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
             case ConnectionState.Connected:
             case ConnectionState.Disconnecting:
             {
-                if (!_connectionManager.TryGetConnection(sessionId, out connection))
+                if (!ConnectionManager.TryGetConnection(sessionId, out connection))
                 {
                     ScaleNetManager.Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
                     return;
