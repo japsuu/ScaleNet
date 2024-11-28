@@ -15,6 +15,9 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
     /// True if the server is started and listening for incoming connections.
     /// </summary>
     public bool IsStarted { get; private set; }
+    
+    /// <returns>All connections.</returns>
+    public IEnumerable<TConnection> Connections => _connectionManager.Connections;
 
     /// <summary>
     /// Called after the server state changes.
@@ -53,6 +56,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
         Transport.StopServer(gracefully);
     }
 
+    
     public void Update()
     {
         Transport.HandleIncomingMessages();
