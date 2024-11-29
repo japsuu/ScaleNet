@@ -175,7 +175,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
         if (!ConnectionManager.TryGetConnection(sessionId, out TConnection? connection))
         {
             ScaleNetManager.Logger.LogWarning($"Received a message from an unknown session {sessionId}. Ignoring, and ending the session.");
-            Transport.DisconnectSession(sessionId, DisconnectReason.UnexpectedProblem);
+            Transport.DisconnectSession(sessionId, InternalDisconnectReason.UnexpectedProblem);
             return;
         }
         
@@ -218,7 +218,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
                 if (!ConnectionManager.TryCreateConnection(sessionId, out connection))
                 {
                     ScaleNetManager.Logger.LogWarning($"Client for session {sessionId} already exists. Kicking.");
-                    Transport.DisconnectSession(sessionId, DisconnectReason.UnexpectedProblem);
+                    Transport.DisconnectSession(sessionId, InternalDisconnectReason.UnexpectedProblem);
                     return;
                 }
                 

@@ -188,13 +188,13 @@ namespace ScaleNet.Common
 
     [NetMessage(65000)]
     [MessagePackObject]
-    public readonly struct DisconnectMessage : INetMessage
+    public readonly struct InternalDisconnectMessage : INetMessage
     {
         [Key(0)]
-        public readonly DisconnectReason Reason;
+        public readonly InternalDisconnectReason Reason;
 
 
-        public DisconnectMessage(DisconnectReason reason)
+        public InternalDisconnectMessage(InternalDisconnectReason reason)
         {
             Reason = reason;
         }

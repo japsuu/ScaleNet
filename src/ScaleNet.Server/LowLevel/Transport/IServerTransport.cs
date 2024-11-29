@@ -40,7 +40,7 @@ public interface IServerTransport : IDisposable
     /// <remarks>
     /// The disconnect reason will only be sent to the session if <paramref name="iterateOutgoing"/> is true.
     /// </remarks>
-    public void DisconnectSession(SessionId sessionId, DisconnectReason reason, bool iterateOutgoing = true);
+    public void DisconnectSession(SessionId sessionId, InternalDisconnectReason reason, bool iterateOutgoing = true);
 
 
     /// <summary>

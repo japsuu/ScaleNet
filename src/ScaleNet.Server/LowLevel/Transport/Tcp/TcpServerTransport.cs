@@ -75,7 +75,7 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
         if (gracefully)
         {
             foreach (TcpClientSession session in _sessions.Values)
-                DisconnectSession(session, DisconnectReason.ServerShutdown);
+                DisconnectSession(session, InternalDisconnectReason.ServerShutdown);
         }
         
         bool stopped = Stop();
@@ -103,7 +103,7 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
                 if (!NetMessages.TryDeserialize(packet.TypeID, packet.Data, out DeserializedNetMessage msg))
                 {
                     ScaleNetManager.Logger.LogWarning($"Received a packet that could not be deserialized. Kicking session {session.SessionId} immediately.");
-                    DisconnectSession(session, DisconnectReason.MalformedData);
+                    DisconnectSession(session, InternalDisconnectReason.MalformedData);
                     return;
                 }
 
@@ -162,7 +162,7 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     }
 
 
-    public void DisconnectSession(SessionId sessionId, DisconnectReason reason, bool iterateOutgoing = true)
+    public void DisconnectSession(SessionId sessionId, InternalDisconnectReason reason, bool iterateOutgoing = true)
     {
         if (!_sessions.TryGetValue(sessionId, out TcpClientSession? session))
         {
@@ -174,11 +174,11 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     }
 
 
-    internal void DisconnectSession(TcpClientSession session, DisconnectReason reason, bool iterateOutgoing = true)
+    internal void DisconnectSession(TcpClientSession session, InternalDisconnectReason reason, bool iterateOutgoing = true)
     {
         if (iterateOutgoing)
         {
-            QueueSendAsync(session, new DisconnectMessage(reason));
+            QueueSendAsync(session, new InternalDisconnectMessage(reason));
             SendOutgoingPackets(session);
         }
         

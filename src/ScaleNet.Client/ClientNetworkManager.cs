@@ -31,7 +31,7 @@ namespace ScaleNet.Client
             _transport.ConnectionStateChanged += OnConnectionStateChanged;
             _transport.MessageReceived += OnMessageReceived;
         
-            RegisterMessageHandler<DisconnectMessage>(OnDisconnectReceived);
+            RegisterMessageHandler<InternalDisconnectMessage>(OnDisconnectReceived);
         }
 
 
@@ -119,7 +119,7 @@ namespace ScaleNet.Client
         }
 
 
-        private void OnDisconnectReceived(DisconnectMessage message)
+        private void OnDisconnectReceived(InternalDisconnectMessage message)
         {
             ScaleNetManager.Logger.LogWarning($"Received disconnect message from server: {message.Reason}");
         

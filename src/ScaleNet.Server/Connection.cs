@@ -34,7 +34,7 @@ public abstract class Connection
     /// <remarks>
     /// The disconnect reason will only be sent to the client if <paramref name="iterateOutgoing"/> is true.
     /// </remarks>
-    public void Kick(DisconnectReason reason, bool iterateOutgoing = true)
+    public void Kick(InternalDisconnectReason reason, bool iterateOutgoing = true)
     {
         Debug.Assert(_transport != null, nameof(_transport) + " != null");
         

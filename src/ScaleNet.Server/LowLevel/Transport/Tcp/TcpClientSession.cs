@@ -101,14 +101,14 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport) : Ss
         if (IncomingPackets.Count > ServerConstants.MAX_PACKETS_PER_TICK)
         {
             ScaleNetManager.Logger.LogWarning($"Session {SessionId} is sending too many packets. Kicking immediately.");
-            transport.DisconnectSession(this, DisconnectReason.TooManyPackets);
+            transport.DisconnectSession(this, InternalDisconnectReason.TooManyPackets);
             return;
         }
         
         if (data.Length > SharedConstants.MAX_PACKET_SIZE_BYTES)
         {
             ScaleNetManager.Logger.LogWarning($"Session {SessionId} sent a packet that is too large. Kicking immediately.");
-            transport.DisconnectSession(this, DisconnectReason.OversizedPacket);
+            transport.DisconnectSession(this, InternalDisconnectReason.OversizedPacket);
             return;
         }
         

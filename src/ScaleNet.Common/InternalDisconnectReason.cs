@@ -1,19 +1,14 @@
 ﻿namespace ScaleNet.Common
 {
     /// <summary>
-    /// The reason for a client's disconnection.
+    /// The internal reason for a client's disconnection.
     /// </summary>
-    public enum DisconnectReason : byte
+    public enum InternalDisconnectReason : byte
     {
         /// <summary>
         /// No reason was specified.
         /// </summary>
         None,
-    
-        /// <summary>
-        /// Client performed an action which could only be done if trying to exploit the server.
-        /// </summary>
-        ExploitAttempt,
     
         /// <summary>
         /// Data received from the client could not be parsed. This rarely indicates an attack.
@@ -25,10 +20,24 @@
         /// </summary>
         UnexpectedProblem,
     
+        /// <summary>
+        /// The server is shutting down.
+        /// </summary>
         ServerShutdown,
+        
+        /// <summary>
+        /// The client sent an oversized packet.
+        /// </summary>
         OversizedPacket,
-        CorruptPlayerData,
+        
+        /// <summary>
+        /// The client sent too many packets in a short period of time.
+        /// </summary>
         TooManyPackets,
-        KickedByAdmin,
+        
+        /// <summary>
+        /// User defined reason, a message with further details should have been sent.
+        /// </summary>
+        User,
     }
 }
