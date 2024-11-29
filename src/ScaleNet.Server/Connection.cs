@@ -9,16 +9,19 @@ namespace ScaleNet.Server;
 /// </summary>
 public abstract class Connection
 {
-    private IServerTransport? _transport;
-    
+    private readonly IServerTransport _transport;
+
     /// <summary>
     /// ID of the session/connection.
     /// Changes when the client reconnects.
     /// </summary>
-    public SessionId SessionId { get; private set; }
+    public readonly SessionId SessionId;
+    
+    public ConnectionState ConnectionState => _transport.GetConnectionState(SessionId);
+    public bool IsConnected => ConnectionState == ConnectionState.Connected;
     
     
-    internal void Initialize(SessionId sessionId, IServerTransport transport)
+    protected Connection(SessionId sessionId, IServerTransport transport)
     {
         _transport = transport;
         SessionId = sessionId;

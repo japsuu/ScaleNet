@@ -12,17 +12,10 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     /// <summary>
     /// A raw packet of data.
     /// </summary>
-    internal readonly struct Packet
+    internal readonly struct Packet(ushort typeID, byte[] data)
     {
-        public readonly ushort TypeID;
-        public readonly byte[] Data;
-
-
-        public Packet(ushort typeID, byte[] data)
-        {
-            TypeID = typeID;
-            Data = data;
-        }
+        public readonly ushort TypeID = typeID;
+        public readonly byte[] Data = data;
     }
     
     private readonly ConcurrentBag<uint> _availableSessionIds = [];
@@ -144,7 +137,7 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     }
 
 
-    private void QueueSendAsync<T>(TcpClientSession session, T message) where T : INetMessage
+    private static void QueueSendAsync<T>(TcpClientSession session, T message) where T : INetMessage
     {
         if (!NetMessages.TryGetMessageId(message.GetType(), out ushort id))
         {
@@ -159,6 +152,15 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
         Packet p = new(id, bytes);
         
         session.OutgoingPackets.Enqueue(p);
+    }
+    
+    
+    public ConnectionState GetConnectionState(SessionId sessionId)
+    {
+        if (_sessions.TryGetValue(sessionId, out TcpClientSession? session))
+            return session.ConnectionState;
+        
+        return ConnectionState.Disconnected;
     }
 
 
@@ -228,17 +230,10 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
         
         SessionId id = new(uId);
 
-        TcpClientSession session = new(id, this);
+        TcpClientSession session = new(id, this, SessionStateChanged);
         _sessions.TryAdd(id, session);
         
         return session;
-    }
-    
-    
-    private void OnEndSession(SessionId id)
-    {
-        if (_sessions.TryRemove(id, out _))
-            _availableSessionIds.Add(id.Value);
     }
 
 
@@ -249,69 +244,12 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
         
         return base.AcceptClient(client);
     }
-
-
-    protected override void OnConnecting(SslSession session)
-    {
-        SessionId id = ((TcpClientSession)session).SessionId;
-        
-        SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.Connecting));
-    }
-
-
-    protected override void OnConnected(SslSession session)
-    {
-        SessionId id = ((TcpClientSession)session).SessionId;
-        
-        SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.Connected));
-    }
-
-
-    protected override void OnHandshaking(SslSession session)
-    {
-        SessionId id = ((TcpClientSession)session).SessionId;
-        
-        SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.SslHandshaking));
-    }
-
-
-    protected override void OnHandshaked(SslSession session)
-    {
-        SessionId id = ((TcpClientSession)session).SessionId;
-        
-        SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, ConnectionState.Ready));
-    }
-
-
-    protected override void OnDisconnecting(SslSession session)
-    {
-        SessionId id = ((TcpClientSession)session).SessionId;
-        
-        OnSessionStateChanged(id, ConnectionState.Disconnecting);
-    }
-
-
-    protected override void OnDisconnected(SslSession session)
-    {
-        SessionId id = ((TcpClientSession)session).SessionId;
-        
-        OnSessionStateChanged(id, ConnectionState.Disconnected);
-        
-        OnEndSession(id);
-    }
     
     
-    private void OnSessionStateChanged(SessionId id, ConnectionState newState)
+    internal void ReleaseSession(SessionId id)
     {
-        try
-        {
-            SessionStateChanged?.Invoke(new SessionStateChangeArgs(id, newState));
-        }
-        catch (Exception e)
-        {
-            ScaleNetManager.Logger.LogError($"User code threw an exception in the {nameof(SessionStateChanged)} event:\n{e}");
-            throw;
-        }
+        if (_sessions.TryRemove(id, out _))
+            _availableSessionIds.Add(id.Value);
     }
 
 #endregion

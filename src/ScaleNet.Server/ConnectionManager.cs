@@ -11,7 +11,7 @@ public abstract class ConnectionManager<TConnection>(IServerTransport transport)
     public IEnumerable<TConnection> Connections => ClientsBySessionId.Values;
     
     
-    protected abstract TConnection CreateConnection();
+    protected abstract TConnection CreateConnection(SessionId sessionId, IServerTransport transport);
     
     
     public bool HasConnection(SessionId id)
@@ -35,8 +35,7 @@ public abstract class ConnectionManager<TConnection>(IServerTransport transport)
             return false;
         }
         
-        connection = CreateConnection();
-        connection.Initialize(sessionId, transport);
+        connection = CreateConnection(sessionId, transport);
         return ClientsBySessionId.TryAdd(sessionId, connection);
     }
     

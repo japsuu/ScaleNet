@@ -6,15 +6,17 @@ using ScaleNet.Common;
 
 namespace ScaleNet.Server.LowLevel.Transport.Tcp;
 
-internal class TcpClientSession(SessionId id, TcpServerTransport transport) : SslSession(transport)
+internal class TcpClientSession(SessionId id, TcpServerTransport transport, Action<SessionStateChangeArgs>? sessionStateChanged) : SslSession(transport)
 {
     // Buffer for accumulating incomplete packet data
     private readonly MemoryStream _receiveBuffer = new();
-    
+
     // Packets need to be stored per-session to, for example, allow sending all queued packets before disconnecting.
     public readonly ConcurrentQueue<TcpServerTransport.Packet> OutgoingPackets = new();
     public readonly ConcurrentQueue<TcpServerTransport.Packet> IncomingPackets = new();
     public readonly SessionId SessionId = id;
+    
+    public ConnectionState ConnectionState { get; private set; }
 
 
     protected override void OnReceived(byte[] buffer, int offset, int size)
@@ -112,14 +114,68 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport) : Ss
             return;
         }
         
-        /*Console.WriteLine("receive:");
-        Console.WriteLine(data.AsStringBits());
-        Console.WriteLine(MessagePack.MessagePackSerializer.ConvertToJson(data));*/
-        
         transport.Middleware?.HandleIncomingPacket(ref data);
         
         TcpServerTransport.Packet packet = new(typeId, data);
         IncomingPackets.Enqueue(packet);
+    }
+
+
+    protected override void OnConnecting()
+    {
+        ConnectionState = ConnectionState.Connecting;
+        OnSessionStateChanged();
+    }
+
+
+    protected override void OnConnected()
+    {
+        ConnectionState = ConnectionState.Connected;
+        OnSessionStateChanged();
+    }
+
+
+    protected override void OnHandshaking()
+    {
+        ConnectionState = ConnectionState.SslHandshaking;
+        OnSessionStateChanged();
+    }
+
+
+    protected override void OnHandshaked()
+    {
+        ConnectionState = ConnectionState.Ready;
+        OnSessionStateChanged();
+    }
+
+
+    protected override void OnDisconnecting()
+    {
+        ConnectionState = ConnectionState.Disconnecting;
+        OnSessionStateChanged();
+    }
+
+
+    protected override void OnDisconnected()
+    {
+        ConnectionState = ConnectionState.Disconnected;
+        OnSessionStateChanged();
+        
+        transport.ReleaseSession(SessionId);
+    }
+
+
+    private void OnSessionStateChanged()
+    {
+        try
+        {
+            sessionStateChanged?.Invoke(new SessionStateChangeArgs(SessionId, ConnectionState));
+        }
+        catch (Exception e)
+        {
+            ScaleNetManager.Logger.LogError($"User code threw an exception in the {nameof(sessionStateChanged)} event:\n{e}");
+            throw;
+        }
     }
 
 

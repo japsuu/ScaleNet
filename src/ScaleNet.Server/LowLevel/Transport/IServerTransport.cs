@@ -58,6 +58,14 @@ public interface IServerTransport : IDisposable
 
 
     /// <summary>
+    /// Gets the connection state of the given session.
+    /// </summary>
+    /// <param name="sessionId">The session to get the connection state of.</param>
+    /// <returns>The connection state of the session.</returns>
+    public ConnectionState GetConnectionState(SessionId sessionId);
+
+
+    /// <summary>
     /// Handles incoming packets, calling <see cref="MessageReceived"/> for each received message.
     /// </summary>
     public void HandleIncomingMessages();
