@@ -4,7 +4,7 @@ using ScaleNet.Server.LowLevel.Transport;
 
 namespace ScaleNet.Server;
 
-public sealed class ServerNetworkManager<TConnection> : IDisposable where TConnection : Connection, new()
+public sealed class ServerNetworkManager<TConnection> : IDisposable where TConnection : Connection
 {
     private readonly MessageHandlerManager<TConnection> _messageHandlerManager;
 
@@ -30,14 +30,14 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
     public event Action<ClientStateChangeArgs<TConnection>>? ClientStateChanged;
 
 
-    public ServerNetworkManager(IServerTransport transport)
+    public ServerNetworkManager(IServerTransport transport, ConnectionManager<TConnection> connectionManager)
     {
         if(!ScaleNetManager.IsInitialized)
             throw new InvalidOperationException("Networking.Initialize() must be called before creating a server.");
 
         Transport = transport;
+        ConnectionManager = connectionManager;
         _messageHandlerManager = new MessageHandlerManager<TConnection>();
-        ConnectionManager = new ConnectionManager<TConnection>(Transport);
         
         Transport.ServerStateChanged += OnServerStateChanged;
         Transport.SessionStateChanged += OnSessionStateChanged;

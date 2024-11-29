@@ -44,6 +44,26 @@ public abstract class Connection
     }
 
 
+    /// <summary>
+    /// Disconnect the client with a message.
+    /// </summary>
+    /// <param name="message">The message to send to the client before disconnecting.</param>
+    public void Kick<T>(T message) where T : INetMessage
+    {
+        Debug.Assert(_transport != null, nameof(_transport) + " != null");
+        
+        ScaleNetManager.Logger.LogDebug($"Disconnecting client {SessionId}.");
+
+        QueueSend(message);
+        _transport.DisconnectSession(SessionId, InternalDisconnectReason.User);
+    }
+
+
+    /// <summary>
+    /// Queue a message to be sent to the client.
+    /// </summary>
+    /// <param name="message">The message to send.</param>
+    /// <typeparam name="T">The type of message to send.</typeparam>
     public void QueueSend<T>(T message) where T : INetMessage
     {
         Debug.Assert(_transport != null, nameof(_transport) + " != null");
