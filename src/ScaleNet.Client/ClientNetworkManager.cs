@@ -115,7 +115,7 @@ namespace ScaleNet.Client
             ScaleNetManager.Logger.LogDebug($"RCV - {msg.Type}");
 
             if (!_messageHandlerManager.TryHandleMessage(msg))
-                ScaleNetManager.Logger.LogWarning($"No handler is registered for {msg}. Ignoring.");
+                ScaleNetManager.Logger.LogWarning($"No handler is registered for {msg.Type}. Ignoring.");
         }
 
 
