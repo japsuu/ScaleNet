@@ -18,6 +18,8 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
     
     /// <returns>All connections.</returns>
     public IEnumerable<TConnection> Connections => ConnectionManager.Connections;
+    
+    public int ConnectionCount => ConnectionManager.ConnectionCount;
 
     /// <summary>
     /// Called after the server state changes.

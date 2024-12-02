@@ -10,6 +10,8 @@ public abstract class ConnectionManager<TConnection>(IServerTransport transport)
     
     public IEnumerable<TConnection> Connections => ClientsBySessionId.Values;
     
+    public int ConnectionCount => ClientsBySessionId.Count;
+    
     
     protected abstract TConnection CreateConnection(SessionId sessionId, IServerTransport transport);
     
