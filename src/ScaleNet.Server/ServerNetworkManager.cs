@@ -7,9 +7,9 @@ namespace ScaleNet.Server;
 public sealed class ServerNetworkManager<TConnection> : IDisposable where TConnection : Connection
 {
     private readonly MessageHandlerManager<TConnection> _messageHandlerManager;
+    private readonly IServerTransport _transport;
 
     public readonly ConnectionManager<TConnection> ConnectionManager;
-    public readonly IServerTransport Transport;
     
     /// <summary>
     /// True if the server is started and listening for incoming connections.
@@ -20,6 +20,8 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
     public IEnumerable<TConnection> Connections => ConnectionManager.Connections;
     
     public int ConnectionCount => ConnectionManager.ConnectionCount;
+    
+    public int MaxConnections => _transport.MaxConnections;
 
     /// <summary>
     /// Called after the server state changes.
@@ -37,32 +39,32 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
         if(!ScaleNetManager.IsInitialized)
             throw new InvalidOperationException("Networking.Initialize() must be called before creating a server.");
 
-        Transport = transport;
+        _transport = transport;
         ConnectionManager = connectionManager;
         _messageHandlerManager = new MessageHandlerManager<TConnection>();
         
-        Transport.ServerStateChanged += OnServerStateChanged;
-        Transport.SessionStateChanged += OnSessionStateChanged;
-        Transport.MessageReceived += OnMessageReceived;
+        _transport.ServerStateChanged += OnServerStateChanged;
+        _transport.SessionStateChanged += OnSessionStateChanged;
+        _transport.MessageReceived += OnMessageReceived;
     }
 
     
     public void Start()
     {
-        Transport.StartServer();
+        _transport.StartServer();
     }
 
 
     public void Stop(bool gracefully = true)
     {
-        Transport.StopServer(gracefully);
+        _transport.StopServer(gracefully);
     }
 
     
     public void Update()
     {
-        Transport.HandleIncomingMessages();
-        Transport.HandleOutgoingMessages();
+        _transport.HandleIncomingMessages();
+        _transport.HandleOutgoingMessages();
     }
 
 
@@ -177,7 +179,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
         if (!ConnectionManager.TryGetConnection(sessionId, out TConnection? connection))
         {
             ScaleNetManager.Logger.LogWarning($"Received a message from an unknown session {sessionId}. Ignoring, and ending the session.");
-            Transport.DisconnectSession(sessionId, InternalDisconnectReason.UnexpectedProblem);
+            _transport.DisconnectSession(sessionId, InternalDisconnectReason.UnexpectedProblem);
             return;
         }
         
@@ -220,7 +222,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
                 if (!ConnectionManager.TryCreateConnection(sessionId, out connection))
                 {
                     ScaleNetManager.Logger.LogWarning($"Client for session {sessionId} already exists. Kicking.");
-                    Transport.DisconnectSession(sessionId, InternalDisconnectReason.UnexpectedProblem);
+                    _transport.DisconnectSession(sessionId, InternalDisconnectReason.UnexpectedProblem);
                     return;
                 }
                 
@@ -261,6 +263,6 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
 
     public void Dispose()
     {
-        Transport.Dispose();
+        _transport.Dispose();
     }
 }
