@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using ScaleNet.Common;
+using ScaleNet.Common.LowLevel;
 
 namespace ScaleNet.Server.LowLevel.Transport.Tcp;
 

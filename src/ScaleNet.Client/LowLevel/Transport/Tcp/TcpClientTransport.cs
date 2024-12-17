@@ -4,6 +4,7 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Net.Sockets;
 using ScaleNet.Common;
+using ScaleNet.Common.LowLevel;
 
 namespace ScaleNet.Client.LowLevel.Transport.Tcp
 {

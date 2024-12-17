@@ -1,4 +1,4 @@
-﻿namespace ScaleNet.Common
+﻿namespace ScaleNet.Common.LowLevel
 {
     /// <summary>
     /// The internal reason for a client's disconnection.

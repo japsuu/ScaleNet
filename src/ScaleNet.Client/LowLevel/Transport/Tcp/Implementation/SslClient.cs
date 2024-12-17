@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using ScaleNet.Common;
+using ScaleNet.Common.LowLevel;
 
 namespace ScaleNet.Client.LowLevel.Transport.Tcp
 {

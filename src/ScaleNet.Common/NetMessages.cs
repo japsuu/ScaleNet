@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using MessagePack;
+using ScaleNet.Common.LowLevel;
 using ScaleNet.Common.Utils;
 
 namespace ScaleNet.Common
