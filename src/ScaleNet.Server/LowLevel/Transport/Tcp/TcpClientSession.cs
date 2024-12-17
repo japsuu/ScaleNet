@@ -138,8 +138,7 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport, Acti
 
     protected override void OnHandshaking()
     {
-        ConnectionState = ConnectionState.SslHandshaking;
-        OnSessionStateChanged();
+        
     }
 
 

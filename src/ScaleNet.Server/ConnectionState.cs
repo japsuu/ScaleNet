@@ -23,20 +23,14 @@ public enum ConnectionState : byte
     Connected = 2,
     
     /// <summary>
-    /// Connection is in the process of SSL handshaking.<br/>
-    /// Not encrypted yet.
-    /// </summary>
-    SslHandshaking = 3,
-
-    /// <summary>
     /// Connection has completed the SSL handshake and is ready to send and receive data.<br/>
     /// Encrypted.
     /// </summary>
-    Ready = 4,
+    Ready = 3,
 
     /// <summary>
     /// Connection is stopping.<br/>
     /// Encrypted.
     /// </summary>
-    Disconnecting = 5
+    Disconnecting = 4
 }
