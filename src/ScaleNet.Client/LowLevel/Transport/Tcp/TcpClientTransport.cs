@@ -45,40 +45,35 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
         public void SendAsync<T>(T message) where T : INetMessage
         {
-            byte[] bytes = NetMessages.TrySerialize(message);
+            // Write to a packet.
+            if (!NetMessages.TrySerialize(message, out NetMessagePacket packet))
+                return;
         
-            if (bytes.Length > SharedConstants.MAX_PACKET_SIZE_BYTES)
+            if (packet.Length > SharedConstants.MAX_MESSAGE_SIZE_BYTES)
             {
-                ScaleNetManager.Logger.LogError($"Message {message} exceeds maximum packet size of {SharedConstants.MAX_PACKET_SIZE_BYTES} bytes. Skipping.");
+                ScaleNetManager.Logger.LogError($"Message {message} exceeds maximum msg size of {SharedConstants.MAX_MESSAGE_SIZE_BYTES} bytes. Skipping.");
                 return;
             }
             
-            if (!NetMessages.TryGetMessageId(message.GetType(), out ushort typeId))
-            {
-                ScaleNetManager.Logger.LogError($"Failed to get the ID of message {message.GetType()}. Skipping.");
-                return;
-            }
+            _middleware?.HandleOutgoingPacket(ref packet);
             
-            _middleware?.HandleOutgoingPacket(ref bytes);
-            
-            // Get a pooled buffer to add the length prefix and message id.
-            int messageLength = bytes.Length;
-            int packetLength = messageLength + 4;
+            // Get a pooled buffer to add the length prefix.
+            int payloadLength = packet.Length;
+            int packetLength = payloadLength + 2;
             byte[] buffer = ArrayPool<byte>.Shared.Rent(packetLength);
             
             // Add the 16-bit packet length prefix.
-            BinaryPrimitives.WriteUInt16LittleEndian(buffer, (ushort)messageLength);
-            
-            // Add the 16-bit message type ID.
-            BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan(2), typeId);
+            BinaryPrimitives.WriteUInt16LittleEndian(buffer, (ushort)payloadLength);
             
             // Copy the message data to the buffer.
-            bytes.CopyTo(buffer.AsSpan(4));
-        
+            packet.AsSpan().CopyTo(buffer.AsSpan(2));
+
             base.SendAsync(buffer, 0, packetLength);
         
             // Return the buffer to the pool.
             ArrayPool<byte>.Shared.Return(buffer);
+            
+            packet.Dispose();
         }
 
 
@@ -116,15 +111,15 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
             while (true)
             {
-                // Check if we have at least 4 bytes for the length and type prefix
-                if (_receiveBuffer.Length - _receiveBuffer.Position < 4)
+                // Check if we have at least 2 bytes for the length prefix
+                if (_receiveBuffer.Length - _receiveBuffer.Position < 2)
                     break;
 
-                // Read the length and type prefix
-                byte[] header = new byte[4];
-                int rCount = _receiveBuffer.Read(header, 0, 4);
-
-                if (rCount != 4)
+                // Read the length prefix
+                byte[] header = new byte[2];
+                int rCount = _receiveBuffer.Read(header, 0, 2);
+        
+                if (rCount != 2)
                 {
                     ScaleNetManager.Logger.LogWarning("Failed to read the packet header.");
                     break;
@@ -139,25 +134,22 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
                 if (_receiveBuffer.Length - _receiveBuffer.Position < packetLength)
                 {
                     // Not enough data, rewind to just after the last full read for appending more data later
-                    _receiveBuffer.Position -= 4; // Rewind to the start of the header
+                    _receiveBuffer.Position -= 2; // Rewind to the start of the header
                     break;
                 }
 
                 // Extract the packet data (excluding the header)
-                byte[] packetData = new byte[packetLength];
+                byte[] packetData = ArrayPool<byte>.Shared.Rent(packetLength);
                 rCount = _receiveBuffer.Read(packetData, 0, packetLength);
-
+        
                 if (rCount != packetLength)
                 {
                     ScaleNetManager.Logger.LogWarning("Failed to read the full packet data.");
                     break;
                 }
-
-                // Interpret the type using little-endian
-                ushort typeId = BinaryPrimitives.ReadUInt16LittleEndian(header.AsSpan(2));
-
+            
                 // Create a packet and enqueue it
-                OnReceiveFullPacket(typeId, packetData);
+                OnReceiveFullPacket(packetData, packetLength);
 
                 // Position is naturally incremented, no manual reset required here
             }
@@ -187,23 +179,24 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         }
 
 
-        private void OnReceiveFullPacket(ushort typeId, byte[] data)
+        private void OnReceiveFullPacket(byte[] data, int length)
         {
-            /*Console.WriteLine("receive:");
-            Console.WriteLine(data.AsStringBits());
-            Console.WriteLine(MessagePack.MessagePackSerializer.ConvertToJson(data));*/
-
-            _middleware?.HandleIncomingPacket(ref data);
+            NetMessagePacket packet = NetMessagePacket.CreateIncoming(data, length);
+        
+            _middleware?.HandleIncomingPacket(ref packet);
             
-            if (!NetMessages.TryDeserialize(typeId, data, out DeserializedNetMessage message))
+            bool serializeSuccess = NetMessages.TryDeserialize(packet, out DeserializedNetMessage msg);
+            packet.Dispose();
+                
+            if (!serializeSuccess)
             {
-                ScaleNetManager.Logger.LogError($"Failed to deserialize message with ID {typeId}.");
+                ScaleNetManager.Logger.LogWarning("Received a packet that could not be deserialized.");
                 return;
             }
-
+            
             try
             {
-                MessageReceived?.Invoke(message);
+                MessageReceived?.Invoke(msg);
             }
             catch (Exception e)
             {

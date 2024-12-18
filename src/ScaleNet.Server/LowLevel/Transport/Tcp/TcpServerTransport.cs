@@ -11,15 +11,6 @@ namespace ScaleNet.Server.LowLevel.Transport.Tcp;
 
 public sealed class TcpServerTransport : SslServer, IServerTransport
 {
-    /// <summary>
-    /// A raw packet of data.
-    /// </summary>
-    internal readonly struct Packet(ushort typeID, byte[] data)
-    {
-        public readonly ushort TypeID = typeID;
-        public readonly byte[] Data = data;
-    }
-    
     private readonly ConcurrentBag<uint> _availableSessionIds = [];
     private readonly ConcurrentDictionary<SessionId, TcpClientSession> _sessions = new();
 
@@ -93,9 +84,12 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
         //NOTE: Sessions that are iterated first have packet priority.
         foreach (TcpClientSession session in _sessions.Values)
         {
-            while (session.IncomingPackets.TryDequeue(out Packet packet))
+            while (session.IncomingPackets.TryDequeue(out NetMessagePacket packet))
             {
-                if (!NetMessages.TryDeserialize(packet.TypeID, packet.Data, out DeserializedNetMessage msg))
+                bool serializeSuccess = NetMessages.TryDeserialize(packet, out DeserializedNetMessage msg);
+                packet.Dispose();
+                
+                if (!serializeSuccess)
                 {
                     ScaleNetManager.Logger.LogWarning($"Received a packet that could not be deserialized. Kicking session {session.SessionId} immediately.");
                     DisconnectSession(session, InternalDisconnectReason.MalformedData);
@@ -151,19 +145,11 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
 
     private static void QueueSendAsync<T>(TcpClientSession session, T message) where T : INetMessage
     {
-        if (!NetMessages.TryGetMessageId(message.GetType(), out ushort id))
-        {
-            ScaleNetManager.Logger.LogError($"Cannot send: failed to get the ID of message {message.GetType()}.");
+        // Write to a packet.
+        if (!NetMessages.TrySerialize(message, out NetMessagePacket packet))
             return;
-        }
         
-        // Write to buffer.
-        byte[] bytes = NetMessages.Serialize(message);
-        
-        // Enqueue the packet.
-        Packet p = new(id, bytes);
-        
-        session.OutgoingPackets.Enqueue(p);
+        session.OutgoingPackets.Enqueue(packet);
     }
     
     
@@ -202,31 +188,27 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
 
     private void SendOutgoingPackets(TcpClientSession session)
     {
-        while (session.OutgoingPackets.TryDequeue(out Packet packet))
+        while (session.OutgoingPackets.TryDequeue(out NetMessagePacket packet))
         {
-            byte[] bytes = packet.Data;
-                
-            Middleware?.HandleOutgoingPacket(ref bytes);
+            Middleware?.HandleOutgoingPacket(ref packet);
             
-            // Get a pooled buffer to add the length prefix and message id.
-            int messageLength = bytes.Length;
-            int packetLength = messageLength + 4;
+            // Get a pooled buffer to add the length prefix.
+            int payloadLength = packet.Length;
+            int packetLength = payloadLength + 2;
             byte[] buffer = ArrayPool<byte>.Shared.Rent(packetLength);
             
             // Add the 16-bit packet length prefix.
-            BinaryPrimitives.WriteUInt16LittleEndian(buffer, (ushort)messageLength);
-            
-            // Add the 16-bit message type ID.
-            ushort typeId = packet.TypeID;
-            BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan(2), typeId);
+            BinaryPrimitives.WriteUInt16LittleEndian(buffer, (ushort)payloadLength);
             
             // Copy the message data to the buffer.
-            bytes.CopyTo(buffer.AsSpan(4));
+            packet.AsSpan().CopyTo(buffer.AsSpan(2));
         
             session.SendAsync(buffer, 0, packetLength);
         
             // Return the buffer to the pool.
             ArrayPool<byte>.Shared.Return(buffer);
+            
+            packet.Dispose();
         }
     }
 
@@ -260,8 +242,11 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     
     internal void ReleaseSession(SessionId id)
     {
-        if (_sessions.TryRemove(id, out _))
-            _availableSessionIds.Add(id.Value);
+        if (!_sessions.TryRemove(id, out TcpClientSession? session))
+            return;
+        
+        _availableSessionIds.Add(id.Value);
+        session.Dispose();
     }
 
 #endregion

@@ -13,11 +13,30 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport, Acti
     private readonly MemoryStream _receiveBuffer = new();
 
     // Packets need to be stored per-session to, for example, allow sending all queued packets before disconnecting.
-    public readonly ConcurrentQueue<TcpServerTransport.Packet> OutgoingPackets = new();
-    public readonly ConcurrentQueue<TcpServerTransport.Packet> IncomingPackets = new();
+    public readonly ConcurrentQueue<NetMessagePacket> OutgoingPackets = new();
+    public readonly ConcurrentQueue<NetMessagePacket> IncomingPackets = new();
     public readonly SessionId SessionId = id;
     
     public ConnectionState ConnectionState { get; private set; }
+
+    
+    protected override void Dispose(bool disposingManagedResources)
+    {
+        base.Dispose(disposingManagedResources);
+
+        if (!disposingManagedResources)
+            return;
+        
+        _receiveBuffer.Dispose();
+            
+        while (OutgoingPackets.TryDequeue(out NetMessagePacket packet))
+            packet.Dispose();
+            
+        while (IncomingPackets.TryDequeue(out NetMessagePacket packet))
+            packet.Dispose();
+            
+        ConnectionState = ConnectionState.Disconnected;
+    }
 
 
     protected override void OnReceived(byte[] buffer, int offset, int size)
@@ -28,15 +47,15 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport, Acti
 
         while (true)
         {
-            // Check if we have at least 4 bytes for the length and type prefix
-            if (_receiveBuffer.Length - _receiveBuffer.Position < 4)
+            // Check if we have at least 2 bytes for the length prefix
+            if (_receiveBuffer.Length - _receiveBuffer.Position < 2)
                 break;
 
-            // Read the length and type prefix
-            byte[] header = new byte[4];
-            int rCount = _receiveBuffer.Read(header, 0, 4);
+            // Read the length prefix
+            byte[] header = new byte[2];
+            int rCount = _receiveBuffer.Read(header, 0, 2);
         
-            if (rCount != 4)
+            if (rCount != 2)
             {
                 ScaleNetManager.Logger.LogWarning("Failed to read the packet header.");
                 break;
@@ -51,12 +70,12 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport, Acti
             if (_receiveBuffer.Length - _receiveBuffer.Position < packetLength)
             {
                 // Not enough data, rewind to just after the last full read for appending more data later
-                _receiveBuffer.Position -= 4; // Rewind to the start of the header
+                _receiveBuffer.Position -= 2; // Rewind to the start of the header
                 break;
             }
 
             // Extract the packet data (excluding the header)
-            byte[] packetData = new byte[packetLength];
+            byte[] packetData = ArrayPool<byte>.Shared.Rent(packetLength);
             rCount = _receiveBuffer.Read(packetData, 0, packetLength);
         
             if (rCount != packetLength)
@@ -65,11 +84,8 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport, Acti
                 break;
             }
             
-            // Interpret the type using little-endian
-            ushort typeId = BinaryPrimitives.ReadUInt16LittleEndian(header.AsSpan(2));
-
             // Create a packet and enqueue it
-            OnReceiveFullPacket(typeId, packetData);
+            OnReceiveFullPacket(packetData, packetLength);
 
             // Position is naturally incremented, no manual reset required here
         }
@@ -99,7 +115,7 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport, Acti
     }
 
 
-    private void OnReceiveFullPacket(ushort typeId, byte[] data)
+    private void OnReceiveFullPacket(byte[] data, int length)
     {
         if (IncomingPackets.Count > ServerConstants.MAX_PACKETS_PER_TICK)
         {
@@ -108,16 +124,17 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport, Acti
             return;
         }
         
-        if (data.Length > SharedConstants.MAX_PACKET_SIZE_BYTES)
+        if (data.Length > SharedConstants.MAX_MESSAGE_SIZE_BYTES)
         {
             ScaleNetManager.Logger.LogWarning($"Session {SessionId} sent a packet that is too large. Kicking immediately.");
             transport.DisconnectSession(this, InternalDisconnectReason.OversizedPacket);
             return;
         }
         
-        transport.Middleware?.HandleIncomingPacket(ref data);
+        NetMessagePacket packet = NetMessagePacket.CreateIncoming(data, length);
         
-        TcpServerTransport.Packet packet = new(typeId, data);
+        transport.Middleware?.HandleIncomingPacket(ref packet);
+        
         IncomingPackets.Enqueue(packet);
     }
 
