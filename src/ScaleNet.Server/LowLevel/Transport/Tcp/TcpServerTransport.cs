@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using ScaleNet.Common;
@@ -128,13 +129,23 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
 
     public void QueueSendAsync<T>(SessionId sessionId, T message) where T : INetMessage
     {
-        if (!_sessions.TryGetValue(sessionId, out TcpClientSession? session))
-        {
-            ScaleNetManager.Logger.LogWarning($"Tried to send a packet to a non-existent/disconnected session with ID {sessionId}");
-            return;
-        }
+        Debug.Assert(sessionId != SessionId.Invalid, "Invalid session ID.");
 
-        QueueSendAsync(session, message);
+        if (sessionId == SessionId.Broadcast)
+        {
+            foreach (TcpClientSession session in _sessions.Values)
+                QueueSendAsync(session, message);
+        }
+        else
+        {
+            if (!_sessions.TryGetValue(sessionId, out TcpClientSession? session))
+            {
+                ScaleNetManager.Logger.LogWarning($"Tried to send a packet to a non-existent/disconnected session with ID {sessionId}");
+                return;
+            }
+
+            QueueSendAsync(session, message);
+        }
     }
 
 
