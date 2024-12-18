@@ -6,7 +6,17 @@
 /// </summary>
 public readonly struct SessionId(uint value) : IEquatable<SessionId>
 {
+    public const uint MAX_VALUE = uint.MaxValue;
+    
+    /// <summary>
+    /// Special ID that represents an invalid session.
+    /// </summary>
     public static readonly SessionId Invalid = new SessionId(0);
+    
+    /// <summary>
+    /// Special ID that represents all available sessions.
+    /// </summary>
+    public static readonly SessionId Broadcast = new SessionId(MAX_VALUE);
 
     public uint Value { get; } = value;
 
