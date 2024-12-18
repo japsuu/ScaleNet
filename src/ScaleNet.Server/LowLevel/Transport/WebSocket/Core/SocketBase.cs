@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using ScaleNet.Server;
+using ScaleNet.Server.LowLevel.Transport.WebSocket;
 
 namespace FishNet.Transporting.Bayou
 {

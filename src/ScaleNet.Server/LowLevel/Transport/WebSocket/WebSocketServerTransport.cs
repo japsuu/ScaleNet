@@ -1,10 +1,7 @@
-using JamesFrowen.SimpleWeb;
-using System;
 using System.Runtime.CompilerServices;
-using ScaleNet.Server;
-using ScaleNet.Server.LowLevel;
+using FishNet.Transporting.Bayou;
 
-namespace FishNet.Transporting.Bayou
+namespace ScaleNet.Server.LowLevel.Transport.WebSocket
 {
     public class WebSocketServerTransport //: IServerTransport
     {
@@ -66,7 +63,7 @@ namespace FishNet.Transporting.Bayou
         /// <summary>
         /// Server socket and handler.
         /// </summary>
-        private Server.ServerSocket _server = new Server.ServerSocket();
+        private FishNet.Transporting.Bayou.Server.ServerSocket _server = new FishNet.Transporting.Bayou.Server.ServerSocket();
         /// <summary>
         /// Client socket and handler.
         /// </summary>
