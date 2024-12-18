@@ -5,7 +5,7 @@ namespace ScaleNet.Server.LowLevel.Transport;
 
 public interface IServerTransport : IDisposable
 {
-    public int Port { get; }
+    public ushort Port { get; }
     public int MaxConnections { get; }
 
     public event Action<ServerStateChangeArgs>? ServerStateChanged;
