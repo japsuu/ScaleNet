@@ -133,6 +133,8 @@ namespace ScaleNet.Common
 
         public static byte[] Serialize<T>(T msg)
         {
+            //TODO: Optimize to use a buffer pool, and return a segment or Memory<byte>.
+            // May require changing the internal packet format of transports to cache the packet contents internally.
             byte[] bytes = MessagePackSerializer.Serialize(msg);
         
             return bytes;
