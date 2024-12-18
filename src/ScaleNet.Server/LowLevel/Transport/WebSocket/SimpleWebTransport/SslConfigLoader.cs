@@ -1,7 +1,8 @@
 using System.Security.Authentication;
 using System.Text.Json;
+using ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Server;
 
-namespace JamesFrowen.SimpleWeb;
+namespace ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport;
 
 public class SslConfigLoader
 {

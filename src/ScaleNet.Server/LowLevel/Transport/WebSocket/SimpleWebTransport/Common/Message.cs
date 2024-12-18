@@ -1,7 +1,4 @@
-using System;
-using ScaleNet.Server;
-
-namespace JamesFrowen.SimpleWeb;
+namespace ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
 public struct Message
 {

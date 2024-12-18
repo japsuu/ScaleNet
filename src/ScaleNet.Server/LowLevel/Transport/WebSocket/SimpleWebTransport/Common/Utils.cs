@@ -1,6 +1,4 @@
-using System.Threading;
-
-namespace JamesFrowen.SimpleWeb;
+namespace ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
 internal static class Utils
 {

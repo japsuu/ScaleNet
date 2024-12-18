@@ -1,9 +1,7 @@
-using System;
-using System.IO;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 
-namespace JamesFrowen.SimpleWeb;
+namespace ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
 public static class SendLoopConfig
 {

@@ -1,10 +1,8 @@
-using System;
 using System.Collections.Concurrent;
-using System.IO;
 using System.Net.Sockets;
 using System.Text;
 
-namespace JamesFrowen.SimpleWeb;
+namespace ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
 internal static class ReceiveLoop
 {

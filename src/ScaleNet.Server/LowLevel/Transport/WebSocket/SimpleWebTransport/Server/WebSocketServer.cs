@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
-using ScaleNet.Server;
+using ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
-namespace JamesFrowen.SimpleWeb;
+namespace ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Server;
 
 public class WebSocketServer
 {
@@ -19,7 +19,7 @@ public class WebSocketServer
     readonly ServerHandshake handShake;
     readonly ServerSslHelper sslHelper;
     readonly BufferPool bufferPool;
-    readonly ConcurrentDictionary<SessionId, Connection> connections = new ConcurrentDictionary<SessionId, Connection>();
+    readonly ConcurrentDictionary<SessionId, Common.Connection> connections = new ConcurrentDictionary<SessionId, Common.Connection>();
 
 
     private readonly ConcurrentBag<uint> _availableSessionIds = [];
@@ -61,8 +61,8 @@ public class WebSocketServer
 
         SimpleWebLog.Info("Server stoped, Closing all connections...");
         // make copy so that foreach doesn't break if values are removed
-        Connection[] connectionsCopy = connections.Values.ToArray();
-        foreach (Connection conn in connectionsCopy)
+        Common.Connection[] connectionsCopy = connections.Values.ToArray();
+        foreach (Common.Connection conn in connectionsCopy)
         {
             conn.Dispose();
         }
@@ -85,7 +85,7 @@ public class WebSocketServer
                     // TODO keep track of connections before they are in connections dictionary
                     //      this might not be a problem as HandshakeAndReceiveLoop checks for stop
                     //      and returns/disposes before sending message to queue
-                    Connection conn = new Connection(client, AfterConnectionDisposed);
+                    Common.Connection conn = new Common.Connection(client, AfterConnectionDisposed);
                     //SimpleWebLog.Info($"A client connected {conn}");
 
                     // handshake needs its own thread as it needs to wait for message from client
@@ -109,7 +109,7 @@ public class WebSocketServer
         catch (Exception e) { SimpleWebLog.Exception(e); }
     }
 
-    void HandshakeAndReceiveLoop(Connection conn)
+    void HandshakeAndReceiveLoop(Common.Connection conn)
     {
         try
         {
@@ -190,19 +190,19 @@ public class WebSocketServer
         }
     }
 
-    void AfterConnectionDisposed(Connection conn)
+    void AfterConnectionDisposed(Common.Connection conn)
     {
         if (conn.connId != SessionId.Invalid)
         {
             receiveQueue.Enqueue(new Message(conn.connId, EventType.Disconnected));
-            connections.TryRemove(conn.connId, out Connection _);
+            connections.TryRemove(conn.connId, out Common.Connection _);
             _availableSessionIds.Add(conn.connId.Value);
         }
     }
 
     public void Send(SessionId id, ArrayBuffer buffer)
     {
-        if (connections.TryGetValue(id, out Connection? conn))
+        if (connections.TryGetValue(id, out Common.Connection? conn))
         {
             conn.sendQueue.Enqueue(buffer);
             conn.sendPending.Set();
@@ -215,7 +215,7 @@ public class WebSocketServer
 
     public bool CloseConnection(SessionId id)
     {
-        if (connections.TryGetValue(id, out Connection? conn))
+        if (connections.TryGetValue(id, out Common.Connection? conn))
         {
             SimpleWebLog.Info($"Kicking connection {id}");
             conn.Dispose();
@@ -231,7 +231,7 @@ public class WebSocketServer
 
     public EndPoint? GetClientEndPoint(SessionId id)
     {
-        if (connections.TryGetValue(id, out Connection? conn))
+        if (connections.TryGetValue(id, out Common.Connection? conn))
         {
             return conn.client.Client.RemoteEndPoint;
         }

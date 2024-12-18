@@ -1,6 +1,7 @@
 using System.Net;
 using ScaleNet.Common;
 using ScaleNet.Common.LowLevel;
+using ScaleNet.Server.LowLevel.Transport.WebSocket.Core;
 
 namespace ScaleNet.Server.LowLevel.Transport.WebSocket;
 
@@ -16,7 +17,7 @@ public sealed class WebSocketServerTransport : IServerTransport
     /// </summary>
     private const int MAXIMUM_MTU = ushort.MaxValue;
     
-    private readonly FishNet.Transporting.Bayou.Server.ServerSocket _serverSocket = new();
+    private readonly ServerSocket _serverSocket = new();
     private readonly ServerSslContext _sslContext;
     private readonly int _mtu;
 

@@ -1,11 +1,7 @@
-using System;
 using System.Collections.Concurrent;
-using System.IO;
 using System.Net.Sockets;
-using System.Threading;
-using ScaleNet.Server;
 
-namespace JamesFrowen.SimpleWeb;
+namespace ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
 internal sealed class Connection : IDisposable
 {

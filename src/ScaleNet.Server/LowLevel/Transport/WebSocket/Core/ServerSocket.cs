@@ -1,14 +1,10 @@
-using JamesFrowen.SimpleWeb;
-using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
-using ScaleNet.Server;
-using ScaleNet.Server.LowLevel;
-using ScaleNet.Server.LowLevel.Transport.WebSocket;
+using ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
+using ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Server;
 
-namespace FishNet.Transporting.Bayou.Server
+namespace ScaleNet.Server.LowLevel.Transport.WebSocket.Core
 {
     public class ServerSocket
     {

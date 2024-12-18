@@ -1,6 +1,6 @@
 using System.Security.Authentication;
 
-namespace FishNet.Transporting.Bayou
+namespace ScaleNet.Server.LowLevel.Transport.WebSocket.Core
 {
 
     [System.Serializable]

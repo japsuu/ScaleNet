@@ -2,8 +2,9 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
-namespace JamesFrowen.SimpleWeb;
+namespace ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Server;
 
 public struct SslConfig
 {
@@ -32,7 +33,7 @@ internal class ServerSslHelper
             certificate = new X509Certificate2(config.certPath, config.certPassword);
     }
 
-    internal bool TryCreateStream(Connection conn)
+    internal bool TryCreateStream(Common.Connection conn)
     {
         NetworkStream stream = conn.client.GetStream();
         if (config.enabled)

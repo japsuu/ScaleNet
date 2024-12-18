@@ -1,7 +1,7 @@
 using System.Net;
-using ScaleNet.Server;
+using ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
-namespace JamesFrowen.SimpleWeb;
+namespace ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Server;
 
 public class SimpleWebServer
 {

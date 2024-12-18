@@ -1,7 +1,8 @@
 using System.Security.Cryptography;
 using System.Text;
+using ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
-namespace JamesFrowen.SimpleWeb;
+namespace ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Server;
 
 /// <summary>
 /// Handles Handshakes from new clients on the server
@@ -31,7 +32,7 @@ internal class ServerHandshake
         sha1.Dispose();
     }
 
-    public bool TryHandshake(Connection conn)
+    public bool TryHandshake(Common.Connection conn)
     {
         Stream stream = conn.stream;
 

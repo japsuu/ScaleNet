@@ -1,6 +1,6 @@
 ﻿using System.Buffers;
 
-namespace FishNet.Transporting.Bayou;
+namespace ScaleNet.Server.LowLevel.Transport.WebSocket.Core;
 
 internal struct Packet
 {
