@@ -124,35 +124,28 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport, Acti
 
     protected override void OnConnecting()
     {
-        ConnectionState = ConnectionState.Connecting;
-        OnSessionStateChanged();
     }
 
 
     protected override void OnConnected()
+    {
+    }
+
+
+    protected override void OnHandshaking()
+    {
+    }
+
+
+    protected override void OnHandshaked()
     {
         ConnectionState = ConnectionState.Connected;
         OnSessionStateChanged();
     }
 
 
-    protected override void OnHandshaking()
-    {
-        
-    }
-
-
-    protected override void OnHandshaked()
-    {
-        ConnectionState = ConnectionState.Ready;
-        OnSessionStateChanged();
-    }
-
-
     protected override void OnDisconnecting()
     {
-        ConnectionState = ConnectionState.Disconnecting;
-        OnSessionStateChanged();
     }
 
 

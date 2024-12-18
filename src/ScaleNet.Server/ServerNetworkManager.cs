@@ -218,7 +218,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
         
         switch (sessionStateChangeArgs.NewState)
         {
-            case ConnectionState.Connecting:
+            case ConnectionState.Connected:
             {
                 if (!ConnectionManager.TryCreateConnection(sessionId, out connection))
                 {
@@ -237,18 +237,6 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
                     return;
                 }
                 
-                break;
-            }
-            case ConnectionState.Ready:
-            case ConnectionState.Connected:
-            case ConnectionState.Disconnecting:
-            {
-                if (!ConnectionManager.TryGetConnection(sessionId, out connection))
-                {
-                    ScaleNetManager.Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
-                    return;
-                }
-
                 break;
             }
             default:
