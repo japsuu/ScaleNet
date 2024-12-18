@@ -7,6 +7,7 @@ public interface IServerTransport : IDisposable
 {
     public ushort Port { get; }
     public int MaxConnections { get; }
+    public ServerState State { get; }
 
     public event Action<ServerStateChangeArgs>? ServerStateChanged;
 

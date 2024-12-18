@@ -21,14 +21,14 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     
     private readonly ConcurrentBag<uint> _availableSessionIds = [];
     private readonly ConcurrentDictionary<SessionId, TcpClientSession> _sessions = new();
-    
-    private ServerState _serverState = ServerState.Stopped;
+
     private bool _rejectNewConnections;
     private bool _rejectNewMessages;
 
     public readonly IPacketMiddleware? Middleware;
     public int MaxConnections { get; }
-    
+    public ServerState State { get; private set; } = ServerState.Stopped;
+
     public event Action<ServerStateChangeArgs>? ServerStateChanged;
     public event Action<SessionStateChangeArgs>? SessionStateChanged;
     public event Action<SessionId, DeserializedNetMessage>? MessageReceived;
@@ -284,11 +284,11 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     
     private void OnServerStateChanged(ServerState newState)
     {
-        ServerState prevState = _serverState;
-        _serverState = newState;
+        ServerState prevState = State;
+        State = newState;
         try
         {
-            ServerStateChanged?.Invoke(new ServerStateChangeArgs(_serverState, prevState));
+            ServerStateChanged?.Invoke(new ServerStateChangeArgs(State, prevState));
         }
         catch (Exception e)
         {
