@@ -6,7 +6,7 @@
     /// </summary>
     public interface IPacketMiddleware
     {
-        public void HandleIncomingPacket(ref byte[] buffer);
-        public void HandleOutgoingPacket(ref byte[] buffer);
+        public void HandleIncomingPacket(ref NetMessagePacket buffer);
+        public void HandleOutgoingPacket(ref NetMessagePacket buffer);
     }
 }

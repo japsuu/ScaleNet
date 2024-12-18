@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Buffers;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using MessagePack;
 using ScaleNet.Common.LowLevel;
 using ScaleNet.Common.Utils;
@@ -19,6 +22,84 @@ namespace ScaleNet.Common
         {
             Message = message;
             Type = type;
+        }
+    }
+
+    /// <summary>
+    /// A network message in packet format.
+    /// Contains the message ID and the message data.<br/>
+    /// Must be explicitly disposed to return the internal memory buffer to the pool.
+    /// </summary>
+    public readonly struct NetMessagePacket : IDisposable
+    {
+        public readonly byte[] Buffer;
+        public readonly int Length;
+
+
+        /// <summary>
+        /// Constructs a new incoming network message packet.
+        /// The data is NOT copied internally.
+        /// </summary>
+        private NetMessagePacket(byte[] data, int length)
+        {
+            Buffer = data;
+            Length = length;
+        }
+        
+
+        /// <summary>
+        /// Constructs a new outgoing network message packet.
+        /// All data is copied internally.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static NetMessagePacket CreateOutgoing(ushort id, byte[] data)
+        {
+            // Get a pooled buffer to add the message id.
+            int payloadLength = data.Length;
+            int packetLength = payloadLength + 2;
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(packetLength);
+            
+            // Add the 16-bit message type ID.
+            BinaryPrimitives.WriteUInt16LittleEndian(buffer, id);
+            
+            // Copy the message data to the buffer.
+            data.CopyTo(buffer.AsSpan(2));
+            
+            return new NetMessagePacket(buffer, packetLength);
+        }
+        
+        
+        /// <summary>
+        /// Constructs a new incoming network message packet.
+        /// The data is NOT copied internally, but the buffer is returned to the pool when disposed.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static NetMessagePacket CreateIncoming(byte[] data, int length)
+        {
+            return new NetMessagePacket(data, length);
+        }
+        
+        
+        public ushort ReadId()
+        {
+            Debug.Assert(Length >= 2, "Length >= 2");
+            return BinaryPrimitives.ReadUInt16LittleEndian(Buffer);
+        }
+        
+        
+        public ReadOnlyMemory<byte> ReadPayload()
+        {
+            Debug.Assert(Length >= 2, "Length >= 2");
+            return new ReadOnlyMemory<byte>(Buffer, 2, Length - 2);
+        }
+
+
+        public Span<byte> AsSpan() => Buffer.AsSpan(0, Length);
+        
+        
+        public void Dispose()
+        {
+            ArrayPool<byte>.Shared.Return(Buffer);
         }
     }
 
@@ -44,7 +125,9 @@ namespace ScaleNet.Common
     {
         private static readonly Dictionary<ushort, Type> MessageTypes = new();
         private static readonly Dictionary<Type, ushort> MessageIds = new();
-        
+
+
+#region Initialization
 
         internal static void Initialize()
         {
@@ -116,6 +199,8 @@ namespace ScaleNet.Common
             ScaleNetManager.Logger.LogInfo($"Registered message {type} with ID {netMessageAttribute.Id}.");
         }
 
+#endregion
+
 
         public static bool TryGetMessageType(ushort id, out Type type)
         {
@@ -131,18 +216,38 @@ namespace ScaleNet.Common
 
 #region Serialization
 
-        public static byte[] Serialize<T>(T msg)
+        /// <summary>
+        /// Serializes a network message to a packet.
+        /// Internally adds a type ID header.
+        /// </summary>
+        public static bool TrySerialize<T>(T msg, out NetMessagePacket packet)
         {
+            Debug.Assert(msg != null, nameof(msg) + " != null");
+            
+            if (!TryGetMessageId(msg.GetType(), out ushort id))
+            {
+                ScaleNetManager.Logger.LogError($"Cannot serialize: failed to get the ID of message {msg.GetType()}.");
+                packet = default;
+                return false;
+            }
+            
             //TODO: Optimize to use a buffer pool, and return a segment or Memory<byte>.
             // May require changing the internal packet format of transports to cache the packet contents internally.
-            byte[] bytes = MessagePackSerializer.Serialize(msg);
-        
-            return bytes;
+            byte[] payload = MessagePackSerializer.Serialize(msg);
+            
+            packet = NetMessagePacket.CreateOutgoing(id, payload);
+            return true;
         }
 
 
-        public static bool TryDeserialize(ushort id, byte[] buffer, out DeserializedNetMessage message)
+        /// <summary>
+        /// Deserializes a network message from a byte array.
+        /// </summary>
+        public static bool TryDeserialize(in NetMessagePacket packet, out DeserializedNetMessage message)
         {
+            ushort id = packet.ReadId();
+            ReadOnlyMemory<byte> payload = packet.ReadPayload();
+            
             if (!TryGetMessageType(id, out Type type))
             {
                 ScaleNetManager.Logger.LogError($"Failed to deserialize message with ID {id}: No message type found.");
@@ -152,7 +257,7 @@ namespace ScaleNet.Common
             
             try
             {
-                object? msg = MessagePackSerializer.Deserialize(type, buffer);
+                object? msg = MessagePackSerializer.Deserialize(type, payload);
                 Debug.Assert(msg != null, "msg != null");
                 
                 INetMessage? netMsg = msg as INetMessage;
@@ -163,7 +268,7 @@ namespace ScaleNet.Common
             }
             catch (Exception e)
             {
-                ScaleNetManager.Logger.LogError($"Failed to deserialize message {type}: {buffer.AsStringBits()}:\n{e}");
+                ScaleNetManager.Logger.LogError($"Failed to deserialize message {type}: {payload.AsStringBits()}:\n{e}");
                 message = default;
                 return false;
             }

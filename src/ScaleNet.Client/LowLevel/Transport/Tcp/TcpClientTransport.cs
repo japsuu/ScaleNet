@@ -45,7 +45,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
         public void SendAsync<T>(T message) where T : INetMessage
         {
-            byte[] bytes = NetMessages.Serialize(message);
+            byte[] bytes = NetMessages.TrySerialize(message);
         
             if (bytes.Length > SharedConstants.MAX_PACKET_SIZE_BYTES)
             {
