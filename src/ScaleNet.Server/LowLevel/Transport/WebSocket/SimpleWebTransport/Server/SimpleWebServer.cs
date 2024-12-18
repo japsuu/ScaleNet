@@ -1,3 +1,4 @@
+using System.Net;
 using ScaleNet.Server;
 
 namespace JamesFrowen.SimpleWeb;
@@ -61,9 +62,9 @@ public class SimpleWebServer
         return server.CloseConnection(connectionId);
     }
 
-    public string GetClientAddress(SessionId connectionId)
+    public EndPoint? GetClientAddress(SessionId connectionId)
     {
-        return server.GetClientAddress(connectionId);
+        return server.GetClientEndPoint(connectionId);
     }
 
 

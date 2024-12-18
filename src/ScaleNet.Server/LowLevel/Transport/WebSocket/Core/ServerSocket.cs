@@ -1,22 +1,83 @@
 using JamesFrowen.SimpleWeb;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 using ScaleNet.Server;
+using ScaleNet.Server.LowLevel;
+using ScaleNet.Server.LowLevel.Transport.WebSocket;
 
 namespace FishNet.Transporting.Bayou.Server
 {
-    public class ServerSocket : SocketBase
+    public class ServerSocket
     {
+        /// <summary>
+        /// Transport controlling this socket.
+        /// </summary>
+        private WebSocketServerTransport Transport = null;
+        /// <summary>
+        /// Current ConnectionState.
+        /// </summary>
+        private ServerState _connectionState = ServerState.Stopped;
+        /// <summary>
+        /// Returns the current ServerState.
+        /// </summary>
+        /// <returns></returns>
+        internal ServerState GetConnectionState()
+        {
+            return _connectionState;
+        }
+        /// <summary>
+        /// Sets a new connection state.
+        /// </summary>
+        /// <param name="connectionState"></param>
+        protected void SetConnectionState(ServerState connectionState)
+        {
+            //If state hasn't changed.
+            if (connectionState == _connectionState)
+                return;
+
+            ServerState oldState = _connectionState;
+            _connectionState = connectionState;
+            Transport.HandleServerConnectionState(new ServerStateChangeArgs(connectionState, oldState));
+        }
+
+        /// <summary>
+        /// Sends data to connectionId.
+        /// </summary>
+        internal void Send(ref Queue<Packet> queue, byte channelId, ArraySegment<byte> segment, int connectionId)
+        {
+            if (GetConnectionState() != ServerState.Started)
+                return;
+
+            //ConnectionId isn't used from client to server.
+            Packet outgoing = new Packet(connectionId, segment, channelId);
+            queue.Enqueue(outgoing);
+        }
+
+        /// <summary>
+        /// Clears a queue using Packet type.
+        /// </summary>
+        /// <param name="queue"></param>
+        internal void ClearPacketQueue(ref Queue<Packet> queue)
+        {
+            int count = queue.Count;
+            for (int i = 0; i < count; i++)
+            {
+                Packet p = queue.Dequeue();
+                p.Dispose();
+            }
+        }
 
         #region Public.
         /// <summary>
         /// Gets the current ConnectionState of a remote client on the server.
         /// </summary>
         /// <param name="connectionId">ConnectionId to get ConnectionState for.</param>
-        internal ConnectionState GetConnectionState(int connectionId)
+        internal ConnectionState GetConnectionState(SessionId connectionId)
         {
-            ConnectionState state = _clients.Contains(connectionId) ? ConnectionState.Started : ConnectionState.Stopped;
+            ConnectionState state = _clients.Contains(connectionId) ? ConnectionState.Connected : ConnectionState.Disconnected;
             return state;
         }
         #endregion
@@ -61,7 +122,7 @@ namespace FishNet.Transporting.Bayou.Server
         /// <summary>
         /// SslConfiguration to use.
         /// </summary>
-        private SslConfiguration _sslConfiguration;
+        private ServerSslContext _sslContext;
         #endregion
 
         ~ServerSocket()
@@ -72,11 +133,10 @@ namespace FishNet.Transporting.Bayou.Server
         /// <summary>
         /// Initializes this for use.
         /// </summary>
-        /// <param name="t"></param>
-        internal void Initialize(Transport t, int unreliableMTU, SslConfiguration config)
+        internal void Initialize(WebSocketServerTransport t, int unreliableMTU, ServerSslContext context)
         {
-            _sslConfiguration = config;
-            base.Transport = t;
+            _sslContext = context;
+            Transport = t;
             _mtu = unreliableMTU;
         }
 
@@ -88,11 +148,11 @@ namespace FishNet.Transporting.Bayou.Server
         {
             TcpConfig tcpConfig = new TcpConfig(false, 5000, 20000);
             SslConfig config;
-            if (!_sslConfiguration.Enabled)
+            if (!_sslContext.Enabled)
                 config = new SslConfig();
             else
-                config = new SslConfig(_sslConfiguration.Enabled, _sslConfiguration.CertificatePath, _sslConfiguration.CertificatePassword,
-                    _sslConfiguration.SslProtocol);
+                config = new SslConfig(_sslContext.Enabled, _sslContext.CertificatePath, _sslContext.CertificatePassword,
+                    _sslContext.SslProtocol);
             _server = new SimpleWebServer(maxClients, 5000, tcpConfig, _mtu, 5000, config);
 
             _server.onConnect += _server_onConnect;
@@ -170,10 +230,10 @@ namespace FishNet.Transporting.Bayou.Server
         /// </summary>
         /// <param name="connectionId"></param>
         /// <returns>Returns string.empty if Id is not found.</returns>
-        internal string GetConnectionAddress(int connectionId)
+        internal EndPoint? GetConnectionAddress(SessionId connectionId)
         {
             if (_server == null || !_server.Active)
-                return string.Empty;
+                return null;
 
             return _server.GetClientAddress(connectionId);
         }

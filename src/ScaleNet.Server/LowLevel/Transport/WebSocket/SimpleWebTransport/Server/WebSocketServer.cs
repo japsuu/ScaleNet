@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Net;
 using System.Net.Sockets;
 using ScaleNet.Server;
 
@@ -228,16 +229,14 @@ public class WebSocketServer
         }
     }
 
-    public string GetClientAddress(SessionId id)
+    public EndPoint? GetClientEndPoint(SessionId id)
     {
         if (connections.TryGetValue(id, out Connection? conn))
         {
-            return conn.client.Client.RemoteEndPoint.ToString();
+            return conn.client.Client.RemoteEndPoint;
         }
-        else
-        {
-            SimpleWebLog.Error($"Cant close connection to {id} because connection was not found in dictionary");
-            return null;
-        }
+
+        SimpleWebLog.Error($"Cant get endpoint of connection to {id} because connection was not found in dictionary");
+        return null;
     }
 }
