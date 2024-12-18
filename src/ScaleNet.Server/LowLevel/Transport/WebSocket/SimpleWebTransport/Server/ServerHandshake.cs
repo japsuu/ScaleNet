@@ -38,12 +38,12 @@ internal class ServerHandshake
 
         using (ArrayBuffer getHeader = bufferPool.Take(GetSize))
         {
-            if (!ReadHelper.TryRead(stream, getHeader.array, 0, GetSize))
+            if (!ReadHelper.TryRead(stream, getHeader.Array, 0, GetSize))
                 return false;
-            getHeader.count = GetSize;
+            getHeader.Count = GetSize;
 
 
-            if (!IsGet(getHeader.array))
+            if (!IsGet(getHeader.Array))
             {
                 //SimpleWebLog.Warn($"First bytes from client was not 'GET' for handshake, instead was {SimpleWebLog.BufferToString(getHeader.array, 0, GetSize)}");
                 return false;
@@ -72,13 +72,13 @@ internal class ServerHandshake
     {
         using (ArrayBuffer readBuffer = bufferPool.Take(maxHttpHeaderSize))
         {
-            int? readCountOrFail = ReadHelper.SafeReadTillMatch(stream, readBuffer.array, 0, maxHttpHeaderSize, Constants.endOfHandshake);
+            int? readCountOrFail = ReadHelper.SafeReadTillMatch(stream, readBuffer.Array, 0, maxHttpHeaderSize, Constants.endOfHandshake);
             if (!readCountOrFail.HasValue)
                 return null;
 
             int readCount = readCountOrFail.Value;
 
-            string msg = Encoding.ASCII.GetString(readBuffer.array, 0, readCount);
+            string msg = Encoding.ASCII.GetString(readBuffer.Array, 0, readCount);
             SimpleWebLog.Verbose(msg);
 
             return msg;
@@ -99,12 +99,12 @@ internal class ServerHandshake
             ArrayBuffer keyBuffer = bufferPool.Take(KeyLength + Constants.HandshakeGUIDLength),
             responseBuffer = bufferPool.Take(ResponseLength))
         {
-            GetKey(msg, keyBuffer.array);
-            AppendGuid(keyBuffer.array);
-            byte[] keyHash = CreateHash(keyBuffer.array);
-            CreateResponse(keyHash, responseBuffer.array);
+            GetKey(msg, keyBuffer.Array);
+            AppendGuid(keyBuffer.Array);
+            byte[] keyHash = CreateHash(keyBuffer.Array);
+            CreateResponse(keyHash, responseBuffer.Array);
 
-            stream.Write(responseBuffer.array, 0, ResponseLength);
+            stream.Write(responseBuffer.Array, 0, ResponseLength);
         }
     }
 

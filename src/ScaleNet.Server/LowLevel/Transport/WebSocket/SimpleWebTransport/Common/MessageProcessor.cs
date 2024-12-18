@@ -50,8 +50,8 @@ public static class MessageProcessor
 
     public static void ToggleMask(byte[] src, int sourceOffset, ArrayBuffer dst, int messageLength, byte[] maskBuffer, int maskOffset)
     {
-        ToggleMask(src, sourceOffset, dst.array, 0, messageLength, maskBuffer, maskOffset);
-        dst.count = messageLength;
+        ToggleMask(src, sourceOffset, dst.Array, 0, messageLength, maskBuffer, maskOffset);
+        dst.Count = messageLength;
     }
 
     public static void ToggleMask(byte[] src, int srcOffset, byte[] dst, int dstOffset, int messageLength, byte[] maskBuffer, int maskOffset)

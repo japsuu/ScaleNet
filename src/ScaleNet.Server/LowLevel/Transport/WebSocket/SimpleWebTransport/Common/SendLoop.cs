@@ -72,7 +72,7 @@ internal static class SendLoop
                             return;
                         }
 
-                        int maxLength = msg.count + Constants.HeaderSize + Constants.MaskSize;
+                        int maxLength = msg.Count + Constants.HeaderSize + Constants.MaskSize;
 
                         // if next writer could overflow, write to stream and clear buffer
                         if (offset + maxLength > bufferSize)
@@ -132,7 +132,7 @@ internal static class SendLoop
     /// <returns>new offset in buffer</returns>
     static int SendMessage(byte[] buffer, int startOffset, ArrayBuffer msg, bool setMask, MaskHelper maskHelper)
     {
-        int msgLength = msg.count;
+        int msgLength = msg.Count;
         int offset = WriteHeader(buffer, startOffset, msgLength, setMask);
 
         if (setMask)

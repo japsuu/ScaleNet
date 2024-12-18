@@ -2,12 +2,13 @@ using System.Net.Sockets;
 
 namespace ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
-[System.Serializable]
+[Serializable]
 public struct TcpConfig
 {
     public readonly bool noDelay;
     public readonly int sendTimeout;
     public readonly int receiveTimeout;
+
 
     public TcpConfig(bool noDelay, int sendTimeout, int receiveTimeout)
     {
@@ -15,6 +16,7 @@ public struct TcpConfig
         this.sendTimeout = sendTimeout;
         this.receiveTimeout = receiveTimeout;
     }
+
 
     public void ApplyTo(TcpClient client)
     {

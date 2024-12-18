@@ -23,7 +23,7 @@ internal static class SimpleWebLog
     [Conditional(SIMPLEWEB_LOG_ENABLED)]
     public static void DumpBuffer(string label, ArrayBuffer arrayBuffer)
     {
-        ScaleNetManager.Logger.LogDebug($"VERBOSE: {label}: {BufferToString(arrayBuffer.array, 0, arrayBuffer.count)}");
+        ScaleNetManager.Logger.LogDebug($"VERBOSE: {label}: {BufferToString(arrayBuffer.Array, 0, arrayBuffer.Count)}");
     }
 
     [Conditional(SIMPLEWEB_LOG_ENABLED)]
