@@ -34,16 +34,16 @@ public sealed class WebSocketServerTransport : IServerTransport
 
     public WebSocketServerTransport(ServerSslContext sslContext, ushort port, int maxConnections, int maxPacketSize = SharedConstants.MAX_PACKET_SIZE_BYTES, IPacketMiddleware? middleware = null)
     {
+        _sslContext = sslContext;
+        Port = port;
+        MaxConnections = maxConnections;
+        
+        _maxPacketSize = maxPacketSize;
         if (_maxPacketSize < 0)
             _maxPacketSize = MINIMUM_MTU;
         else if (_maxPacketSize > MAXIMUM_MTU)
             _maxPacketSize = MAXIMUM_MTU;
 
-        _sslContext = sslContext;
-        _maxPacketSize = maxPacketSize;
-        Port = port;
-        MaxConnections = maxConnections;
-        
         _serverSocket = new ServerSocket();
         _serverSocket.ServerStateChanged += a => ServerStateChanged?.Invoke(a);
         _serverSocket.SessionStateChanged += a => SessionStateChanged?.Invoke(a);
