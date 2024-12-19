@@ -61,21 +61,21 @@ public sealed class WebSocketServerTransport : IServerTransport
     }
 
 
-    private void HandleServerReceivedData(SessionId from, ArraySegment<byte> data)
+    private void HandleServerReceivedData(SessionId session, ArraySegment<byte> data)
     {
         /*
-         TODO: Implement too-many-packets check with WS transport
+         TODO: Implement too-many-packets check for WS transport
          if (IncomingPackets.Count > ServerConstants.MAX_PACKETS_PER_TICK)
         {
-            ScaleNetManager.Logger.LogWarning($"Session {from} is sending too many packets. Kicking immediately.");
-            StopConnection(from, InternalDisconnectReason.TooManyPackets);
+            ScaleNetManager.Logger.LogWarning($"Session {session} is sending too many packets. Kicking immediately.");
+            StopConnection(session, InternalDisconnectReason.TooManyPackets);
             return;
         }*/
         
         if (data.Count > SharedConstants.MAX_MESSAGE_SIZE_BYTES)
         {
-            ScaleNetManager.Logger.LogWarning($"Session {from} sent a packet that is too large. Kicking immediately.");
-            StopConnection(from, InternalDisconnectReason.OversizedPacket);
+            ScaleNetManager.Logger.LogWarning($"Session {session} sent a packet that is too large. Kicking immediately.");
+            StopConnection(session, InternalDisconnectReason.OversizedPacket);
             return;
         }
         
@@ -83,7 +83,25 @@ public sealed class WebSocketServerTransport : IServerTransport
         
         _middleware?.HandleIncomingPacket(ref packet);
         
-        MessageReceived?.Invoke(from, msg);
+        bool serializeSuccess = NetMessages.TryDeserialize(packet, out DeserializedNetMessage msg);
+        packet.Dispose();
+                
+        if (!serializeSuccess)
+        {
+            ScaleNetManager.Logger.LogWarning($"Received a packet that could not be deserialized. Kicking session {session} immediately.");
+            StopConnection(session, InternalDisconnectReason.MalformedData);
+            return;
+        }
+
+        try
+        {
+            MessageReceived?.Invoke(session, msg);
+        }
+        catch (Exception e)
+        {
+            ScaleNetManager.Logger.LogError($"User code threw an exception in the {nameof(MessageReceived)} event:\n{e}");
+            throw;
+        }
     }
 
 
