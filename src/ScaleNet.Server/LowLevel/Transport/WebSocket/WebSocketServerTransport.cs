@@ -9,12 +9,12 @@ namespace ScaleNet.Server.LowLevel.Transport.WebSocket;
 public sealed class WebSocketServerTransport : IServerTransport
 {
     /// <summary>
-    /// Minimum UDP packet size allowed.
+    /// Minimum MTU allowed.
     /// </summary>
     private const int MINIMUM_MTU = 576;
     
     /// <summary>
-    /// Maximum UDP packet size allowed.
+    /// Maximum MTU allowed.
     /// </summary>
     private const int MAXIMUM_MTU = ushort.MaxValue;
     
