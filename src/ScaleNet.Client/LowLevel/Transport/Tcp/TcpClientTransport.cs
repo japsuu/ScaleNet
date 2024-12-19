@@ -13,8 +13,9 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         // Buffer for accumulating incomplete packet data
         private readonly MemoryStream _receiveBuffer = new();
         private readonly IPacketMiddleware? _middleware;
-        private ConnectionState _connectionState = ConnectionState.Disconnected;
-    
+
+        public ConnectionState State { get; private set; } = ConnectionState.Disconnected;
+
         public event Action<ConnectionStateArgs>? ConnectionStateChanged;
         public event Action<DeserializedNetMessage>? MessageReceived;
 
@@ -40,6 +41,18 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         public bool DisconnectClient()
         {
             return DisconnectAsync();
+        }
+
+
+        public void IterateIncoming()
+        {
+            //TODO: Iterate only when called.
+        }
+
+
+        public void IterateOutgoing()
+        {
+            //TODO: Iterate only when called.
         }
 
 
@@ -87,10 +100,10 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
         private void OnConnectionStateChanged(ConnectionState newState)
         {
-            _connectionState = newState;
+            State = newState;
             try
             {
-                ConnectionStateChanged?.Invoke(new ConnectionStateArgs(_connectionState));
+                ConnectionStateChanged?.Invoke(new ConnectionStateArgs(State));
             }
             catch (Exception e)
             {
