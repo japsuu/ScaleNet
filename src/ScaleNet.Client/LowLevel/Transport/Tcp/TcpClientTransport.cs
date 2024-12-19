@@ -87,11 +87,10 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
         private void OnConnectionStateChanged(ConnectionState newState)
         {
-            ConnectionState prevState = _connectionState;
             _connectionState = newState;
             try
             {
-                ConnectionStateChanged?.Invoke(new ConnectionStateArgs(_connectionState, prevState));
+                ConnectionStateChanged?.Invoke(new ConnectionStateArgs(_connectionState));
             }
             catch (Exception e)
             {
