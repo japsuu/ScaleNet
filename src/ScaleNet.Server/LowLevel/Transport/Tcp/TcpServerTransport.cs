@@ -37,6 +37,17 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     }
 
 
+    protected override void Dispose(bool disposingManagedResources)
+    {
+        if (disposingManagedResources)
+        {
+            StopServer();
+        }
+        
+        base.Dispose(disposingManagedResources);
+    }
+
+
     public bool StartServer()
     {
         ScaleNetManager.Logger.LogInfo($"Starting TCP transport on {Address}:{Port}...");
@@ -52,17 +63,14 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     }
 
 
-    public bool StopServer(bool gracefully)
+    public bool StopServer()
     {
         ScaleNetManager.Logger.LogInfo("Stopping TCP transport...");
         _rejectNewConnections = true;
         _rejectNewMessages = true;
         
-        if (gracefully)
-        {
-            foreach (TcpClientSession session in _sessions.Values)
-                DisconnectSession(session, InternalDisconnectReason.ServerShutdown);
-        }
+        foreach (TcpClientSession session in _sessions.Values)
+            DisconnectSession(session, InternalDisconnectReason.ServerShutdown);
         
         bool stopped = Stop();
         
@@ -75,7 +83,7 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     }
 
 
-    public void HandleIncomingMessages()
+    public void IterateIncomingMessages()
     {
         if (_rejectNewMessages)
             return;
@@ -110,7 +118,7 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     }
     
     
-    public void HandleOutgoingMessages()
+    public void IterateOutgoingMessages()
     {
         //TODO: Parallelize.
         //NOTE: Sessions that are iterated first have packet priority.
@@ -162,26 +170,43 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     }
 
 
-    public void DisconnectSession(SessionId sessionId, InternalDisconnectReason reason, bool iterateOutgoing = true)
+    public bool StopConnection(SessionId sessionId, InternalDisconnectReason reason)
     {
         if (!_sessions.TryGetValue(sessionId, out TcpClientSession? session))
         {
             ScaleNetManager.Logger.LogWarning($"Tried to disconnect a non-existent/disconnected session with ID {sessionId}");
-            return;
+            return false;
         }
         
-        DisconnectSession(session, reason, iterateOutgoing);
+        DisconnectSession(session, reason);
+        return true;
     }
 
 
-    internal void DisconnectSession(TcpClientSession session, InternalDisconnectReason reason, bool iterateOutgoing = true)
+    public bool StopConnectionImmediate(SessionId sessionId)
     {
-        if (iterateOutgoing)
+        if (!_sessions.TryGetValue(sessionId, out TcpClientSession? session))
         {
-            QueueSendAsync(session, new InternalDisconnectMessage(reason));
-            SendOutgoingPackets(session);
+            ScaleNetManager.Logger.LogWarning($"Tried to disconnect a non-existent/disconnected session with ID {sessionId}");
+            return false;
         }
         
+        DisconnectSessionImmediate(session);
+        return true;
+    }
+
+
+    internal void DisconnectSession(TcpClientSession session, InternalDisconnectReason reason)
+    {
+        QueueSendAsync(session, new InternalDisconnectMessage(reason));
+        SendOutgoingPackets(session);
+        
+        DisconnectSessionImmediate(session);
+    }
+
+
+    private static void DisconnectSessionImmediate(TcpClientSession session)
+    {
         session.Disconnect();
     }
 
@@ -299,19 +324,5 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     protected override void OnError(SocketError error)
     {
         ScaleNetManager.Logger.LogError($"TCP server caught an error: {error}");
-    }
-
-
-    protected override void Dispose(bool disposingManagedResources)
-    {
-        if (disposingManagedResources)
-        {
-            StopServer(true);
-            
-            foreach (TcpClientSession session in _sessions.Values)
-                session.Dispose();
-        }
-        
-        base.Dispose(disposingManagedResources);
     }
 }

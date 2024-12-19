@@ -56,16 +56,16 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
     }
 
 
-    public void Stop(bool gracefully = true)
+    public void Stop()
     {
-        _transport.StopServer(gracefully);
+        _transport.StopServer();
     }
 
     
     public void Update()
     {
-        _transport.HandleIncomingMessages();
-        _transport.HandleOutgoingMessages();
+        _transport.IterateIncomingMessages();
+        _transport.IterateOutgoingMessages();
     }
 
 
@@ -180,7 +180,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
         if (!ConnectionManager.TryGetConnection(sessionId, out TConnection? connection))
         {
             ScaleNetManager.Logger.LogWarning($"Received a message from an unknown session {sessionId}. Ignoring, and ending the session.");
-            _transport.DisconnectSession(sessionId, InternalDisconnectReason.UnexpectedProblem);
+            _transport.StopConnection(sessionId, InternalDisconnectReason.UnexpectedProblem);
             return;
         }
         
@@ -223,7 +223,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
                 if (!ConnectionManager.TryCreateConnection(sessionId, out connection))
                 {
                     ScaleNetManager.Logger.LogWarning($"Client for session {sessionId} already exists. Kicking.");
-                    _transport.DisconnectSession(sessionId, InternalDisconnectReason.UnexpectedProblem);
+                    _transport.StopConnection(sessionId, InternalDisconnectReason.UnexpectedProblem);
                     return;
                 }
                 

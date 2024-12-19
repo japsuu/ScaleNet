@@ -6,7 +6,7 @@ using ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Server;
 
 namespace ScaleNet.Server.LowLevel.Transport.WebSocket.Core;
 
-internal class ServerSocket
+internal sealed class ServerSocket : IDisposable
 {
     /// <summary>
     /// A raw packet of data.
@@ -48,14 +48,15 @@ internal class ServerSocket
     private readonly HashSet<SessionId> _connectedClients = [];
     private readonly Queue<Packet> _outgoingPackets = new();
 
+    public IReadOnlyCollection<SessionId> ConnectedClients => _connectedClients;
     public ServerState State { get; private set; } = ServerState.Stopped;
     
     public event Action<ServerStateChangeArgs>? ServerStateChanged;
     public event Action<SessionStateChangeArgs>? SessionStateChanged;
     public event Action<SessionId, ArraySegment<byte>>? MessageReceived;
-
-
-    ~ServerSocket()
+    
+    
+    public void Dispose()
     {
         StopServer();
     }
@@ -168,7 +169,7 @@ internal class ServerSocket
     /// </summary>
     /// <param name="connectionId"></param>
     /// <returns>Returns string.empty if Id is not found.</returns>
-    public EndPoint? GetConnectionAddress(SessionId connectionId)
+    public EndPoint? GetConnectionEndPoint(SessionId connectionId)
     {
         if (_server == null || !_server.Active)
             return null;
@@ -198,7 +199,7 @@ internal class ServerSocket
     /// <summary>
     /// Stops the local socket.
     /// </summary>
-    internal bool StopServer()
+    public bool StopServer()
     {
         if (_server == null || State == ServerState.Stopped || State == ServerState.Stopping)
             return false;
@@ -215,15 +216,15 @@ internal class ServerSocket
     /// <summary>
     /// Stops a remote client, disconnecting it from the server.
     /// </summary>
-    internal bool StopConnection(SessionId connectionId, bool immediately)
+    public bool StopConnection(SessionId connectionId, bool iterateOutgoing)
     {
         if (_server == null || State != ServerState.Started)
             return false;
 
-        if (immediately)
-            _server.KickClient(connectionId);
-        else
+        if (iterateOutgoing)
             _clientsAwaitingDisconnectDelayed.Add(connectionId);
+        else
+            _server.KickClient(connectionId);
 
         return true;
     }

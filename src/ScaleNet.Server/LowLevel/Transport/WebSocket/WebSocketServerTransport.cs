@@ -20,6 +20,7 @@ public sealed class WebSocketServerTransport : IServerTransport
     
     private readonly ServerSocket _serverSocket;
     private readonly ServerSslContext _sslContext;
+    private readonly IPacketMiddleware? _middleware;
     private readonly int _mtu;  //WARN: IDK if necessary with a WS transport
 
     public ushort Port { get; }
@@ -31,7 +32,7 @@ public sealed class WebSocketServerTransport : IServerTransport
     public event Action<SessionId, DeserializedNetMessage>? MessageReceived;
 
 
-    public WebSocketServerTransport(ServerSslContext sslContext, ushort port, int maxConnections, int mtu = 1023)
+    public WebSocketServerTransport(ServerSslContext sslContext, ushort port, int maxConnections, int mtu = 1023, IPacketMiddleware? middleware = null)
     {
         if (_mtu < 0)
             _mtu = MINIMUM_MTU;
@@ -47,12 +48,16 @@ public sealed class WebSocketServerTransport : IServerTransport
         _serverSocket.ServerStateChanged += HandleServerConnectionState;
         _serverSocket.SessionStateChanged += HandleRemoteConnectionState;
         _serverSocket.MessageReceived += HandleServerReceivedDataArgs;
+        
+        _middleware = middleware;
     }
     
     
     public void Dispose()
     {
-        StopServer(true);
+        StopServer();
+        
+        _serverSocket.Dispose();
     }
     
     
@@ -86,15 +91,15 @@ public sealed class WebSocketServerTransport : IServerTransport
     }
 
 
-    public bool StopServer(bool gracefully = true)
+    public bool StopServer()
     {
         ScaleNetManager.Logger.LogInfo("Stopping WS transport...");
         
-        if (gracefully)
-        {
-            foreach (TcpClientSession session in _sessions.Values)
-                DisconnectSession(session, InternalDisconnectReason.ServerShutdown);
-        }
+        foreach (SessionId session in _serverSocket.ConnectedClients)
+            StopConnection(session, InternalDisconnectReason.ServerShutdown);
+        
+        // Iterate outgoing to ensure all disconnection messages are sent.
+        IterateOutgoingMessages();
         
         bool stopped = _serverSocket.StopServer();
         
@@ -111,13 +116,13 @@ public sealed class WebSocketServerTransport : IServerTransport
 
 #region Message iterating
 
-    public void HandleIncomingMessages()
+    public void IterateIncomingMessages()
     {
         _serverSocket.IterateIncoming();
     }
 
 
-    public void HandleOutgoingMessages()
+    public void IterateOutgoingMessages()
     {
         _serverSocket.IterateOutgoing();
     }
@@ -144,12 +149,27 @@ public sealed class WebSocketServerTransport : IServerTransport
 
 #region Utils
 
-    public void DisconnectSession(SessionId sessionId, InternalDisconnectReason reason, bool iterateOutgoing = true)
+    public bool StopConnection(SessionId sessionId, InternalDisconnectReason reason)
     {
-        bool success = _serverSocket.StopConnection(sessionId, !iterateOutgoing);
+        QueueSendAsync(sessionId, new InternalDisconnectMessage(reason));
+        
+        return DisconnectSession(sessionId, true);
+    }
+
+    public bool StopConnectionImmediate(SessionId sessionId)
+    {
+        return DisconnectSession(sessionId, false);
+    }
+
+
+    private bool DisconnectSession(SessionId sessionId, bool iterateOutgoing)
+    {
+        bool success = _serverSocket.StopConnection(sessionId, iterateOutgoing);
         
         if (!success)
             ScaleNetManager.Logger.LogError($"Failed to disconnect session {sessionId}.");
+        
+        return success;
     }
 
 
@@ -161,7 +181,7 @@ public sealed class WebSocketServerTransport : IServerTransport
     
     public EndPoint? GetClientEndPoint(SessionId sessionId)
     {
-        return _serverSocket.GetConnectionAddress(sessionId);
+        return _serverSocket.GetConnectionEndPoint(sessionId);
     }
 
 #endregion

@@ -3,6 +3,9 @@ using ScaleNet.Common.LowLevel;
 
 namespace ScaleNet.Server.LowLevel.Transport;
 
+/// <summary>
+/// Represents a server transport that can send and receive network messages.
+/// </summary>
 public interface IServerTransport : IDisposable
 {
     public ushort Port { get; }
@@ -33,16 +36,21 @@ public interface IServerTransport : IDisposable
 
 
     /// <summary>
-    /// Disconnect the session.
+    /// Disconnects the session, sending a reason for the disconnection.
     /// </summary>
     /// <param name="sessionId">The session to disconnect.</param>
     /// <param name="reason">The reason for the disconnection.</param>
-    /// <param name="iterateOutgoing">True to send outgoing packets before disconnecting.</param>
     /// 
-    /// <remarks>
-    /// The disconnect reason will only be sent to the session if <paramref name="iterateOutgoing"/> is true.
-    /// </remarks>
-    public void DisconnectSession(SessionId sessionId, InternalDisconnectReason reason, bool iterateOutgoing = true);
+    /// <returns>True if the session was disconnected, false if the session was not found.</returns>
+    public bool StopConnection(SessionId sessionId, InternalDisconnectReason reason);
+
+
+    /// <summary>
+    /// Immediately disconnects the session, without sending any outgoing packets.
+    /// </summary>
+    /// 
+    /// <returns>True if the session was disconnected, false if the session was not found.</returns>
+    public bool StopConnectionImmediate(SessionId sessionId);
 
 
     /// <summary>
@@ -56,7 +64,7 @@ public interface IServerTransport : IDisposable
     /// Stops the server.
     /// </summary>
     /// <returns>True if the server was stopped, false if it was already stopped.</returns>
-    public bool StopServer(bool gracefully = true);
+    public bool StopServer();
 
 
     /// <summary>
@@ -70,11 +78,11 @@ public interface IServerTransport : IDisposable
     /// <summary>
     /// Handles incoming packets, calling <see cref="MessageReceived"/> for each received message.
     /// </summary>
-    public void HandleIncomingMessages();
+    public void IterateIncomingMessages();
 
 
     /// <summary>
     /// Handles outgoing packets, sending all queued packets to their respective clients.
     /// </summary>
-    public void HandleOutgoingMessages();
+    public void IterateOutgoingMessages();
 }

@@ -33,18 +33,26 @@ public abstract class Connection
     /// Disconnect the client.
     /// </summary>
     /// <param name="reason">The reason for the disconnection.</param>
-    /// <param name="iterateOutgoing">True to send outgoing packets before disconnecting.</param>
-    ///
-    /// <remarks>
-    /// The disconnect reason will only be sent to the client if <paramref name="iterateOutgoing"/> is true.
-    /// </remarks>
-    public void Kick(InternalDisconnectReason reason, bool iterateOutgoing = true)
+    public void Kick(InternalDisconnectReason reason)
     {
         Debug.Assert(_transport != null, nameof(_transport) + " != null");
         
         ScaleNetManager.Logger.LogDebug($"Disconnecting client {SessionId} with reason {reason}.");
 
-        _transport.DisconnectSession(SessionId, reason, iterateOutgoing);
+        _transport.StopConnection(SessionId, reason);
+    }
+
+
+    /// <summary>
+    /// Immediately disconnects the client, without sending a message.
+    /// </summary>
+    public void KickImmediate()
+    {
+        Debug.Assert(_transport != null, nameof(_transport) + " != null");
+        
+        ScaleNetManager.Logger.LogDebug($"Disconnecting client {SessionId} immediately.");
+
+        _transport.StopConnectionImmediate(SessionId);
     }
 
 
@@ -59,7 +67,7 @@ public abstract class Connection
         ScaleNetManager.Logger.LogDebug($"Disconnecting client {SessionId}.");
 
         QueueSend(message);
-        _transport.DisconnectSession(SessionId, InternalDisconnectReason.User);
+        _transport.StopConnection(SessionId, InternalDisconnectReason.User);
     }
 
 
