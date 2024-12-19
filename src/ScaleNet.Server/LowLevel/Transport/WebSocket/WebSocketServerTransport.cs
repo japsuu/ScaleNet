@@ -45,9 +45,9 @@ public sealed class WebSocketServerTransport : IServerTransport
         MaxConnections = maxConnections;
         
         _serverSocket = new ServerSocket();
-        _serverSocket.ServerStateChanged += HandleServerConnectionState;
-        _serverSocket.SessionStateChanged += HandleRemoteConnectionState;
-        _serverSocket.MessageReceived += HandleServerReceivedDataArgs;
+        _serverSocket.ServerStateChanged += a => ServerStateChanged?.Invoke(a);
+        _serverSocket.SessionStateChanged += a => SessionStateChanged?.Invoke(a);
+        _serverSocket.MessageReceived += HandleServerReceivedData;
         
         _middleware = middleware;
     }
@@ -59,15 +59,29 @@ public sealed class WebSocketServerTransport : IServerTransport
         
         _serverSocket.Dispose();
     }
-    
-    
-    private void HandleServerConnectionState(ServerStateChangeArgs connectionStateArgs) => ServerStateChanged?.Invoke(connectionStateArgs);
-    private void HandleRemoteConnectionState(SessionStateChangeArgs connectionStateArgs) => SessionStateChanged?.Invoke(connectionStateArgs);
 
 
-    private void HandleServerReceivedDataArgs(SessionId from, ArraySegment<byte> data)
+    private void HandleServerReceivedData(SessionId from, ArraySegment<byte> data)
     {
+        /*
+         TODO: Implement too-many-packets check with WS transport
+         if (IncomingPackets.Count > ServerConstants.MAX_PACKETS_PER_TICK)
+        {
+            ScaleNetManager.Logger.LogWarning($"Session {from} is sending too many packets. Kicking immediately.");
+            StopConnection(from, InternalDisconnectReason.TooManyPackets);
+            return;
+        }*/
         
+        if (data.Count > SharedConstants.MAX_MESSAGE_SIZE_BYTES)
+        {
+            ScaleNetManager.Logger.LogWarning($"Session {from} sent a packet that is too large. Kicking immediately.");
+            StopConnection(from, InternalDisconnectReason.OversizedPacket);
+            return;
+        }
+        
+        NetMessagePacket packet = NetMessagePacket.CreateIncoming(data);
+        
+        _middleware?.HandleIncomingPacket(ref packet);
         
         MessageReceived?.Invoke(from, msg);
     }
@@ -83,9 +97,9 @@ public sealed class WebSocketServerTransport : IServerTransport
         bool started = _serverSocket.StartServer(Port, MaxConnections);
         
         if (started)
-            ScaleNetManager.Logger.LogInfo("TCP transport started successfully.");
+            ScaleNetManager.Logger.LogInfo("WS transport started successfully.");
         else
-            ScaleNetManager.Logger.LogError("Failed to start TCP transport.");
+            ScaleNetManager.Logger.LogError("Failed to start WS transport.");
         
         return started;
     }

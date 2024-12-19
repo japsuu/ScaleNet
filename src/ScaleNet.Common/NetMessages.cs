@@ -33,6 +33,7 @@ namespace ScaleNet.Common
     public readonly struct NetMessagePacket : IDisposable
     {
         public readonly byte[] Buffer;
+        public readonly int Offset;
         public readonly int Length;
 
 
@@ -40,9 +41,10 @@ namespace ScaleNet.Common
         /// Constructs a new incoming network message packet.
         /// The data is NOT copied internally.
         /// </summary>
-        private NetMessagePacket(byte[] data, int length)
+        private NetMessagePacket(byte[] data, int offset, int length)
         {
             Buffer = data;
+            Offset = offset;
             Length = length;
         }
         
@@ -65,7 +67,7 @@ namespace ScaleNet.Common
             // Copy the message data to the buffer.
             data.CopyTo(buffer.AsSpan(2));
             
-            return new NetMessagePacket(buffer, packetLength);
+            return new NetMessagePacket(buffer, 0, packetLength);
         }
         
         
@@ -74,27 +76,38 @@ namespace ScaleNet.Common
         /// The data is NOT copied internally, but the buffer is returned to the pool when disposed.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static NetMessagePacket CreateIncoming(byte[] data, int length)
+        public static NetMessagePacket CreateIncoming(byte[] data, int offset, int length)
         {
-            return new NetMessagePacket(data, length);
+            return new NetMessagePacket(data, offset, length);
+        }
+        
+        
+        /// <summary>
+        /// Constructs a new incoming network message packet.
+        /// The data is NOT copied internally, but the buffer is returned to the pool when disposed.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static NetMessagePacket CreateIncoming(ArraySegment<byte> data)
+        {
+            return new NetMessagePacket(data.Array!, data.Offset, data.Count);
         }
         
         
         public ushort ReadId()
         {
             Debug.Assert(Length >= 2, "Length >= 2");
-            return BinaryPrimitives.ReadUInt16LittleEndian(Buffer);
+            return BinaryPrimitives.ReadUInt16LittleEndian(Buffer.AsSpan(Offset));
         }
         
         
         public ReadOnlyMemory<byte> ReadPayload()
         {
             Debug.Assert(Length >= 2, "Length >= 2");
-            return new ReadOnlyMemory<byte>(Buffer, 2, Length - 2);
+            return new ReadOnlyMemory<byte>(Buffer, Offset + 2, Length - 2);
         }
 
 
-        public Span<byte> AsSpan() => Buffer.AsSpan(0, Length);
+        public Span<byte> AsSpan() => Buffer.AsSpan(Offset, Length);
         
         
         public void Dispose()

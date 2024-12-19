@@ -131,7 +131,7 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport, Acti
             return;
         }
         
-        NetMessagePacket packet = NetMessagePacket.CreateIncoming(data, length);
+        NetMessagePacket packet = NetMessagePacket.CreateIncoming(data, 0, length);
         
         transport.Middleware?.HandleIncomingPacket(ref packet);
         
