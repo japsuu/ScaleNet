@@ -45,14 +45,14 @@ public sealed class WebSocketServerTransport : IServerTransport
             _maxPacketSize = MAXIMUM_MTU;
 
         _serverSocket = new ServerSocket();
-        _serverSocket.ServerStateChanged += args => ServerStateChanged?.Invoke(args);
-        _serverSocket.SessionStateChanged += args => SessionStateChanged?.Invoke(args);
-        _serverSocket.DataReceived += HandleReceivedData;
+        _serverSocket.ServerStateChanged += OnServerStateChanged;
+        _serverSocket.SessionStateChanged += OnSessionStateChanged;
+        _serverSocket.DataReceived += OnReceivedData;
         
         _middleware = middleware;
     }
-    
-    
+
+
     public void Dispose()
     {
         StopServer();
@@ -61,7 +61,35 @@ public sealed class WebSocketServerTransport : IServerTransport
     }
 
 
-    private void HandleReceivedData(ConnectionId connectionId, ArraySegment<byte> data)
+    private void OnServerStateChanged(ServerStateChangeArgs args)
+    {
+        try
+        {
+            ServerStateChanged?.Invoke(args);
+        }
+        catch (Exception e)
+        {
+            ScaleNetManager.Logger.LogError($"User code threw an exception in the {nameof(ServerStateChanged)} event:\n{e}");
+            throw;
+        }
+    }
+
+
+    private void OnSessionStateChanged(SessionStateChangeArgs args)
+    {
+        try
+        {
+            SessionStateChanged?.Invoke(args);
+        }
+        catch (Exception e)
+        {
+            ScaleNetManager.Logger.LogError($"User code threw an exception in the {nameof(SessionStateChanged)} event:\n{e}");
+            throw;
+        }
+    }
+
+
+    private void OnReceivedData(ConnectionId connectionId, ArraySegment<byte> data)
     {
         /*
          TODO: Implement too-many-packets check for WS transport
