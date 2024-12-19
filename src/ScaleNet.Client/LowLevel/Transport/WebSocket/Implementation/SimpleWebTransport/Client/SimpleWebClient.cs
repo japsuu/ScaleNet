@@ -5,13 +5,13 @@ using ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
 namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
 {
-    public enum ClientState
+    /*public enum ClientState
     {
         NotConnected = 0,
         Connecting = 1,
         Connected = 2,
         Disconnecting = 3,
-    }
+    }*/
     /// <summary>
     /// Client used to control websockets
     /// <para>Base class used by WebSocketClientWebGl and WebSocketClientStandAlone</para>

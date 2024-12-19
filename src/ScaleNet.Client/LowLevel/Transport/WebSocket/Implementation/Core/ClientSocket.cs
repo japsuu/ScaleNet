@@ -3,64 +3,30 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client;
 using ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
+using ScaleNet.Common;
 
 namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
 {
-    public class ClientSocket
+    public class ClientSocket : IDisposable
     {
-        ~ClientSocket()
+        private string _address = string.Empty;
+        private ushort _port;
+        private SimpleWebClient _client;
+        
+        private readonly Queue<NetMessagePacket> _outgoing = new();
+
+        public ConnectionState State { get; private set; } = ConnectionState.Disconnected;
+        
+        public event Action<ConnectionStateArgs>? ClientStateChanged;
+        public event Action<ArraySegment<byte>>? MessageReceived;
+
+
+        public void Dispose()
         {
             StopConnection();
         }
 
-        #region Private.
-        #region Configuration.
-        /// <summary>
-        /// Address to bind server to.
-        /// </summary>
-        private string _address = string.Empty;
-        /// <summary>
-        /// Port used by server.
-        /// </summary>
-        private ushort _port;
-        /// <summary>
-        /// MTU sizes for each channel.
-        /// </summary>
-        private int _mtu;
-        #endregion
-        #region Queues.
-        /// <summary>
-        /// Outbound messages which need to be handled.
-        /// </summary>
-        private Queue<Packet> _outgoing = new Queue<Packet>();
-        #endregion
-        /// <summary>
-        /// Client socket manager.
-        /// </summary>
-        private SimpleWebClient _client;
-
-        /// <summary>
-        /// Current ConnectionState.
-        /// </summary>
-        private LocalConnectionState _connectionState = LocalConnectionState.Stopped;
-
-        /// <summary>
-        /// Transport controlling this socket.
-        /// </summary>
-        protected Transport Transport = null;
-
-#endregion
-
-        /// <summary>
-        /// Initializes this for use.
-        /// </summary>
-        /// <param name="t"></param>
-        internal void Initialize(Transport t, int mtu)
-        {
-            Transport = t;
-            _mtu = mtu;
-        }
-
+        
         /// <summary>
         /// Threaded operation to process client actions.
         /// </summary>
@@ -82,7 +48,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
                 Host = _address,
                 Port = _port
             };
-            SetConnectionState(LocalConnectionState.Starting, false);
+            SetConnectionState(ConnectionState.Starting, false);
             _client.Connect(builder.Uri);
         }
 
@@ -109,7 +75,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
 
         private void _client_onConnect()
         {
-            SetConnectionState(LocalConnectionState.Started, false);
+            SetConnectionState(ConnectionState.Started, false);
         }
 
 
@@ -122,10 +88,10 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
         /// <param name="pollTime"></param>
         internal bool StartConnection(string address, ushort port, bool useWss)
         {
-            if (GetConnectionState() != LocalConnectionState.Stopped)
+            if (GetConnectionState() != ConnectionState.Stopped)
                 return false;
 
-            SetConnectionState(LocalConnectionState.Starting, false);
+            SetConnectionState(ConnectionState.Starting, false);
             //Assign properties.
             _port = port;
             _address = address;
@@ -142,12 +108,12 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
         /// </summary>
         internal bool StopConnection()
         {
-            if (GetConnectionState() == LocalConnectionState.Stopped || GetConnectionState() == LocalConnectionState.Stopping)
+            if (GetConnectionState() == ConnectionState.Stopped || GetConnectionState() == ConnectionState.Stopping)
                 return false;
 
-            SetConnectionState(LocalConnectionState.Stopping, false);
+            SetConnectionState(ConnectionState.Stopping, false);
             _client.Disconnect();
-            SetConnectionState(LocalConnectionState.Stopped, false);
+            SetConnectionState(ConnectionState.Stopped, false);
             return true;
         }
 
@@ -200,10 +166,10 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
         /// <summary>
         /// Sends a packet to the server.
         /// </summary>
-        internal void SendToServer(byte channelId, ArraySegment<byte> segment)
+        internal void SendToServer(NetMessagePacket packet)
         {
             //Not started, cannot send.
-            if (GetConnectionState() != LocalConnectionState.Started)
+            if (GetConnectionState() != ConnectionState.Started)
                 return;
 
             Send(ref _outgoing, channelId, segment, -1);
@@ -214,9 +180,9 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
         /// Returns the current ConnectionState.
         /// </summary>
         /// <returns></returns>
-        internal LocalConnectionState GetConnectionState()
+        internal ConnectionState GetConnectionState()
         {
-            return _connectionState;
+            return State;
         }
 
 
@@ -224,13 +190,13 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
         /// Sets a new connection state.
         /// </summary>
         /// <param name="connectionState"></param>
-        protected void SetConnectionState(LocalConnectionState connectionState, bool asServer)
+        protected void SetConnectionState(ConnectionState connectionState, bool asServer)
         {
             //If state hasn't changed.
-            if (connectionState == _connectionState)
+            if (connectionState == State)
                 return;
 
-            _connectionState = connectionState;
+            State = connectionState;
             if (asServer)
                 Transport.HandleServerConnectionState(new ServerConnectionStateArgs(connectionState, Transport.Index));
             else
@@ -243,7 +209,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
         /// </summary>
         internal void Send(ref Queue<Packet> queue, byte channelId, ArraySegment<byte> segment, int connectionId)
         {
-            if (GetConnectionState() != LocalConnectionState.Started)
+            if (GetConnectionState() != ConnectionState.Started)
                 return;
 
             //ConnectionId isn't used from client to server.
