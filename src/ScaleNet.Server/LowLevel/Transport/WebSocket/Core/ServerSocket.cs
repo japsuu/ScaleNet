@@ -293,9 +293,9 @@ internal class ServerSocket
                 SessionId sessionId = outgoing.SessionID;
 
                 if (sessionId == SessionId.Broadcast)
-                    _server.SendAll(_connectedClients, outgoing.Data, outgoing.Length);
+                    _server.SendAll(_connectedClients, outgoing.Payload.Buffer, outgoing.Payload.Length);
                 else
-                    _server.SendOne(sessionId, outgoing.Data, outgoing.Length);
+                    _server.SendOne(sessionId, outgoing.Payload.Buffer, outgoing.Payload.Length);
 
                 outgoing.Dispose();
             }
