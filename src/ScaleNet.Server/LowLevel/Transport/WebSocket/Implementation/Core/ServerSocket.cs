@@ -32,10 +32,10 @@ internal sealed class ServerSocket : IDisposable
 
     private ushort _port;
     private int _maximumClients;
-    private int _maxPacketSize;
     private SimpleWebServer? _server;
-    private ServerSslContext? _sslContext;
     
+    private readonly int _maxPacketSize;
+    private readonly ServerSslContext? _sslContext;
     /// <summary>
     /// Ids to disconnect the next iteration.
     /// This ensures data goes through to disconnecting remote connections.
@@ -51,21 +51,18 @@ internal sealed class ServerSocket : IDisposable
     public event Action<ServerStateChangeArgs>? ServerStateChanged;
     public event Action<SessionStateChangeArgs>? SessionStateChanged;
     public event Action<ConnectionId, ArraySegment<byte>>? DataReceived;
+
+
+    public ServerSocket(int maxPacketSize, ServerSslContext? context)
+    {
+        _maxPacketSize = maxPacketSize;
+        _sslContext = context;
+    }
     
     
     public void Dispose()
     {
         StopServer();
-    }
-
-
-    /// <summary>
-    /// Initializes this for use.
-    /// </summary>
-    internal void Initialize(int maxPacketSize, ServerSslContext context)
-    {
-        _sslContext = context;
-        _maxPacketSize = maxPacketSize;
     }
 
 

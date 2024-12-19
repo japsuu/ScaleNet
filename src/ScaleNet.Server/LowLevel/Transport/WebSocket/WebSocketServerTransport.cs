@@ -44,7 +44,7 @@ public sealed class WebSocketServerTransport : IServerTransport
         else if (_maxPacketSize > MAXIMUM_MTU)
             _maxPacketSize = MAXIMUM_MTU;
 
-        _serverSocket = new ServerSocket();
+        _serverSocket = new ServerSocket(_maxPacketSize, _sslContext);
         _serverSocket.ServerStateChanged += OnServerStateChanged;
         _serverSocket.SessionStateChanged += OnSessionStateChanged;
         _serverSocket.DataReceived += OnReceivedData;
@@ -138,7 +138,6 @@ public sealed class WebSocketServerTransport : IServerTransport
     public bool StartServer()
     {
         ScaleNetManager.Logger.LogInfo($"Starting WS transport on port {Port}...");
-        _serverSocket.Initialize(_maxPacketSize, _sslContext);
 
         bool started = _serverSocket.StartServer(Port, MaxConnections);
         
