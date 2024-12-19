@@ -6,7 +6,7 @@ using ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
 namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
 {
-    public class ClientSocket : CommonSocket
+    public class ClientSocket
     {
         ~ClientSocket()
         {
@@ -38,7 +38,18 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
         /// Client socket manager.
         /// </summary>
         private SimpleWebClient _client;
-        #endregion
+
+        /// <summary>
+        /// Current ConnectionState.
+        /// </summary>
+        private LocalConnectionState _connectionState = LocalConnectionState.Stopped;
+
+        /// <summary>
+        /// Transport controlling this socket.
+        /// </summary>
+        protected Transport Transport = null;
+
+#endregion
 
         /// <summary>
         /// Initializes this for use.
@@ -46,7 +57,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
         /// <param name="t"></param>
         internal void Initialize(Transport t, int mtu)
         {
-            base.Transport = t;
+            Transport = t;
             _mtu = mtu;
         }
 
@@ -71,7 +82,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
                 Host = _address,
                 Port = _port
             };
-            base.SetConnectionState(LocalConnectionState.Starting, false);
+            SetConnectionState(LocalConnectionState.Starting, false);
             _client.Connect(builder.Uri);
         }
 
@@ -86,9 +97,9 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
                 return;
 
             Channel channel;
-            data = base.RemoveChannel(data, out channel);
-            ClientReceivedDataArgs dataArgs = new ClientReceivedDataArgs(data, channel, base.Transport.Index);
-            base.Transport.HandleClientReceivedDataArgs(dataArgs);
+            data = RemoveChannel(data, out channel);
+            ClientReceivedDataArgs dataArgs = new ClientReceivedDataArgs(data, channel, Transport.Index);
+            Transport.HandleClientReceivedDataArgs(dataArgs);
         }
 
         private void _client_onDisconnect()
@@ -98,7 +109,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
 
         private void _client_onConnect()
         {
-            base.SetConnectionState(LocalConnectionState.Started, false);
+            SetConnectionState(LocalConnectionState.Started, false);
         }
 
 
@@ -111,10 +122,10 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
         /// <param name="pollTime"></param>
         internal bool StartConnection(string address, ushort port, bool useWss)
         {
-            if (base.GetConnectionState() != LocalConnectionState.Stopped)
+            if (GetConnectionState() != LocalConnectionState.Stopped)
                 return false;
 
-            base.SetConnectionState(LocalConnectionState.Starting, false);
+            SetConnectionState(LocalConnectionState.Starting, false);
             //Assign properties.
             _port = port;
             _address = address;
@@ -131,12 +142,12 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
         /// </summary>
         internal bool StopConnection()
         {
-            if (base.GetConnectionState() == LocalConnectionState.Stopped || base.GetConnectionState() == LocalConnectionState.Stopping)
+            if (GetConnectionState() == LocalConnectionState.Stopped || GetConnectionState() == LocalConnectionState.Stopping)
                 return false;
 
-            base.SetConnectionState(LocalConnectionState.Stopping, false);
+            SetConnectionState(LocalConnectionState.Stopping, false);
             _client.Disconnect();
-            base.SetConnectionState(LocalConnectionState.Stopped, false);
+            SetConnectionState(LocalConnectionState.Stopped, false);
             return true;
         }
 
@@ -146,7 +157,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ResetQueues()
         {
-            base.ClearPacketQueue(ref _outgoing);
+            ClearPacketQueue(ref _outgoing);
         }
 
 
@@ -159,7 +170,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
             for (int i = 0; i < count; i++)
             {
                 Packet outgoing = _outgoing.Dequeue();
-                base.AddChannel(ref outgoing);
+                AddChannel(ref outgoing);
                 _client.Send(outgoing.GetArraySegment());
                 outgoing.Dispose();
             }
@@ -192,12 +203,91 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
         internal void SendToServer(byte channelId, ArraySegment<byte> segment)
         {
             //Not started, cannot send.
-            if (base.GetConnectionState() != LocalConnectionState.Started)
+            if (GetConnectionState() != LocalConnectionState.Started)
                 return;
 
-            base.Send(ref _outgoing, channelId, segment, -1);
+            Send(ref _outgoing, channelId, segment, -1);
         }
 
 
+        /// <summary>
+        /// Returns the current ConnectionState.
+        /// </summary>
+        /// <returns></returns>
+        internal LocalConnectionState GetConnectionState()
+        {
+            return _connectionState;
+        }
+
+
+        /// <summary>
+        /// Sets a new connection state.
+        /// </summary>
+        /// <param name="connectionState"></param>
+        protected void SetConnectionState(LocalConnectionState connectionState, bool asServer)
+        {
+            //If state hasn't changed.
+            if (connectionState == _connectionState)
+                return;
+
+            _connectionState = connectionState;
+            if (asServer)
+                Transport.HandleServerConnectionState(new ServerConnectionStateArgs(connectionState, Transport.Index));
+            else
+                Transport.HandleClientConnectionState(new ClientConnectionStateArgs(connectionState, Transport.Index));
+        }
+
+
+        /// <summary>
+        /// Sends data to connectionId.
+        /// </summary>
+        internal void Send(ref Queue<Packet> queue, byte channelId, ArraySegment<byte> segment, int connectionId)
+        {
+            if (GetConnectionState() != LocalConnectionState.Started)
+                return;
+
+            //ConnectionId isn't used from client to server.
+            Packet outgoing = new Packet(connectionId, segment, channelId);
+            queue.Enqueue(outgoing);
+        }
+
+
+        /// <summary>
+        /// Clears a queue using Packet type.
+        /// </summary>
+        /// <param name="queue"></param>
+        internal void ClearPacketQueue(ref Queue<Packet> queue)
+        {
+            int count = queue.Count;
+            for (int i = 0; i < count; i++)
+            {
+                Packet p = queue.Dequeue();
+                p.Dispose();
+            }
+        }
+
+
+        /// <summary>
+        /// Adds channel to the end of the data.
+        /// </summary>
+        internal void AddChannel(ref Packet packet)
+        {
+            int writePosition = packet.Length;
+            packet.AddLength(1);
+            packet.Data[writePosition] = (byte)packet.Channel;
+        }
+
+
+        /// <summary>
+        /// Removes the channel, outputting it and returning a new ArraySegment.
+        /// </summary>
+        internal ArraySegment<byte> RemoveChannel(ArraySegment<byte> segment, out Channel channel)
+        {
+            byte[] array = segment.Array;
+            int count = segment.Count;
+
+            channel = (Channel)array[count - 1];
+            return new ArraySegment<byte>(array, 0, count - 1);
+        }
     }
 }
