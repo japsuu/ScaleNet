@@ -80,7 +80,7 @@ internal sealed class ServerSocket : IDisposable
     {
         TcpConfig tcpConfig = new(false, 5000, 20000);
 
-        _server = new SimpleWebServer(maxClients, 5000, tcpConfig, _mtu, 5000, _sslContext);
+        _server = new SimpleWebServer(maxClients, 10000, tcpConfig, _mtu, 5000, _sslContext);
 
         _server.onConnect += _server_onConnect;
         _server.onDisconnect += _server_onDisconnect;
@@ -337,12 +337,9 @@ internal sealed class ServerSocket : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void IterateIncoming()
     {
-        if (_server == null)
-            return;
-
         /* Read socket messages. Can contain
          * connect, data, disconnect, error messages. */
-        _server.ProcessMessageQueue();
+        _server?.ProcessMessageQueue();
     }
 
 

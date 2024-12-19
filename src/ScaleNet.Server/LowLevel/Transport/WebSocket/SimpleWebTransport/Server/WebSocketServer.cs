@@ -27,11 +27,11 @@ public class WebSocketServer
     public WebSocketServer(int maxClients, TcpConfig tcpConfig, int maxMessageSize, int handshakeMaxSize, ServerSslContext? sslContext, BufferPool bufferPool)
     {
         _maxClients = maxClients;
-        this._tcpConfig = tcpConfig;
-        this._maxMessageSize = maxMessageSize;
+        _tcpConfig = tcpConfig;
+        _maxMessageSize = maxMessageSize;
         _sslHelper = new ServerSslHelper(sslContext);
-        this._bufferPool = bufferPool;
-        _handShake = new ServerHandshake(this._bufferPool, handshakeMaxSize);
+        _bufferPool = bufferPool;
+        _handShake = new ServerHandshake(_bufferPool, handshakeMaxSize);
 
         // Fill the available session IDs bag.
         for (uint i = 1; i < maxClients; i++)

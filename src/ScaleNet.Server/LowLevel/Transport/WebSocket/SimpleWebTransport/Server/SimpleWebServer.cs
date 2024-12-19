@@ -25,10 +25,10 @@ public class SimpleWebServer
 
     public bool Active { get; private set; }
 
-    public event Action<SessionId> onConnect;
-    public event Action<SessionId> onDisconnect;
-    public event Action<SessionId, ArraySegment<byte>> onData;
-    public event Action<SessionId, Exception> onError;
+    public event Action<SessionId>? onConnect;
+    public event Action<SessionId>? onDisconnect;
+    public event Action<SessionId, ArraySegment<byte>>? onData;
+    public event Action<SessionId, Exception>? onError;
 
 
     public void Start(ushort port)
