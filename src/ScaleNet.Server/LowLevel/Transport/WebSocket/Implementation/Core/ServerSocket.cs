@@ -9,18 +9,15 @@ namespace ScaleNet.Server.LowLevel.Transport.WebSocket.Core;
 internal sealed class ServerSocket : IDisposable
 {
     /// <summary>
-    /// A raw packet of data.
+    /// A packet of data to send or receive from a remote connection.
     /// </summary>
-    private readonly struct Packet : IDisposable
+    private readonly struct ConnectionPacket : IDisposable
     {
         public readonly ConnectionId ConnectionId;
         public readonly NetMessagePacket Payload;
 
-
-        /// <summary>
-        /// A raw packet of data.
-        /// </summary>
-        public Packet(ConnectionId connectionId, NetMessagePacket payload)
+        
+        public ConnectionPacket(ConnectionId connectionId, NetMessagePacket payload)
         {
             ConnectionId = connectionId;
             Payload = payload;
@@ -46,7 +43,7 @@ internal sealed class ServerSocket : IDisposable
     private readonly List<ConnectionId> _clientsAwaitingDisconnectDelayed = [];
     private readonly List<ConnectionId> _clientsAwaitingDisconnect = [];
     private readonly HashSet<ConnectionId> _connectedClients = [];
-    private readonly Queue<Packet> _outgoingPackets = new();
+    private readonly Queue<ConnectionPacket> _outgoingPackets = new();
 
     public IReadOnlyCollection<ConnectionId> ConnectedClients => _connectedClients;
     public ServerState State { get; private set; } = ServerState.Stopped;
@@ -290,7 +287,7 @@ internal sealed class ServerSocket : IDisposable
             int count = _outgoingPackets.Count;
             for (int i = 0; i < count; i++)
             {
-                Packet outgoing = _outgoingPackets.Dequeue();
+                ConnectionPacket outgoing = _outgoingPackets.Dequeue();
                 ConnectionId connectionId = outgoing.ConnectionId;
 
                 if (connectionId == ConnectionId.Broadcast)
@@ -313,7 +310,7 @@ internal sealed class ServerSocket : IDisposable
         if (State != ServerState.Started)
             return;
 
-        Packet outgoing = new(connectionId, payload);
+        ConnectionPacket outgoing = new(connectionId, payload);
         _outgoingPackets.Enqueue(outgoing);
     }
 
@@ -355,14 +352,14 @@ internal sealed class ServerSocket : IDisposable
 
 
     /// <summary>
-    /// Clears a queue using Packet type.
+    /// Clears a queue using ConnectionPacket type.
     /// </summary>
     private void ClearPacketQueues()
     {
         int count = _outgoingPackets.Count;
         for (int i = 0; i < count; i++)
         {
-            Packet p = _outgoingPackets.Dequeue();
+            ConnectionPacket p = _outgoingPackets.Dequeue();
             p.Dispose();
         }
     }
