@@ -21,7 +21,7 @@ public sealed class WebSocketServerTransport : IServerTransport
     private readonly ServerSocket _serverSocket;
     private readonly ServerSslContext _sslContext;
     private readonly IPacketMiddleware? _middleware;
-    private readonly int _mtu;  //WARN: IDK if necessary with a WS transport
+    private readonly int _maxPacketSize;
 
     public ushort Port { get; }
     public int MaxConnections { get; }
@@ -32,15 +32,15 @@ public sealed class WebSocketServerTransport : IServerTransport
     public event Action<SessionId, DeserializedNetMessage>? MessageReceived;
 
 
-    public WebSocketServerTransport(ServerSslContext sslContext, ushort port, int maxConnections, int mtu = 1023, IPacketMiddleware? middleware = null)
+    public WebSocketServerTransport(ServerSslContext sslContext, ushort port, int maxConnections, int maxPacketSize = SharedConstants.MAX_PACKET_SIZE_BYTES, IPacketMiddleware? middleware = null)
     {
-        if (_mtu < 0)
-            _mtu = MINIMUM_MTU;
-        else if (_mtu > MAXIMUM_MTU)
-            _mtu = MAXIMUM_MTU;
+        if (_maxPacketSize < 0)
+            _maxPacketSize = MINIMUM_MTU;
+        else if (_maxPacketSize > MAXIMUM_MTU)
+            _maxPacketSize = MAXIMUM_MTU;
 
         _sslContext = sslContext;
-        _mtu = mtu;
+        _maxPacketSize = maxPacketSize;
         Port = port;
         MaxConnections = maxConnections;
         
@@ -110,7 +110,7 @@ public sealed class WebSocketServerTransport : IServerTransport
     public bool StartServer()
     {
         ScaleNetManager.Logger.LogInfo($"Starting WS transport on port {Port}...");
-        _serverSocket.Initialize(_mtu, _sslContext);
+        _serverSocket.Initialize(_maxPacketSize, _sslContext);
 
         bool started = _serverSocket.StartServer(Port, MaxConnections);
         

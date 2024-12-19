@@ -35,7 +35,7 @@ internal sealed class ServerSocket : IDisposable
 
     private ushort _port;
     private int _maximumClients;
-    private int _mtu;
+    private int _maxPacketSize;
     private SimpleWebServer? _server;
     private ServerSslContext? _sslContext;
     
@@ -65,10 +65,10 @@ internal sealed class ServerSocket : IDisposable
     /// <summary>
     /// Initializes this for use.
     /// </summary>
-    internal void Initialize(int unreliableMTU, ServerSslContext context)
+    internal void Initialize(int maxPacketSize, ServerSslContext context)
     {
         _sslContext = context;
-        _mtu = unreliableMTU;
+        _maxPacketSize = maxPacketSize;
     }
 
 
@@ -80,12 +80,12 @@ internal sealed class ServerSocket : IDisposable
     {
         TcpConfig tcpConfig = new(false, 5000, 20000);
 
-        _server = new SimpleWebServer(maxClients, 10000, tcpConfig, _mtu, 5000, _sslContext);
+        _server = new SimpleWebServer(maxClients, 10000, tcpConfig, _maxPacketSize, 5000, _sslContext);
 
-        _server.onConnect += _server_onConnect;
-        _server.onDisconnect += _server_onDisconnect;
-        _server.onData += _server_onData;
-        _server.onError += _server_onError;
+        _server.OnConnect += _server_onConnect;
+        _server.OnDisconnect += _server_onDisconnect;
+        _server.OnData += _server_onData;
+        _server.OnError += _server_onError;
 
         SetServerState(ServerState.Starting);
         _server.Start(_port);

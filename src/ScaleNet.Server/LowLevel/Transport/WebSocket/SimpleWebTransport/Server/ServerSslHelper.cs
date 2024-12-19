@@ -10,16 +10,16 @@ internal class ServerSslHelper(ServerSslContext? sslContext)
 {
     internal bool TryCreateStream(Common.Connection conn)
     {
-        NetworkStream stream = conn.client.GetStream();
+        NetworkStream stream = conn.Client.GetStream();
         if (sslContext == null)
         {
-            conn.stream = stream;
+            conn.Stream = stream;
             return true;
         }
         
         try
         {
-            conn.stream = CreateSslStream(stream, sslContext);
+            conn.Stream = CreateSslStream(stream, sslContext);
             return true;
         }
         catch (Exception e)

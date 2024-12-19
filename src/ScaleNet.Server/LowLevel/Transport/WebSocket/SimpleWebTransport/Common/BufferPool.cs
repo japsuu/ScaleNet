@@ -92,19 +92,21 @@ public sealed class ArrayBuffer : IDisposable
         Count = length;
         Marshal.Copy(bufferPtr, Array, 0, length);
     }
-    
-    
+
+
     public void CopyFrom(ref ReadOnlySpan<byte> source)
     {
         Count = source.Length;
+
         // May throw, or may not ;)
         source.CopyTo(Array);
     }
-    
-    
+
+
     public void CopyFrom(ref ReadOnlyMemory<byte> source)
     {
         Count = source.Length;
+
         // May throw, or may not ;)
         source.Span.CopyTo(Array);
     }
@@ -126,12 +128,7 @@ internal class BufferBucket : IBufferOwner
     public readonly int ArraySize;
     private readonly ConcurrentQueue<ArrayBuffer> _buffers;
 
-    /// <summary>
-    /// keeps track of how many arrays are taken vs returned
-    /// </summary>
-    internal int Current;
-
-
+    
     public BufferBucket(int arraySize)
     {
         ArraySize = arraySize;

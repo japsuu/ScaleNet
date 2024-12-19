@@ -7,11 +7,12 @@
 public readonly struct SessionId(uint value) : IEquatable<SessionId>
 {
     public const uint MAX_VALUE = uint.MaxValue;
+    public const uint INVALID_VALUE = 0;
     
     /// <summary>
     /// Special ID that represents an invalid session.
     /// </summary>
-    public static readonly SessionId Invalid = new SessionId(0);
+    public static readonly SessionId Invalid = new SessionId(INVALID_VALUE);
     
     /// <summary>
     /// Special ID that represents all available sessions.
@@ -19,6 +20,9 @@ public readonly struct SessionId(uint value) : IEquatable<SessionId>
     public static readonly SessionId Broadcast = new SessionId(MAX_VALUE);
 
     public uint Value { get; } = value;
+    
+    
+    public static bool IsReserved(uint value) => value == MAX_VALUE || value == INVALID_VALUE;
 
 
     public override string ToString()

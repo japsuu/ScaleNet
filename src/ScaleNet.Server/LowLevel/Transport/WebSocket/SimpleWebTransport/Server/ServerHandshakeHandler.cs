@@ -8,7 +8,7 @@ namespace ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Server
 /// Handles Handshakes from new clients on the server
 /// <para>The server handshake has buffers to reduce allocations when clients connect</para>
 /// </summary>
-internal class ServerHandshake
+internal class ServerHandshakeHandler
 {
     const int GetSize = 3;
     const int ResponseLength = 129;
@@ -21,20 +21,20 @@ internal class ServerHandshake
     readonly SHA1 sha1 = SHA1.Create();
     readonly BufferPool bufferPool;
 
-    public ServerHandshake(BufferPool bufferPool, int handshakeMaxSize)
+    public ServerHandshakeHandler(BufferPool bufferPool, int handshakeMaxSize)
     {
         this.bufferPool = bufferPool;
         this.maxHttpHeaderSize = handshakeMaxSize;
     }
 
-    ~ServerHandshake()
+    ~ServerHandshakeHandler()
     {
         sha1.Dispose();
     }
 
     public bool TryHandshake(Common.Connection conn)
     {
-        Stream stream = conn.stream;
+        Stream stream = conn.Stream;
 
         using (ArrayBuffer getHeader = bufferPool.Take(GetSize))
         {
@@ -72,7 +72,7 @@ internal class ServerHandshake
     {
         using (ArrayBuffer readBuffer = bufferPool.Take(maxHttpHeaderSize))
         {
-            int? readCountOrFail = ReadHelper.SafeReadTillMatch(stream, readBuffer.Array, 0, maxHttpHeaderSize, Constants.endOfHandshake);
+            int? readCountOrFail = ReadHelper.SafeReadTillMatch(stream, readBuffer.Array, 0, maxHttpHeaderSize, Constants.EndOfHandshake);
             if (!readCountOrFail.HasValue)
                 return null;
 
@@ -96,7 +96,7 @@ internal class ServerHandshake
     void AcceptHandshake(Stream stream, string msg)
     {
         using (
-            ArrayBuffer keyBuffer = bufferPool.Take(KeyLength + Constants.HandshakeGUIDLength),
+            ArrayBuffer keyBuffer = bufferPool.Take(KeyLength + Constants.HandshakeGuidLength),
             responseBuffer = bufferPool.Take(ResponseLength))
         {
             GetKey(msg, keyBuffer.Array);
@@ -119,7 +119,7 @@ internal class ServerHandshake
 
     static void AppendGuid(byte[] keyBuffer)
     {
-        Buffer.BlockCopy(Constants.HandshakeGUIDBytes, 0, keyBuffer, KeyLength, Constants.HandshakeGUIDLength);
+        Buffer.BlockCopy(Constants.HandshakeGuidBytes, 0, keyBuffer, KeyLength, Constants.HandshakeGuidLength);
     }
 
     byte[] CreateHash(byte[] keyBuffer)

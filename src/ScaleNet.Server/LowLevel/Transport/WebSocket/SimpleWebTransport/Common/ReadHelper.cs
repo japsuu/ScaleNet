@@ -1,5 +1,3 @@
-using System.Runtime.Serialization;
-
 namespace ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
 public static class ReadHelper
@@ -18,28 +16,24 @@ public static class ReadHelper
             {
                 int read = stream.Read(outBuffer, outOffset + received, length - received);
                 if (read == 0)
-                {
                     throw new ReadHelperException("returned 0");
-                }
                 received += read;
             }
         }
         catch (AggregateException ae)
         {
-            // if interupt is called we dont care about Exceptions
-            Utils.CheckForInterupt();
+            Utils.SleepForInterrupt();
 
             // rethrow
-            ae.Handle(e => false);
+            ae.Handle(_ => false);
         }
 
         if (received != length)
-        {
             throw new ReadHelperException("returned not equal to length");
-        }
 
         return outOffset + received;
     }
+
 
     /// <summary>
     /// Reads and returns results. This should never throw an exception
@@ -65,6 +59,7 @@ public static class ReadHelper
             return false;
         }
     }
+
 
     public static int? SafeReadTillMatch(Stream stream, byte[] outBuffer, int outOffset, int maxLength, byte[] endOfHeader)
     {
@@ -92,17 +87,15 @@ public static class ReadHelper
                 if (endOfHeader[endIndex] == next)
                 {
                     endIndex++;
+
                     // when all is match return with read length
                     if (endIndex >= endLength)
-                    {
                         return read;
-                    }
                 }
+
                 // if n not match reset to 0
                 else
-                {
                     endIndex = 0;
-                }
             }
         }
         catch (IOException e)
@@ -121,9 +114,7 @@ public static class ReadHelper
 [Serializable]
 public class ReadHelperException : Exception
 {
-    public ReadHelperException(string message) : base(message) { }
-
-    protected ReadHelperException(SerializationInfo info, StreamingContext context) : base(info, context)
+    public ReadHelperException(string message) : base(message)
     {
     }
 }

@@ -5,80 +5,82 @@ namespace ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
 
 internal sealed class Connection : IDisposable
 {
-    readonly object disposedLock = new object();
+    private readonly object _disposedLock = new();
 
-    public TcpClient client;
+    public TcpClient? Client;
 
-    public SessionId connId = SessionId.Invalid;
-    public Stream stream;
-    public Thread receiveThread;
-    public Thread sendThread;
+    public SessionId ConnId = SessionId.Invalid;
+    public Stream? Stream;
+    public Thread? ReceiveThread;
+    public Thread? SendThread;
 
-    public ManualResetEventSlim sendPending = new ManualResetEventSlim(false);
-    public ConcurrentQueue<ArrayBuffer> sendQueue = new ConcurrentQueue<ArrayBuffer>();
+    public readonly ManualResetEventSlim SendPending = new(false);
+    public readonly ConcurrentQueue<ArrayBuffer> SendQueue = new();
 
-    public Action<Connection> onDispose;
+    public readonly Action<Connection> OnDispose;
 
-    volatile bool hasDisposed;
+    private volatile bool _hasDisposed;
+
 
     public Connection(TcpClient client, Action<Connection> onDispose)
     {
-        this.client = client ?? throw new ArgumentNullException(nameof(client));
-        this.onDispose = onDispose;
+        Client = client ?? throw new ArgumentNullException(nameof(client));
+        OnDispose = onDispose;
     }
 
 
     /// <summary>
-    /// disposes client and stops threads
+    /// disposes a client and stops its threads
     /// </summary>
     public void Dispose()
     {
         SimpleWebLog.Verbose($"Dispose {ToString()}");
 
         // check hasDisposed first to stop ThreadInterruptedException on lock
-        if (hasDisposed) { return; }
+        if (_hasDisposed)
+            return;
 
         SimpleWebLog.Info($"Connection Close: {ToString()}");
 
 
-        lock (disposedLock)
+        lock (_disposedLock)
         {
             // check hasDisposed again inside lock to make sure no other object has called this
-            if (hasDisposed) { return; }
-            hasDisposed = true;
+            if (_hasDisposed)
+                return;
+            _hasDisposed = true;
 
             // stop threads first so they dont try to use disposed objects
-            receiveThread.Interrupt();
-            sendThread?.Interrupt();
+            ReceiveThread?.Interrupt();
+            SendThread?.Interrupt();
 
             try
             {
                 // stream 
-                stream?.Dispose();
-                stream = null;
-                client.Dispose();
-                client = null;
+                Stream?.Dispose();
+                Stream = null;
+                Client?.Dispose();
+                Client = null;
             }
             catch (Exception e)
             {
                 SimpleWebLog.Exception(e);
             }
 
-            sendPending.Dispose();
+            SendPending.Dispose();
 
             // release all buffers in send queue
-            while (sendQueue.TryDequeue(out ArrayBuffer buffer))
-            {
+            while (SendQueue.TryDequeue(out ArrayBuffer? buffer))
                 buffer.Release();
-            }
 
-            onDispose.Invoke(this);
+            OnDispose.Invoke(this);
         }
     }
 
+
     public override string ToString()
     {
-        System.Net.EndPoint endpoint = client?.Client?.RemoteEndPoint;
-        return $"[Conn:{connId}, endPoint:{endpoint}]";
+        System.Net.EndPoint endpoint = Client?.Client?.RemoteEndPoint!;
+        return $"[Conn:{ConnId}, endPoint:{endpoint}]";
     }
 }

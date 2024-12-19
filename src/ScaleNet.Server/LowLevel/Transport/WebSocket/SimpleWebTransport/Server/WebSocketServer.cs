@@ -10,13 +10,12 @@ public class WebSocketServer
     public readonly ConcurrentQueue<Message> ReceiveQueue = new();
 
     private readonly TcpConfig _tcpConfig;
-    private readonly int _maxMessageSize;
+    private readonly int _maxPacketSize;
 
-    public TcpListener Listener;
-    private Thread _acceptThread;
-    private bool _serverStopped;
-    private readonly int _maxClients;
-    private readonly ServerHandshake _handShake;
+    private TcpListener? _listener;
+    private Thread? _acceptThread;
+    private bool _isServerStopped;
+    private readonly ServerHandshakeHandler _handshakeHandler;
     private readonly ServerSslHelper _sslHelper;
     private readonly BufferPool _bufferPool;
     private readonly ConcurrentDictionary<SessionId, Common.Connection> _connections = new();
@@ -24,45 +23,46 @@ public class WebSocketServer
     private readonly ConcurrentBag<uint> _availableSessionIds = [];
 
 
-    public WebSocketServer(int maxClients, TcpConfig tcpConfig, int maxMessageSize, int handshakeMaxSize, ServerSslContext? sslContext, BufferPool bufferPool)
+    public WebSocketServer(int maxClients, TcpConfig tcpConfig, int maxPacketSize, int handshakeMaxSize, ServerSslContext? sslContext, BufferPool bufferPool)
     {
-        _maxClients = maxClients;
         _tcpConfig = tcpConfig;
-        _maxMessageSize = maxMessageSize;
+        _maxPacketSize = maxPacketSize;
         _sslHelper = new ServerSslHelper(sslContext);
         _bufferPool = bufferPool;
-        _handShake = new ServerHandshake(_bufferPool, handshakeMaxSize);
+        _handshakeHandler = new ServerHandshakeHandler(_bufferPool, handshakeMaxSize);
 
         // Fill the available session IDs bag.
         for (uint i = 1; i < maxClients; i++)
-            _availableSessionIds.Add(i);
+        {
+            if (!SessionId.IsReserved(i))
+                _availableSessionIds.Add(i);
+        }
     }
 
 
     public void Listen(int port)
     {
-        Listener = TcpListener.Create(port);
-        Listener.Start();
+        _listener = TcpListener.Create(port);
+        _listener.Start();
         SimpleWebLog.Info($"Server has started on port {port}");
 
-        _acceptThread = new Thread(AcceptLoop);
-        _acceptThread.IsBackground = true;
+        _acceptThread = new Thread(AcceptLoop)
+        {
+            IsBackground = true
+        };
         _acceptThread.Start();
     }
 
 
     public void Stop()
     {
-        _serverStopped = true;
+        _isServerStopped = true;
 
         // Interrupt then stop so that Exception is handled correctly
         _acceptThread?.Interrupt();
-        Listener?.Stop();
+        _listener?.Stop();
         _acceptThread = null;
-
-
-        SimpleWebLog.Info("Server stoped, Closing all connections...");
-
+        
         // make copy so that foreach doesn't break if values are removed
         Common.Connection[] connectionsCopy = _connections.Values.ToArray();
         foreach (Common.Connection conn in connectionsCopy)
@@ -80,21 +80,15 @@ public class WebSocketServer
             {
                 while (true)
                 {
-                    TcpClient client = Listener.AcceptTcpClient();
-                    _tcpConfig.ApplyTo(client);
-
-
-                    // TODO keep track of connections before they are in connections dictionary
-                    //      this might not be a problem as HandshakeAndReceiveLoop checks for stop
-                    //      and returns/disposes before sending message to queue
+                    TcpClient client = _listener!.AcceptTcpClient();
+                    TcpConfig.Apply(_tcpConfig, client);
+                    
                     Common.Connection conn = new(client, AfterConnectionDisposed);
 
-                    //SimpleWebLog.Info($"A client connected {conn}");
-
-                    // handshake needs its own thread as it needs to wait for message from client
+                    // handshake needs its own thread as it needs to wait for a message from the client
                     Thread receiveThread = new(() => HandshakeAndReceiveLoop(conn));
 
-                    conn.receiveThread = receiveThread;
+                    conn.ReceiveThread = receiveThread;
 
                     receiveThread.IsBackground = true;
                     receiveThread.Start();
@@ -103,7 +97,7 @@ public class WebSocketServer
             catch (SocketException)
             {
                 // check for Interrupted/Abort
-                Utils.CheckForInterupt();
+                Utils.SleepForInterrupt();
                 throw;
             }
         }
@@ -129,30 +123,21 @@ public class WebSocketServer
             bool success = _sslHelper.TryCreateStream(conn);
             if (!success)
             {
-                //SimpleWebLog.Error($"Failed to create SSL Stream {conn}");
                 conn.Dispose();
                 return;
             }
 
-            success = _handShake.TryHandshake(conn);
+            success = _handshakeHandler.TryHandshake(conn);
 
-            if (success)
+            if (!success)
             {
-                //SimpleWebLog.Info($"Sent Handshake {conn}");
-            }
-            else
-            {
-                //SimpleWebLog.Error($"Handshake Failed {conn}");
                 conn.Dispose();
                 return;
             }
 
             // check if Stop has been called since accepting this client
-            if (_serverStopped)
-            {
-                SimpleWebLog.Info("Server stops after successful handshake");
+            if (_isServerStopped)
                 return;
-            }
 
             bool isIdAvailable = _availableSessionIds.TryTake(out uint uId);
 
@@ -163,31 +148,31 @@ public class WebSocketServer
                 return;
             }
 
-            conn.connId = new SessionId(uId);
+            conn.ConnId = new SessionId(uId);
 
-            _connections.TryAdd(conn.connId, conn);
+            _connections.TryAdd(conn.ConnId, conn);
 
-            ReceiveQueue.Enqueue(new Message(conn.connId, EventType.Connected));
+            ReceiveQueue.Enqueue(new Message(conn.ConnId, EventType.Connected));
 
             Thread sendThread = new(
                 () =>
                 {
                     SendLoop.Config sendConfig = new(
                         conn,
-                        Constants.HeaderSize + _maxMessageSize,
+                        Constants.HEADER_SIZE + _maxPacketSize,
                         false);
 
                     SendLoop.Loop(sendConfig);
                 });
 
-            conn.sendThread = sendThread;
+            conn.SendThread = sendThread;
             sendThread.IsBackground = true;
-            sendThread.Name = $"SendLoop {conn.connId}";
+            sendThread.Name = $"SendLoop {conn.ConnId}";
             sendThread.Start();
 
             ReceiveLoop.Config receiveConfig = new(
                 conn,
-                _maxMessageSize,
+                _maxPacketSize,
                 true,
                 ReceiveQueue,
                 _bufferPool);
@@ -208,7 +193,7 @@ public class WebSocketServer
         }
         finally
         {
-            // close here incase connect fails
+            // close here in case connect fails
             conn.Dispose();
         }
     }
@@ -216,12 +201,12 @@ public class WebSocketServer
 
     private void AfterConnectionDisposed(Common.Connection conn)
     {
-        if (conn.connId != SessionId.Invalid)
-        {
-            ReceiveQueue.Enqueue(new Message(conn.connId, EventType.Disconnected));
-            _connections.TryRemove(conn.connId, out Common.Connection _);
-            _availableSessionIds.Add(conn.connId.Value);
-        }
+        if (conn.ConnId == SessionId.Invalid)
+            return;
+        
+        ReceiveQueue.Enqueue(new Message(conn.ConnId, EventType.Disconnected));
+        _connections.TryRemove(conn.ConnId, out Common.Connection _);
+        _availableSessionIds.Add(conn.ConnId.Value);
     }
 
 
@@ -229,8 +214,8 @@ public class WebSocketServer
     {
         if (_connections.TryGetValue(id, out Common.Connection? conn))
         {
-            conn.sendQueue.Enqueue(buffer);
-            conn.sendPending.Set();
+            conn.SendQueue.Enqueue(buffer);
+            conn.SendPending.Set();
         }
         else
             SimpleWebLog.Warn($"Cant send message to {id} because connection was not found in dictionary. Maybe it disconnected.");
@@ -245,19 +230,17 @@ public class WebSocketServer
             conn.Dispose();
             return true;
         }
-        else
-        {
-            SimpleWebLog.Warn($"Failed to kick {id} because id not found");
 
-            return false;
-        }
+        SimpleWebLog.Warn($"Failed to kick {id} because id not found");
+
+        return false;
     }
 
 
     public EndPoint? GetClientEndPoint(SessionId id)
     {
         if (_connections.TryGetValue(id, out Common.Connection? conn))
-            return conn.client.Client.RemoteEndPoint;
+            return conn.Client!.Client.RemoteEndPoint;
 
         SimpleWebLog.Error($"Cant get endpoint of connection to {id} because connection was not found in dictionary");
         return null;
