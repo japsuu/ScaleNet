@@ -65,7 +65,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         /// <summary>
         /// SSL server port
         /// </summary>
-        public int Port { get; }
+        public ushort Port { get; }
 
         /// <summary>
         /// SSL context
@@ -175,7 +175,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         /// </summary>
         /// <param name="context">SSL context</param>
         /// <param name="endpoint">IP endpoint</param>
-        public SslClient(ClientSslContext context, IPEndPoint endpoint) : this(context, endpoint, endpoint.Address.ToString(), endpoint.Port)
+        public SslClient(ClientSslContext context, IPEndPoint endpoint) : this(context, endpoint, endpoint.Address.ToString(), (ushort)endpoint.Port)
         {
         }
 
@@ -187,7 +187,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         /// <param name="endpoint">Endpoint</param>
         /// <param name="address">Server address</param>
         /// <param name="port">Server port</param>
-        private SslClient(ClientSslContext context, EndPoint endpoint, string address, int port)
+        private SslClient(ClientSslContext context, EndPoint endpoint, string address, ushort port)
         {
             Id = Guid.NewGuid();
             Address = address;

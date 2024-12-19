@@ -6,7 +6,7 @@ namespace ScaleNet.Client.LowLevel.Transport
     public interface IClientTransport : IDisposable
     {
         public string Address { get; }
-        public int Port { get; }
+        public ushort Port { get; }
     
         public bool ConnectClient();
         public bool ReconnectClient();

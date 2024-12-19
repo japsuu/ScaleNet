@@ -19,7 +19,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         public event Action<DeserializedNetMessage>? MessageReceived;
 
 
-        public TcpClientTransport(ClientSslContext context, string address, int port, IPacketMiddleware? middleware = null) : base(context, address, port)
+        public TcpClientTransport(ClientSslContext context, string address, ushort port, IPacketMiddleware? middleware = null) : base(context, address, port)
         {
             _middleware = middleware;
         }
