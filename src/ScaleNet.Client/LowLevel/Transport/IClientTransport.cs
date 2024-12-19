@@ -8,9 +8,9 @@ namespace ScaleNet.Client.LowLevel.Transport
         public string Address { get; }
         public int Port { get; }
     
-        public void ConnectClient();
-        public void ReconnectClient();
-        public void DisconnectClient();
+        public bool ConnectClient();
+        public bool ReconnectClient();
+        public bool DisconnectClient();
 
         /// <summary>
         /// Sends the given message to the server asynchronously.

@@ -25,21 +25,21 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         }
 
 
-        public void ConnectClient()
+        public bool ConnectClient()
         {
-            ConnectAsync();
+            return ConnectAsync();
         }
 
 
-        public void ReconnectClient()
+        public bool ReconnectClient()
         {
-            ReconnectAsync();
+            return ReconnectAsync();
         }
 
 
-        public void DisconnectClient()
+        public bool DisconnectClient()
         {
-            DisconnectAsync();
+            return DisconnectAsync();
         }
 
 
