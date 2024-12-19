@@ -7,7 +7,7 @@ using ScaleNet.Common.LowLevel;
 
 namespace ScaleNet.Server.LowLevel.Transport.Tcp;
 
-internal class TcpClientSession(SessionId id, TcpServerTransport transport, Action<SessionStateChangeArgs>? sessionStateChanged) : SslSession(transport)
+internal class TcpClientSession(ConnectionId id, TcpServerTransport transport, Action<SessionStateChangeArgs>? sessionStateChanged) : SslSession(transport)
 {
     // Buffer for accumulating incomplete packet data
     private readonly MemoryStream _receiveBuffer = new();
@@ -15,7 +15,7 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport, Acti
     // Packets need to be stored per-session to, for example, allow sending all queued packets before disconnecting.
     public readonly ConcurrentQueue<NetMessagePacket> OutgoingPackets = new();
     public readonly ConcurrentQueue<NetMessagePacket> IncomingPackets = new();
-    public readonly SessionId SessionId = id;
+    public readonly ConnectionId ConnectionId = id;
     
     public ConnectionState ConnectionState { get; private set; }
 
@@ -119,14 +119,14 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport, Acti
     {
         if (IncomingPackets.Count > ServerConstants.MAX_PACKETS_PER_TICK)
         {
-            ScaleNetManager.Logger.LogWarning($"Session {SessionId} is sending too many packets. Kicking immediately.");
+            ScaleNetManager.Logger.LogWarning($"Session {ConnectionId} is sending too many packets. Kicking immediately.");
             transport.DisconnectSession(this, InternalDisconnectReason.TooManyPackets);
             return;
         }
         
         if (data.Length > SharedConstants.MAX_MESSAGE_SIZE_BYTES)
         {
-            ScaleNetManager.Logger.LogWarning($"Session {SessionId} sent a packet that is too large. Kicking immediately.");
+            ScaleNetManager.Logger.LogWarning($"Session {ConnectionId} sent a packet that is too large. Kicking immediately.");
             transport.DisconnectSession(this, InternalDisconnectReason.OversizedPacket);
             return;
         }
@@ -171,7 +171,7 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport, Acti
         ConnectionState = ConnectionState.Disconnected;
         OnSessionStateChanged();
         
-        transport.ReleaseSession(SessionId);
+        transport.ReleaseSession(ConnectionId);
     }
 
 
@@ -179,7 +179,7 @@ internal class TcpClientSession(SessionId id, TcpServerTransport transport, Acti
     {
         try
         {
-            sessionStateChanged?.Invoke(new SessionStateChangeArgs(SessionId, ConnectionState));
+            sessionStateChanged?.Invoke(new SessionStateChangeArgs(ConnectionId, ConnectionState));
         }
         catch (Exception e)
         {

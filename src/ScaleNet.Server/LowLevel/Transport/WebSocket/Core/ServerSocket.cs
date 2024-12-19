@@ -13,16 +13,16 @@ internal sealed class ServerSocket : IDisposable
     /// </summary>
     private readonly struct Packet : IDisposable
     {
-        public readonly SessionId SessionID;
+        public readonly ConnectionId ConnectionId;
         public readonly NetMessagePacket Payload;
 
 
         /// <summary>
         /// A raw packet of data.
         /// </summary>
-        public Packet(SessionId sessionID, NetMessagePacket payload)
+        public Packet(ConnectionId connectionId, NetMessagePacket payload)
         {
-            SessionID = sessionID;
+            ConnectionId = connectionId;
             Payload = payload;
         }
 
@@ -43,17 +43,17 @@ internal sealed class ServerSocket : IDisposable
     /// Ids to disconnect the next iteration.
     /// This ensures data goes through to disconnecting remote connections.
     /// </summary>
-    private readonly List<SessionId> _clientsAwaitingDisconnectDelayed = [];
-    private readonly List<SessionId> _clientsAwaitingDisconnect = [];
-    private readonly HashSet<SessionId> _connectedClients = [];
+    private readonly List<ConnectionId> _clientsAwaitingDisconnectDelayed = [];
+    private readonly List<ConnectionId> _clientsAwaitingDisconnect = [];
+    private readonly HashSet<ConnectionId> _connectedClients = [];
     private readonly Queue<Packet> _outgoingPackets = new();
 
-    public IReadOnlyCollection<SessionId> ConnectedClients => _connectedClients;
+    public IReadOnlyCollection<ConnectionId> ConnectedClients => _connectedClients;
     public ServerState State { get; private set; } = ServerState.Stopped;
     
     public event Action<ServerStateChangeArgs>? ServerStateChanged;
     public event Action<SessionStateChangeArgs>? SessionStateChanged;
-    public event Action<SessionId, ArraySegment<byte>>? MessageReceived;
+    public event Action<ConnectionId, ArraySegment<byte>>? MessageReceived;
     
     
     public void Dispose()
@@ -96,7 +96,7 @@ internal sealed class ServerSocket : IDisposable
     /// <summary>
     /// Called when a client connection errors.
     /// </summary>
-    private void _server_onError(SessionId connectionId, Exception arg2)
+    private void _server_onError(ConnectionId connectionId, Exception arg2)
     {
         ConnectionStoppedOnSocket(connectionId);
     }
@@ -106,7 +106,7 @@ internal sealed class ServerSocket : IDisposable
     /// Called when a connection has stopped on a socket level.
     /// </summary>
     /// <param name="connectionId"></param>
-    private void ConnectionStoppedOnSocket(SessionId connectionId)
+    private void ConnectionStoppedOnSocket(ConnectionId connectionId)
     {
         if (_connectedClients.Remove(connectionId))
             SessionStateChanged?.Invoke(new SessionStateChangeArgs(connectionId, ConnectionState.Disconnected));
@@ -116,7 +116,7 @@ internal sealed class ServerSocket : IDisposable
     /// <summary>
     /// Called when receiving data.
     /// </summary>
-    private void _server_onData(SessionId clientId, ArraySegment<byte> data)
+    private void _server_onData(ConnectionId clientId, ArraySegment<byte> data)
     {
         if (_server == null || !_server.Active)
             return;
@@ -128,7 +128,7 @@ internal sealed class ServerSocket : IDisposable
     /// <summary>
     /// Called when a client connects.
     /// </summary>
-    private void _server_onConnect(SessionId clientId)
+    private void _server_onConnect(ConnectionId clientId)
     {
         if (_server == null || !_server.Active)
             return;
@@ -147,7 +147,7 @@ internal sealed class ServerSocket : IDisposable
     /// <summary>
     /// Called when a client disconnects.
     /// </summary>
-    private void _server_onDisconnect(SessionId connectionId)
+    private void _server_onDisconnect(ConnectionId connectionId)
     {
         ConnectionStoppedOnSocket(connectionId);
     }
@@ -157,7 +157,7 @@ internal sealed class ServerSocket : IDisposable
     /// Gets the current ConnectionState of a remote client on the server.
     /// </summary>
     /// <param name="connectionId">ConnectionId to get ConnectionState for.</param>
-    public ConnectionState GetConnectionState(SessionId connectionId)
+    public ConnectionState GetConnectionState(ConnectionId connectionId)
     {
         ConnectionState state = _connectedClients.Contains(connectionId) ? ConnectionState.Connected : ConnectionState.Disconnected;
         return state;
@@ -169,7 +169,7 @@ internal sealed class ServerSocket : IDisposable
     /// </summary>
     /// <param name="connectionId"></param>
     /// <returns>Returns string.empty if Id is not found.</returns>
-    public EndPoint? GetConnectionEndPoint(SessionId connectionId)
+    public EndPoint? GetConnectionEndPoint(ConnectionId connectionId)
     {
         if (_server == null || !_server.Active)
             return null;
@@ -216,7 +216,7 @@ internal sealed class ServerSocket : IDisposable
     /// <summary>
     /// Stops a remote client, disconnecting it from the server.
     /// </summary>
-    public bool StopConnection(SessionId connectionId, bool iterateOutgoing)
+    public bool StopConnection(ConnectionId connectionId, bool iterateOutgoing)
     {
         if (_server == null || State != ServerState.Started)
             return false;
@@ -291,12 +291,12 @@ internal sealed class ServerSocket : IDisposable
             for (int i = 0; i < count; i++)
             {
                 Packet outgoing = _outgoingPackets.Dequeue();
-                SessionId sessionId = outgoing.SessionID;
+                ConnectionId connectionId = outgoing.ConnectionId;
 
-                if (sessionId == SessionId.Broadcast)
+                if (connectionId == ConnectionId.Broadcast)
                     _server.SendAll(_connectedClients, outgoing.Payload.Buffer, outgoing.Payload.Length);
                 else
-                    _server.SendOne(sessionId, outgoing.Payload.Buffer, outgoing.Payload.Length);
+                    _server.SendOne(connectionId, outgoing.Payload.Buffer, outgoing.Payload.Length);
 
                 outgoing.Dispose();
             }
@@ -308,7 +308,7 @@ internal sealed class ServerSocket : IDisposable
     /// Sends a packet to a single or all clients.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void QueueSend(SessionId connectionId, NetMessagePacket payload)
+    public void QueueSend(ConnectionId connectionId, NetMessagePacket payload)
     {
         if (State != ServerState.Started)
             return;

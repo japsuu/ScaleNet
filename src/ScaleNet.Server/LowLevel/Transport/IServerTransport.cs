@@ -23,34 +23,34 @@ public interface IServerTransport : IDisposable
     /// Called to handle incoming messages.<br/>
     /// Implementations are required to be thread-safe, as this event may be raised from multiple threads.
     /// </summary>
-    public event Action<SessionId, DeserializedNetMessage>? MessageReceived;
+    public event Action<ConnectionId, DeserializedNetMessage>? MessageReceived;
 
 
     /// <summary>
     /// Queues the given message to be sent.
     /// The message will not be sent immediately, but the next time outgoing packets are iterated.
     /// </summary>
-    /// <param name="sessionId">The session to send the message to.</param>
+    /// <param name="connectionId">The connectionId to send the message to.</param>
     /// <param name="message">The message to send.</param>
-    public void QueueSendAsync<T>(SessionId sessionId, T message) where T : INetMessage;
+    public void QueueSendAsync<T>(ConnectionId connectionId, T message) where T : INetMessage;
 
 
     /// <summary>
-    /// Disconnects the session, sending a reason for the disconnection.
+    /// Disconnects the connectionId, sending a reason for the disconnection.
     /// </summary>
-    /// <param name="sessionId">The session to disconnect.</param>
+    /// <param name="connectionId">The connectionId to disconnect.</param>
     /// <param name="reason">The reason for the disconnection.</param>
     /// 
-    /// <returns>True if the session was disconnected, false if the session was not found.</returns>
-    public bool StopConnection(SessionId sessionId, InternalDisconnectReason reason);
+    /// <returns>True if the connectionId was disconnected, false if the connectionId was not found.</returns>
+    public bool StopConnection(ConnectionId connectionId, InternalDisconnectReason reason);
 
 
     /// <summary>
-    /// Immediately disconnects the session, without sending any outgoing packets.
+    /// Immediately disconnects the connectionId, without sending any outgoing packets.
     /// </summary>
     /// 
-    /// <returns>True if the session was disconnected, false if the session was not found.</returns>
-    public bool StopConnectionImmediate(SessionId sessionId);
+    /// <returns>True if the connectionId was disconnected, false if the connectionId was not found.</returns>
+    public bool StopConnectionImmediate(ConnectionId connectionId);
 
 
     /// <summary>
@@ -68,11 +68,11 @@ public interface IServerTransport : IDisposable
 
 
     /// <summary>
-    /// Gets the connection state of the given session.
+    /// Gets the connection state of the given connectionId.
     /// </summary>
-    /// <param name="sessionId">The session to get the connection state of.</param>
-    /// <returns>The connection state of the session.</returns>
-    public ConnectionState GetConnectionState(SessionId sessionId);
+    /// <param name="connectionId">The connectionId to get the connection state of.</param>
+    /// <returns>The connection state of the connectionId.</returns>
+    public ConnectionState GetConnectionState(ConnectionId connectionId);
 
 
     /// <summary>

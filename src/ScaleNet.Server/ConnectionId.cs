@@ -4,20 +4,20 @@
 /// ID of a client session/connection.
 /// Changes when the client reconnects.
 /// </summary>
-public readonly struct SessionId(uint value) : IEquatable<SessionId>
+public readonly struct ConnectionId(uint value) : IEquatable<ConnectionId>
 {
     public const uint MAX_VALUE = uint.MaxValue;
     public const uint INVALID_VALUE = 0;
     
     /// <summary>
-    /// Special ID that represents an invalid session.
+    /// Special ID that represents an invalid connectionId.
     /// </summary>
-    public static readonly SessionId Invalid = new SessionId(INVALID_VALUE);
+    public static readonly ConnectionId Invalid = new ConnectionId(INVALID_VALUE);
     
     /// <summary>
     /// Special ID that represents all available sessions.
     /// </summary>
-    public static readonly SessionId Broadcast = new SessionId(MAX_VALUE);
+    public static readonly ConnectionId Broadcast = new ConnectionId(MAX_VALUE);
 
     public uint Value { get; } = value;
     
@@ -32,7 +32,7 @@ public readonly struct SessionId(uint value) : IEquatable<SessionId>
 
     public override bool Equals(object? obj)
     {
-        return obj is SessionId sessionId && Value == sessionId.Value;
+        return obj is ConnectionId sessionId && Value == sessionId.Value;
     }
 
     public override int GetHashCode()
@@ -40,28 +40,28 @@ public readonly struct SessionId(uint value) : IEquatable<SessionId>
         return HashCode.Combine(Value);
     }
 
-    public static bool operator ==(SessionId left, SessionId right)
+    public static bool operator ==(ConnectionId left, ConnectionId right)
     {
         return left.Equals(right);
     }
 
-    public static bool operator !=(SessionId left, SessionId right)
+    public static bool operator !=(ConnectionId left, ConnectionId right)
     {
         return !(left == right);
     }
     
-    public static bool TryParse(string s, out SessionId sessionId)
+    public static bool TryParse(string s, out ConnectionId connectionId)
     {
         if (uint.TryParse(s, out uint value))
         {
-            sessionId = new SessionId(value);
+            connectionId = new ConnectionId(value);
             return true;
         }
 
-        sessionId = Invalid;
+        connectionId = Invalid;
         return false;
     }
 
 
-    public bool Equals(SessionId other) => Value == other.Value;
+    public bool Equals(ConnectionId other) => Value == other.Value;
 }

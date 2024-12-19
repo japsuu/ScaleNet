@@ -9,7 +9,7 @@ internal sealed class Connection : IDisposable
 
     public TcpClient? Client;
 
-    public SessionId ConnId = SessionId.Invalid;
+    public ConnectionId ConnId = ConnectionId.Invalid;
     public Stream? Stream;
     public Thread? ReceiveThread;
     public Thread? SendThread;

@@ -12,7 +12,7 @@ namespace ScaleNet.Server.LowLevel.Transport.Tcp;
 public sealed class TcpServerTransport : SslServer, IServerTransport
 {
     private readonly ConcurrentBag<uint> _availableSessionIds = [];
-    private readonly ConcurrentDictionary<SessionId, TcpClientSession> _sessions = new();
+    private readonly ConcurrentDictionary<ConnectionId, TcpClientSession> _sessions = new();
 
     private bool _rejectNewConnections;
     private bool _rejectNewMessages;
@@ -23,7 +23,7 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
 
     public event Action<ServerStateChangeArgs>? ServerStateChanged;
     public event Action<SessionStateChangeArgs>? SessionStateChanged;
-    public event Action<SessionId, DeserializedNetMessage>? MessageReceived;
+    public event Action<ConnectionId, DeserializedNetMessage>? MessageReceived;
 
 
     public TcpServerTransport(ServerSslContext sslContext, IPAddress address, int port, int maxConnections, IPacketMiddleware? middleware = null) : base(sslContext, address, port)
@@ -99,14 +99,14 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
                 
                 if (!serializeSuccess)
                 {
-                    ScaleNetManager.Logger.LogWarning($"Received a packet that could not be deserialized. Kicking session {session.SessionId} immediately.");
+                    ScaleNetManager.Logger.LogWarning($"Received a packet that could not be deserialized. Kicking session {session.ConnectionId} immediately.");
                     DisconnectSession(session, InternalDisconnectReason.MalformedData);
                     return;
                 }
 
                 try
                 {
-                    MessageReceived?.Invoke(session.SessionId, msg);
+                    MessageReceived?.Invoke(session.ConnectionId, msg);
                 }
                 catch (Exception e)
                 {
@@ -129,20 +129,20 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     }
 
 
-    public void QueueSendAsync<T>(SessionId sessionId, T message) where T : INetMessage
+    public void QueueSendAsync<T>(ConnectionId connectionId, T message) where T : INetMessage
     {
-        Debug.Assert(sessionId != SessionId.Invalid, "Invalid session ID.");
+        Debug.Assert(connectionId != ConnectionId.Invalid, "Invalid session ID.");
 
-        if (sessionId == SessionId.Broadcast)
+        if (connectionId == ConnectionId.Broadcast)
         {
             foreach (TcpClientSession session in _sessions.Values)
                 QueueSendAsync(session, message);
         }
         else
         {
-            if (!_sessions.TryGetValue(sessionId, out TcpClientSession? session))
+            if (!_sessions.TryGetValue(connectionId, out TcpClientSession? session))
             {
-                ScaleNetManager.Logger.LogWarning($"Tried to send a packet to a non-existent/disconnected session with ID {sessionId}");
+                ScaleNetManager.Logger.LogWarning($"Tried to send a packet to a non-existent/disconnected session with ID {connectionId}");
                 return;
             }
 
@@ -161,20 +161,20 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     }
     
     
-    public ConnectionState GetConnectionState(SessionId sessionId)
+    public ConnectionState GetConnectionState(ConnectionId connectionId)
     {
-        if (_sessions.TryGetValue(sessionId, out TcpClientSession? session))
+        if (_sessions.TryGetValue(connectionId, out TcpClientSession? session))
             return session.ConnectionState;
         
         return ConnectionState.Disconnected;
     }
 
 
-    public bool StopConnection(SessionId sessionId, InternalDisconnectReason reason)
+    public bool StopConnection(ConnectionId connectionId, InternalDisconnectReason reason)
     {
-        if (!_sessions.TryGetValue(sessionId, out TcpClientSession? session))
+        if (!_sessions.TryGetValue(connectionId, out TcpClientSession? session))
         {
-            ScaleNetManager.Logger.LogWarning($"Tried to disconnect a non-existent/disconnected session with ID {sessionId}");
+            ScaleNetManager.Logger.LogWarning($"Tried to disconnect a non-existent/disconnected session with ID {connectionId}");
             return false;
         }
         
@@ -183,11 +183,11 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     }
 
 
-    public bool StopConnectionImmediate(SessionId sessionId)
+    public bool StopConnectionImmediate(ConnectionId connectionId)
     {
-        if (!_sessions.TryGetValue(sessionId, out TcpClientSession? session))
+        if (!_sessions.TryGetValue(connectionId, out TcpClientSession? session))
         {
-            ScaleNetManager.Logger.LogWarning($"Tried to disconnect a non-existent/disconnected session with ID {sessionId}");
+            ScaleNetManager.Logger.LogWarning($"Tried to disconnect a non-existent/disconnected session with ID {connectionId}");
             return false;
         }
         
@@ -247,7 +247,7 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
         if (!isIdAvailable)
             throw new InvalidOperationException("No available session IDs.");
         
-        SessionId id = new(uId);
+        ConnectionId id = new(uId);
 
         TcpClientSession session = new(id, this, SessionStateChanged);
         _sessions.TryAdd(id, session);
@@ -265,7 +265,7 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     }
     
     
-    internal void ReleaseSession(SessionId id)
+    internal void ReleaseSession(ConnectionId id)
     {
         if (!_sessions.TryRemove(id, out TcpClientSession? session))
             return;

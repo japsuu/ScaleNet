@@ -16,16 +16,16 @@ public abstract class Connection
     /// ID of the session/connection.
     /// Changes when the client reconnects.
     /// </summary>
-    public readonly SessionId SessionId;
+    public readonly ConnectionId ConnectionId;
     
-    public ConnectionState ConnectionState => _transport.GetConnectionState(SessionId);
+    public ConnectionState ConnectionState => _transport.GetConnectionState(ConnectionId);
     public bool IsConnected => ConnectionState == ConnectionState.Connected;
     
     
-    protected Connection(SessionId sessionId, IServerTransport transport)
+    protected Connection(ConnectionId connectionId, IServerTransport transport)
     {
         _transport = transport;
-        SessionId = sessionId;
+        ConnectionId = connectionId;
     }
 
 
@@ -37,9 +37,9 @@ public abstract class Connection
     {
         Debug.Assert(_transport != null, nameof(_transport) + " != null");
         
-        ScaleNetManager.Logger.LogDebug($"Disconnecting client {SessionId} with reason {reason}.");
+        ScaleNetManager.Logger.LogDebug($"Disconnecting client {ConnectionId} with reason {reason}.");
 
-        _transport.StopConnection(SessionId, reason);
+        _transport.StopConnection(ConnectionId, reason);
     }
 
 
@@ -50,9 +50,9 @@ public abstract class Connection
     {
         Debug.Assert(_transport != null, nameof(_transport) + " != null");
         
-        ScaleNetManager.Logger.LogDebug($"Disconnecting client {SessionId} immediately.");
+        ScaleNetManager.Logger.LogDebug($"Disconnecting client {ConnectionId} immediately.");
 
-        _transport.StopConnectionImmediate(SessionId);
+        _transport.StopConnectionImmediate(ConnectionId);
     }
 
 
@@ -64,10 +64,10 @@ public abstract class Connection
     {
         Debug.Assert(_transport != null, nameof(_transport) + " != null");
         
-        ScaleNetManager.Logger.LogDebug($"Disconnecting client {SessionId}.");
+        ScaleNetManager.Logger.LogDebug($"Disconnecting client {ConnectionId}.");
 
         QueueSend(message);
-        _transport.StopConnection(SessionId, InternalDisconnectReason.User);
+        _transport.StopConnection(ConnectionId, InternalDisconnectReason.User);
     }
 
 
@@ -82,6 +82,6 @@ public abstract class Connection
         
         ScaleNetManager.Logger.LogDebug($"QUE - {message}");
 
-        _transport.QueueSendAsync(SessionId, message);
+        _transport.QueueSendAsync(ConnectionId, message);
     }
 }

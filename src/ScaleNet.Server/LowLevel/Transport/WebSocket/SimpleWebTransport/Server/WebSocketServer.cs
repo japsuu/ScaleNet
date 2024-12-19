@@ -18,7 +18,7 @@ public class WebSocketServer
     private readonly ServerHandshakeHandler _handshakeHandler;
     private readonly ServerSslHelper _sslHelper;
     private readonly BufferPool _bufferPool;
-    private readonly ConcurrentDictionary<SessionId, Common.Connection> _connections = new();
+    private readonly ConcurrentDictionary<ConnectionId, Common.Connection> _connections = new();
 
     private readonly ConcurrentBag<uint> _availableSessionIds = [];
 
@@ -31,10 +31,10 @@ public class WebSocketServer
         _bufferPool = bufferPool;
         _handshakeHandler = new ServerHandshakeHandler(_bufferPool, handshakeMaxSize);
 
-        // Fill the available session IDs bag.
+        // Fill the available connectionId IDs bag.
         for (uint i = 1; i < maxClients; i++)
         {
-            if (!SessionId.IsReserved(i))
+            if (!ConnectionId.IsReserved(i))
                 _availableSessionIds.Add(i);
         }
     }
@@ -143,12 +143,12 @@ public class WebSocketServer
 
             if (!isIdAvailable)
             {
-                SimpleWebLog.Warn("Ran out of available session IDs. A client attempting to connect will be rejected.");
+                SimpleWebLog.Warn("Ran out of available connectionId IDs. A client attempting to connect will be rejected.");
                 conn.Dispose();
                 return;
             }
 
-            conn.ConnId = new SessionId(uId);
+            conn.ConnId = new ConnectionId(uId);
 
             _connections.TryAdd(conn.ConnId, conn);
 
@@ -201,7 +201,7 @@ public class WebSocketServer
 
     private void AfterConnectionDisposed(Common.Connection conn)
     {
-        if (conn.ConnId == SessionId.Invalid)
+        if (conn.ConnId == ConnectionId.Invalid)
             return;
         
         ReceiveQueue.Enqueue(new Message(conn.ConnId, EventType.Disconnected));
@@ -210,7 +210,7 @@ public class WebSocketServer
     }
 
 
-    public void Send(SessionId id, ArrayBuffer buffer)
+    public void Send(ConnectionId id, ArrayBuffer buffer)
     {
         if (_connections.TryGetValue(id, out Common.Connection? conn))
         {
@@ -222,7 +222,7 @@ public class WebSocketServer
     }
 
 
-    public bool CloseConnection(SessionId id)
+    public bool CloseConnection(ConnectionId id)
     {
         if (_connections.TryGetValue(id, out Common.Connection? conn))
         {
@@ -237,7 +237,7 @@ public class WebSocketServer
     }
 
 
-    public EndPoint? GetClientEndPoint(SessionId id)
+    public EndPoint? GetClientEndPoint(ConnectionId id)
     {
         if (_connections.TryGetValue(id, out Common.Connection? conn))
             return conn.Client!.Client.RemoteEndPoint;

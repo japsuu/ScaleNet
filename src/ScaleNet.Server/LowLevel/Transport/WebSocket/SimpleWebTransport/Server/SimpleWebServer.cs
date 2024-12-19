@@ -11,10 +11,10 @@ public class SimpleWebServer
     
     public bool Active { get; private set; }
 
-    public event Action<SessionId>? OnConnect;
-    public event Action<SessionId>? OnDisconnect;
-    public event Action<SessionId, ArraySegment<byte>>? OnData;
-    public event Action<SessionId, Exception>? OnError;
+    public event Action<ConnectionId>? OnConnect;
+    public event Action<ConnectionId>? OnDisconnect;
+    public event Action<ConnectionId, ArraySegment<byte>>? OnData;
+    public event Action<ConnectionId, Exception>? OnError;
 
 
     public SimpleWebServer(int maxClients, int maxMessagesPerTick, TcpConfig tcpConfig, int maxPacketSize, int handshakeMaxSize, ServerSslContext? sslContext)
@@ -43,7 +43,7 @@ public class SimpleWebServer
     }
 
 
-    public void SendAll(HashSet<SessionId> connectionIds, byte[] data, int length)
+    public void SendAll(HashSet<ConnectionId> connectionIds, byte[] data, int length)
     {
         ArrayBuffer buffer = _bufferPool.Take(length);
         buffer.CopyFrom(data, 0, length);
@@ -51,12 +51,12 @@ public class SimpleWebServer
         // Require buffer release from all connections before returning to pool
         buffer.SetReleasesRequired(connectionIds.Count);
 
-        foreach (SessionId id in connectionIds)
+        foreach (ConnectionId id in connectionIds)
             _wsServer.Send(id, buffer);
     }
 
 
-    public void SendOne(SessionId connectionId, byte[] data, int length)
+    public void SendOne(ConnectionId connectionId, byte[] data, int length)
     {
         ArrayBuffer buffer = _bufferPool.Take(length);
         buffer.CopyFrom(data, 0, length);
@@ -65,9 +65,9 @@ public class SimpleWebServer
     }
 
 
-    public bool KickClient(SessionId connectionId) => _wsServer.CloseConnection(connectionId);
+    public bool KickClient(ConnectionId connectionId) => _wsServer.CloseConnection(connectionId);
 
-    public EndPoint? GetClientAddress(SessionId connectionId) => _wsServer.GetClientEndPoint(connectionId);
+    public EndPoint? GetClientAddress(ConnectionId connectionId) => _wsServer.GetClientEndPoint(connectionId);
 
 
     /// <summary>
