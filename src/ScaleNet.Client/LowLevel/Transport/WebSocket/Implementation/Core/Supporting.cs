@@ -9,6 +9,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
         public int Length;
         public readonly byte Channel;
 
+
         public Packet(int connectionId, byte[] data, int length, byte channel)
         {
             ConnectionId = connectionId;
@@ -16,6 +17,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
             Length = length;
             Channel = channel;
         }
+
 
         public Packet(int sender, ArraySegment<byte> segment, byte channel)
         {
@@ -26,10 +28,9 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
             Channel = channel;
         }
 
-        public ArraySegment<byte> GetArraySegment()
-        {
-            return new ArraySegment<byte>(Data, 0, Length);
-        }
+
+        public ArraySegment<byte> GetArraySegment() => new(Data, 0, Length);
+
 
         /// <summary>
         /// Adds on length and resizes Data if needed.
@@ -37,7 +38,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
         /// <param name="length"></param>
         public void AddLength(int length)
         {
-            int totalNeeded = (Length + length);
+            int totalNeeded = Length + length;
             if (Data.Length < totalNeeded)
                 Array.Resize(ref Data, totalNeeded);
 
@@ -48,18 +49,6 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
         public void Dispose()
         {
             ByteArrayPool.Store(Data);
-        }
-
-    }
-
-    internal struct RemoteConnectionEvent
-    {
-        public readonly bool Connected;
-        public readonly int ConnectionId;
-        public RemoteConnectionEvent(bool connected, int connectionId)
-        {
-            Connected = connected;
-            ConnectionId = connectionId;
         }
     }
 }
