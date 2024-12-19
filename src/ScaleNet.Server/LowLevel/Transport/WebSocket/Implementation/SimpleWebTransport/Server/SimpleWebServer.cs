@@ -43,10 +43,10 @@ public class SimpleWebServer
     }
 
 
-    public void SendAll(HashSet<ConnectionId> connectionIds, byte[] data, int length)
+    public void SendAll(HashSet<ConnectionId> connectionIds, byte[] data, int offset, int length)
     {
         ArrayBuffer buffer = _bufferPool.Take(length);
-        buffer.CopyFrom(data, 0, length);
+        buffer.CopyFrom(data, offset, length);
 
         // Require buffer release from all connections before returning to pool
         buffer.SetReleasesRequired(connectionIds.Count);
@@ -56,10 +56,10 @@ public class SimpleWebServer
     }
 
 
-    public void SendOne(ConnectionId connectionId, byte[] data, int length)
+    public void SendOne(ConnectionId connectionId, byte[] data, int offset, int length)
     {
         ArrayBuffer buffer = _bufferPool.Take(length);
-        buffer.CopyFrom(data, 0, length);
+        buffer.CopyFrom(data, offset, length);
 
         _wsServer.Send(connectionId, buffer);
     }

@@ -76,10 +76,10 @@ internal sealed class ServerSocket : IDisposable
 
         _server = new SimpleWebServer(maxClients, 10000, tcpConfig, _maxPacketSize, 5000, _sslContext);
 
-        _server.OnConnect += _server_onConnect;
-        _server.OnDisconnect += _server_onDisconnect;
-        _server.OnData += _server_onData;
-        _server.OnError += _server_onError;
+        _server.OnConnect += OnClientConnect;
+        _server.OnDisconnect += OnClientDisconnect;
+        _server.OnData += OnReceiveDataFromClient;
+        _server.OnError += OnClientError;
 
         SetServerState(ServerState.Starting);
         _server.Start(_port);
@@ -87,10 +87,7 @@ internal sealed class ServerSocket : IDisposable
     }
 
 
-    /// <summary>
-    /// Called when a client connection errors.
-    /// </summary>
-    private void _server_onError(ConnectionId connectionId, Exception arg2)
+    private void OnClientError(ConnectionId connectionId, Exception arg2)
     {
         ConnectionStoppedOnSocket(connectionId);
     }
@@ -110,7 +107,7 @@ internal sealed class ServerSocket : IDisposable
     /// <summary>
     /// Called when receiving data.
     /// </summary>
-    private void _server_onData(ConnectionId clientId, ArraySegment<byte> data)
+    private void OnReceiveDataFromClient(ConnectionId clientId, ArraySegment<byte> data)
     {
         if (_server == null || !_server.Active)
             return;
@@ -122,7 +119,7 @@ internal sealed class ServerSocket : IDisposable
     /// <summary>
     /// Called when a client connects.
     /// </summary>
-    private void _server_onConnect(ConnectionId clientId)
+    private void OnClientConnect(ConnectionId clientId)
     {
         if (_server == null || !_server.Active)
             return;
@@ -141,7 +138,7 @@ internal sealed class ServerSocket : IDisposable
     /// <summary>
     /// Called when a client disconnects.
     /// </summary>
-    private void _server_onDisconnect(ConnectionId connectionId)
+    private void OnClientDisconnect(ConnectionId connectionId)
     {
         ConnectionStoppedOnSocket(connectionId);
     }
@@ -288,9 +285,9 @@ internal sealed class ServerSocket : IDisposable
                 ConnectionId connectionId = outgoing.ConnectionId;
 
                 if (connectionId == ConnectionId.Broadcast)
-                    _server.SendAll(_connectedClients, outgoing.Payload.Buffer, outgoing.Payload.Length);
+                    _server.SendAll(_connectedClients, outgoing.Payload.Buffer, outgoing.Payload.Offset, outgoing.Payload.Length);
                 else
-                    _server.SendOne(connectionId, outgoing.Payload.Buffer, outgoing.Payload.Length);
+                    _server.SendOne(connectionId, outgoing.Payload.Buffer, outgoing.Payload.Offset, outgoing.Payload.Length);
 
                 outgoing.Dispose();
             }

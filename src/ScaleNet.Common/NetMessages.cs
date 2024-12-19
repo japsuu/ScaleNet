@@ -108,6 +108,7 @@ namespace ScaleNet.Common
 
 
         public Span<byte> AsSpan() => Buffer.AsSpan(Offset, Length);
+        public ArraySegment<byte> AsArraySegment() => new(Buffer, Offset, Length);
         
         
         public void Dispose()
