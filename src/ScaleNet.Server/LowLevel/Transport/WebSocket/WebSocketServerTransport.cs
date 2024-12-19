@@ -45,9 +45,9 @@ public sealed class WebSocketServerTransport : IServerTransport
             _maxPacketSize = MAXIMUM_MTU;
 
         _serverSocket = new ServerSocket();
-        _serverSocket.ServerStateChanged += a => ServerStateChanged?.Invoke(a);
-        _serverSocket.SessionStateChanged += a => SessionStateChanged?.Invoke(a);
-        _serverSocket.MessageReceived += HandleServerReceivedData;
+        _serverSocket.ServerStateChanged += args => ServerStateChanged?.Invoke(args);
+        _serverSocket.SessionStateChanged += args => SessionStateChanged?.Invoke(args);
+        _serverSocket.DataReceived += HandleReceivedData;
         
         _middleware = middleware;
     }
@@ -61,7 +61,7 @@ public sealed class WebSocketServerTransport : IServerTransport
     }
 
 
-    private void HandleServerReceivedData(ConnectionId connectionId, ArraySegment<byte> data)
+    private void HandleReceivedData(ConnectionId connectionId, ArraySegment<byte> data)
     {
         /*
          TODO: Implement too-many-packets check for WS transport

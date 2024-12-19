@@ -53,7 +53,7 @@ internal sealed class ServerSocket : IDisposable
     
     public event Action<ServerStateChangeArgs>? ServerStateChanged;
     public event Action<SessionStateChangeArgs>? SessionStateChanged;
-    public event Action<ConnectionId, ArraySegment<byte>>? MessageReceived;
+    public event Action<ConnectionId, ArraySegment<byte>>? DataReceived;
     
     
     public void Dispose()
@@ -121,7 +121,7 @@ internal sealed class ServerSocket : IDisposable
         if (_server == null || !_server.Active)
             return;
 
-        MessageReceived?.Invoke(clientId, data);
+        DataReceived?.Invoke(clientId, data);
     }
 
 
