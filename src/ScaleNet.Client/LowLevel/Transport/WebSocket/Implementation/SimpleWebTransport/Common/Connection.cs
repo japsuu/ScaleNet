@@ -4,7 +4,7 @@ using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 
-namespace JamesFrowen.SimpleWeb
+namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
 {
     internal sealed class Connection : IDisposable
     {

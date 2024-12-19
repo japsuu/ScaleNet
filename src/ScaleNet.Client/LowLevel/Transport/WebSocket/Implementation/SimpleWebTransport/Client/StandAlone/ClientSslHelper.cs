@@ -3,8 +3,9 @@ using System.IO;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
+using ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
-namespace JamesFrowen.SimpleWeb
+namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client.StandAlone
 {
     internal class ClientSslHelper
     {

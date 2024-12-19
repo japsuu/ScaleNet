@@ -1,15 +1,10 @@
-using FishNet.Managing;
-using FishNet.Managing.Logging;
-using FishNet.Managing.Transporting;
-using JamesFrowen.SimpleWeb;
 using System;
 using System.Runtime.CompilerServices;
-using UnityEngine;
+using ScaleNet.Client.LowLevel.Transport.WebSocket.Core;
 
-namespace FishNet.Transporting.Bayou
+namespace ScaleNet.Client.LowLevel.Transport.WebSocket
 {
-    [DisallowMultipleComponent]
-    public class Bayou : Transport
+    public class Bayou
     {
 
         #region Serialized.
@@ -69,11 +64,11 @@ namespace FishNet.Transporting.Bayou
         /// <summary>
         /// Server socket and handler.
         /// </summary>
-        private Server.ServerSocket _server = new Server.ServerSocket();
+        private ServerSocket _server = new ServerSocket();
         /// <summary>
         /// Client socket and handler.
         /// </summary>
-        private Client.ClientSocket _client = new Client.ClientSocket();
+        private ClientSocket _client = new ClientSocket();
         #endregion
 
         #region Const.

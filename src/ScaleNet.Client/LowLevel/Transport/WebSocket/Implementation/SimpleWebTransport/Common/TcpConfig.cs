@@ -1,6 +1,6 @@
 using System.Net.Sockets;
 
-namespace JamesFrowen.SimpleWeb
+namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
 {
     [System.Serializable]
     public struct TcpConfig

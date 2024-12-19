@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Concurrent;
-using UnityEngine;
+using ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client.StandAlone;
+using ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
-namespace JamesFrowen.SimpleWeb
+namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
 {
     public enum ClientState
     {

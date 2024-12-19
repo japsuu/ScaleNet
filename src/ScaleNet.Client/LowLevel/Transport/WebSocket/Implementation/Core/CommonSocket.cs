@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace FishNet.Transporting.Bayou
+namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
 {
 
     public abstract class CommonSocket

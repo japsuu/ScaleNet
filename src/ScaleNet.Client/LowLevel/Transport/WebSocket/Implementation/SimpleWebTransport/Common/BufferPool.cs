@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace JamesFrowen.SimpleWeb
+namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
 {
     public interface IBufferOwner
     {

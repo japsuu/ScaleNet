@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Runtime.Serialization;
 
-namespace JamesFrowen.SimpleWeb
+namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
 {
     public static class ReadHelper
     {

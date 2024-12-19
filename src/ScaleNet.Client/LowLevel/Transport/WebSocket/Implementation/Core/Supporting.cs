@@ -1,12 +1,7 @@
-﻿using FishNet.Utility.Performance;
-using System;
+﻿using System;
 
-
-
-namespace FishNet.Transporting.Bayou
+namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
 {
-
-
     internal struct Packet
     {
         public readonly int ConnectionId;
@@ -57,13 +52,6 @@ namespace FishNet.Transporting.Bayou
 
     }
 
-
-}
-
-
-namespace FishNet.Transporting.Bayou.Server
-{
-
     internal struct RemoteConnectionEvent
     {
         public readonly bool Connected;
@@ -75,4 +63,3 @@ namespace FishNet.Transporting.Bayou.Server
         }
     }
 }
-

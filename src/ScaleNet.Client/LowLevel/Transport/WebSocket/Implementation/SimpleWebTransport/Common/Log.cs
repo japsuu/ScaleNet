@@ -1,8 +1,7 @@
 using System;
-using UnityEngine;
 using Conditional = System.Diagnostics.ConditionalAttribute;
 
-namespace JamesFrowen.SimpleWeb
+namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
 {
     public static class Log
     {

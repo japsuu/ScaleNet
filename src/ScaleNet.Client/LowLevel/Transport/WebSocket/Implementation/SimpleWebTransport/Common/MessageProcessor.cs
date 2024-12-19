@@ -1,7 +1,7 @@
 using System.IO;
 using System.Runtime.CompilerServices;
 
-namespace JamesFrowen.SimpleWeb
+namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
 {
     public static class MessageProcessor
     {

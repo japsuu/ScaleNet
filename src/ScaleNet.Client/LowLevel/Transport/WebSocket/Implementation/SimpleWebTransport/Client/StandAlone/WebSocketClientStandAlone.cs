@@ -1,8 +1,9 @@
 using System;
 using System.Net.Sockets;
 using System.Threading;
+using ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
-namespace JamesFrowen.SimpleWeb
+namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client.StandAlone
 {
     public class WebSocketClientStandAlone : SimpleWebClient
     {

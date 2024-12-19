@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using AOT;
+using ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
-namespace JamesFrowen.SimpleWeb
+namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client.Webgl
 {
     public class WebSocketClientWebGl : SimpleWebClient
     {

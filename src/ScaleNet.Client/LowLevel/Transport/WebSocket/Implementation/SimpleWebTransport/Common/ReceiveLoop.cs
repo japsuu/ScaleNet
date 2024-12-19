@@ -4,9 +4,8 @@ using System.IO;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using UnityEngine.Profiling;
 
-namespace JamesFrowen.SimpleWeb
+namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
 {
     internal static class ReceiveLoop
     {

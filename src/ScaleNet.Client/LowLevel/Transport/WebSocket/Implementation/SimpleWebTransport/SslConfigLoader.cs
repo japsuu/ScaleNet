@@ -1,8 +1,7 @@
 using System.IO;
 using System.Security.Authentication;
-using UnityEngine;
 
-namespace JamesFrowen.SimpleWeb
+namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport
 {
 
     public class SslConfigLoader

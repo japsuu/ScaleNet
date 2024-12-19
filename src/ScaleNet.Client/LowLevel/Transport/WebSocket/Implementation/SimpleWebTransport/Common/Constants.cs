@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace JamesFrowen.SimpleWeb
+namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
 {
     /// <summary>
     /// Constant values that should never change

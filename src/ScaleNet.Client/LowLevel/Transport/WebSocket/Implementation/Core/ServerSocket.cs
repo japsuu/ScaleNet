@@ -1,9 +1,9 @@
-using JamesFrowen.SimpleWeb;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
-namespace FishNet.Transporting.Bayou.Server
+namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
 {
     public class ServerSocket : CommonSocket
     {

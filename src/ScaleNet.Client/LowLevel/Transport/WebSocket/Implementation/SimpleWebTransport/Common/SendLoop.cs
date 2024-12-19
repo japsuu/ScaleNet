@@ -3,9 +3,8 @@ using System.IO;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Threading;
-using UnityEngine.Profiling;
 
-namespace JamesFrowen.SimpleWeb
+namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
 {
     public static class SendLoopConfig
     {

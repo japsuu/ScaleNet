@@ -3,7 +3,7 @@ using System;
 using System.Runtime.InteropServices;
 #endif
 
-namespace JamesFrowen.SimpleWeb
+namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client.Webgl
 {
     internal static class SimpleWebJSLib
     {

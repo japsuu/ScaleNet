@@ -2,8 +2,9 @@ using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
-namespace JamesFrowen.SimpleWeb
+namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client.StandAlone
 {
     /// <summary>
     /// Handles Handshake to the server when it first connects
