@@ -181,7 +181,7 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
         private void OnReceiveFullPacket(byte[] data, int length)
         {
-            NetMessagePacket packet = NetMessagePacket.CreateIncoming(data, length);
+            NetMessagePacket packet = NetMessagePacket.CreateIncoming(data, 0, length);
         
             _middleware?.HandleIncomingPacket(ref packet);
             
