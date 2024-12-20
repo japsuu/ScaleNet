@@ -12,20 +12,20 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
     /// </summary>
     internal class ClientHandshake
     {
-        public bool TryHandshake(Connection conn, Uri uri)
+        public static bool TryHandshake(Connection conn, Uri uri)
         {
             try
             {
-                Stream stream = conn.stream;
+                Stream stream = conn.Stream!;
 
                 byte[] keyBuffer = new byte[16];
-                using (RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider())
+                using (RNGCryptoServiceProvider rng = new())
                 {
                     rng.GetBytes(keyBuffer);
                 }
 
                 string key = Convert.ToBase64String(keyBuffer);
-                string keySum = key + Constants.HandshakeGUID;
+                string keySum = key + Constants.HANDSHAKE_GUID;
                 byte[] keySumBytes = Encoding.ASCII.GetBytes(keySum);
                 SimpleWebLog.Verbose($"Handshake Hashing {Encoding.ASCII.GetString(keySumBytes)}");
 
@@ -45,7 +45,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
 
                 byte[] responseBuffer = new byte[1000];
 
-                int? lengthOrNull = ReadHelper.SafeReadTillMatch(stream, responseBuffer, 0, responseBuffer.Length, Constants.endOfHandshake);
+                int? lengthOrNull = ReadHelper.SafeReadTillMatch(stream, responseBuffer, 0, responseBuffer.Length, Constants.EndOfHandshake);
 
                 if (!lengthOrNull.HasValue)
                 {
@@ -55,18 +55,17 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
 
                 string responseString = Encoding.ASCII.GetString(responseBuffer, 0, lengthOrNull.Value);
 
-                string acceptHeader = "Sec-WebSocket-Accept: ";
+                const string acceptHeader = "Sec-WebSocket-Accept: ";
                 int startIndex = responseString.IndexOf(acceptHeader, StringComparison.InvariantCultureIgnoreCase) + acceptHeader.Length;
-                int endIndex = responseString.IndexOf("\r\n", startIndex);
+                int endIndex = responseString.IndexOf("\r\n", startIndex, StringComparison.InvariantCultureIgnoreCase);
                 string responseKey = responseString.Substring(startIndex, endIndex - startIndex);
 
-                if (responseKey != expectedResponse)
-                {
-                    SimpleWebLog.Error($"Response key incorrect, Response:{responseKey} Expected:{expectedResponse}");
-                    return false;
-                }
+                if (responseKey == expectedResponse)
+                    return true;
+                
+                SimpleWebLog.Error($"Response key incorrect, Response:{responseKey} Expected:{expectedResponse}");
+                return false;
 
-                return true;
             }
             catch (Exception e)
             {

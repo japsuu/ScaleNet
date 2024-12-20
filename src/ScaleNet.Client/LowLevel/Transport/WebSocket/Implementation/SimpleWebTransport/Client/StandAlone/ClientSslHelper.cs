@@ -1,26 +1,36 @@
 ﻿using System;
-using System.IO;
+using System.Diagnostics;
 using System.Net.Security;
 using System.Net.Sockets;
-using System.Security.Cryptography.X509Certificates;
 using ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
 namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client.StandAlone
 {
     internal class ClientSslHelper
     {
+        private readonly ClientSslContext? _sslContext;
+
+
+        public ClientSslHelper(ClientSslContext? sslContext)
+        {
+            _sslContext = sslContext;
+        }
+
+
         internal bool TryCreateStream(Connection conn, Uri uri)
         {
-            NetworkStream stream = conn.client.GetStream();
+            NetworkStream stream = conn.Client!.GetStream();
             if (uri.Scheme != "wss")
             {
-                conn.stream = stream;
+                conn.Stream = stream;
                 return true;
             }
 
+            Debug.Assert(_sslContext != null, "_sslContext != null");
+
             try
             {
-                conn.stream = CreateStream(stream, uri);
+                conn.Stream = CreateSslStream(stream, uri, _sslContext);
                 return true;
             }
             catch (Exception e)
@@ -30,19 +40,17 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
             }
         }
 
-        Stream CreateStream(NetworkStream stream, Uri uri)
+
+        private static SslStream CreateSslStream(NetworkStream stream, Uri uri, ClientSslContext sslContext)
         {
-            SslStream sslStream = new SslStream(stream, true, ValidateServerCertificate);
-            sslStream.AuthenticateAsClient(uri.Host);
+            SslStream sslStream = new(stream, true, sslContext.CertificateValidationCallback);
+
+            if (sslContext.Certificates != null)
+                sslStream.AuthenticateAsClient(uri.Host, sslContext.Certificates, ClientSslContext.Protocols, false);
+            else
+                sslStream.AuthenticateAsClient(uri.Host);
+
             return sslStream;
-        }
-
-        static bool ValidateServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
-        {
-            // Do not allow this client to communicate with unauthenticated servers.
-
-            // only accept if no errors
-            return sslPolicyErrors == SslPolicyErrors.None;
         }
     }
 }

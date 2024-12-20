@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
 {
     /// <summary>
@@ -32,7 +30,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
         public const int SHORT_LENGTH = 2;
 
         /// <summary>
-        /// Message mask is always 4 bytes
+        /// Message mask is always four bytes
         /// </summary>
         public const int MASK_SIZE = 4;
 
@@ -58,10 +56,6 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
         /// Guid used for WebSocket Protocol
         /// </summary>
         public const string HANDSHAKE_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-
-        public static readonly int HandshakeGuidLength = HANDSHAKE_GUID.Length;
-
-        public static readonly byte[] HandshakeGuidBytes = Encoding.ASCII.GetBytes(HANDSHAKE_GUID);
 
         /// <summary>
         /// Handshake messages will end with \r\n\r\n

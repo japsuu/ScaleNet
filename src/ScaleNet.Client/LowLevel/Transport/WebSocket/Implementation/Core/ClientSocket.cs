@@ -13,12 +13,22 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
         private ushort _port;
         private SimpleWebClient? _client;
 
-        private readonly Queue<NetMessagePacket> _outgoing = new();
+        private readonly ClientSslContext? _sslContext;
+        private readonly Queue<NetMessagePacket> _outgoing;
+
 
         public ConnectionState State { get; private set; } = ConnectionState.Disconnected;
 
         public event Action<ConnectionStateArgs>? ClientStateChanged;
         public event Action<ArraySegment<byte>>? MessageReceived;
+
+
+        public ClientSocket(ClientSslContext? sslContext)
+        {
+            _sslContext = sslContext;
+            
+            _outgoing = new Queue<NetMessagePacket>();
+        }
 
 
         public void Dispose()
@@ -27,7 +37,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
         }
 
 
-        public bool StartConnection(string address, ushort port, bool useWss)
+        public bool StartConnection(string address, ushort port)
         {
             if (State != ConnectionState.Disconnected)
                 return false;
@@ -38,7 +48,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
             _address = address;
 
             ResetQueues();
-            InitializeSocket(useWss);
+            InitializeSocket();
 
             return true;
         }
@@ -95,16 +105,17 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
         /// <summary>
         /// Threaded operation to process client actions.
         /// </summary>
-        private void InitializeSocket(bool useWss)
+        private void InitializeSocket()
         {
             TcpConfig tcpConfig = new(false, 5000, 20000);
-            _client = SimpleWebClient.Create(ushort.MaxValue, 5000, tcpConfig);
+            _client = SimpleWebClient.Create(ushort.MaxValue, 5000, tcpConfig, _sslContext);
 
-            _client.onConnect += OnClientConnect;
-            _client.onDisconnect += OnClientDisconnect;
-            _client.onData += OnClientReceiveData;
-            _client.onError += OnClientError;
+            _client.OnConnect += OnClientConnect;
+            _client.OnDisconnect += OnClientDisconnect;
+            _client.OnData += OnClientReceiveData;
+            _client.OnError += OnClientError;
 
+            bool useWss = _sslContext != null;
             string scheme = useWss ? "wss" : "ws";
             UriBuilder builder = new()
             {
@@ -169,7 +180,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
             for (int i = 0; i < count; i++)
             {
                 NetMessagePacket outgoing = _outgoing.Dequeue();
-                _client.Send(outgoing.AsArraySegment());
+                _client.Send(outgoing.Buffer, outgoing.Offset, outgoing.Length);
                 outgoing.Dispose();
             }
         }

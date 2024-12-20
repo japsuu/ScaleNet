@@ -12,7 +12,6 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
 
         public TcpClient? Client;
 
-        public ConnectionId ConnId = ConnectionId.Invalid;
         public Stream? Stream;
         public Thread? ReceiveThread;
         public Thread? SendThread;
@@ -84,7 +83,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
         public override string ToString()
         {
             System.Net.EndPoint endpoint = Client?.Client?.RemoteEndPoint!;
-            return $"[Conn:{ConnId}, endPoint:{endpoint}]";
+            return $"[EndPoint:{endpoint}]";
         }
     }
 }

@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client.Webgl
 {
-    internal static class SimpleWebJSLib
+    internal static class SimpleWebJsLib
     {
 #if UNITY_WEBGL
         [DllImport("__Internal")]

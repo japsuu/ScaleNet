@@ -7,51 +7,51 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
 {
     public class WebSocketClientStandAlone : SimpleWebClient
     {
-        readonly ClientSslHelper sslHelper;
-        readonly ClientHandshake handshake;
-        readonly TcpConfig tcpConfig;
-        Connection conn;
+        private readonly ClientSslHelper _sslHelper;
+        private readonly ClientHandshake _handshake;
+        private readonly TcpConfig _tcpConfig;
+        private Connection? _conn;
 
 
-        internal WebSocketClientStandAlone(int maxMessageSize, int maxMessagesPerTick, TcpConfig tcpConfig) : base(maxMessageSize, maxMessagesPerTick)
+        internal WebSocketClientStandAlone(int maxMessageSize, int maxMessagesPerTick, TcpConfig tcpConfig, ClientSslContext? sslContext) : base(maxMessageSize, maxMessagesPerTick)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
             throw new NotSupportedException();
 #else
-            sslHelper = new ClientSslHelper();
-            handshake = new ClientHandshake();
-            this.tcpConfig = tcpConfig;
+            _sslHelper = new ClientSslHelper(sslContext);
+            _handshake = new ClientHandshake();
+            _tcpConfig = tcpConfig;
 #endif
         }
 
+
         public override void Connect(Uri serverAddress)
         {
-            state = ClientState.Connecting;
+            State = ConnectionState.Connecting;
 
             // create connection here before thread so that send queue exist for MiragePeer to send to
-            var client = new TcpClient();
-            tcpConfig.ApplyTo(client);
+            TcpClient client = new();
+            TcpConfig.Apply(_tcpConfig, client);
 
             // create connection object here so dispose correctly disconnects on failed connect
-            conn = new Connection(client, AfterConnectionDisposed);
+            _conn = new Connection(client, AfterConnectionDisposed);
 
-            var receiveThread = new Thread(() => ConnectAndReceiveLoop(serverAddress));
+            Thread receiveThread = new(() => ConnectAndReceiveLoop(serverAddress));
             receiveThread.IsBackground = true;
             receiveThread.Start();
         }
 
-        void ConnectAndReceiveLoop(Uri serverAddress)
+
+        private void ConnectAndReceiveLoop(Uri serverAddress)
         {
             try
             {
                 // connection created above
-                TcpClient client = conn.client;
-                //TcpClient client = new TcpClient();
-                //tcpConfig.ApplyTo(client);
+                TcpClient client = _conn!.Client!;
 
                 //// create connection object here so dispose correctly disconnects on failed connect
                 //conn = new Connection(client, AfterConnectionDisposed);
-                conn.receiveThread = Thread.CurrentThread;
+                _conn.ReceiveThread = Thread.CurrentThread;
 
                 try
                 {
@@ -64,87 +64,98 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
                 }
 
 
-                bool success = sslHelper.TryCreateStream(conn, serverAddress);
+                bool success = _sslHelper.TryCreateStream(_conn, serverAddress);
                 if (!success)
                 {
                     SimpleWebLog.Warn("Failed to create Stream");
-                    conn.Dispose();
+                    _conn.Dispose();
                     return;
                 }
 
-                success = handshake.TryHandshake(conn, serverAddress);
+                success = ClientHandshake.TryHandshake(_conn, serverAddress);
                 if (!success)
                 {
                     SimpleWebLog.Warn("Failed Handshake");
-                    conn.Dispose();
+                    _conn.Dispose();
                     return;
                 }
 
                 SimpleWebLog.Info("HandShake Successful");
 
-                state = ClientState.Connected;
+                State = ConnectionState.Connected;
 
-                receiveQueue.Enqueue(new Message(EventType.Connected));
+                ReceiveQueue.Enqueue(new Message(EventType.Connected));
 
-                var sendThread = new Thread(() =>
-                {
-                    var sendConfig = new SendLoop.Config(
-                        conn,
-                        bufferSize: Constants.HeaderSize + Constants.MaskSize + maxMessageSize,
-                        setMask: true);
+                Thread sendThread = new(
+                    () =>
+                    {
+                        SendLoop.Config sendConfig = new(
+                            _conn,
+                            Constants.HEADER_SIZE + Constants.MASK_SIZE + MaxMessageSize,
+                            true);
 
-                    SendLoop.Loop(sendConfig);
-                });
+                        SendLoop.Loop(sendConfig);
+                    });
 
-                conn.sendThread = sendThread;
+                _conn.SendThread = sendThread;
                 sendThread.IsBackground = true;
                 sendThread.Start();
 
-                var config = new ReceiveLoop.Config(conn,
-                    maxMessageSize,
+                ReceiveLoop.Config config = new(
+                    _conn,
+                    MaxMessageSize,
                     false,
-                    receiveQueue,
-                    bufferPool);
+                    ReceiveQueue,
+                    BufferPool);
                 ReceiveLoop.Loop(config);
             }
-            catch (ThreadInterruptedException e) { SimpleWebLog.InfoException(e); }
-            catch (ThreadAbortException e) { SimpleWebLog.InfoException(e); }
-            catch (Exception e) { SimpleWebLog.Exception(e); }
+            catch (ThreadInterruptedException e)
+            {
+                SimpleWebLog.InfoException(e);
+            }
+            catch (ThreadAbortException e)
+            {
+                SimpleWebLog.InfoException(e);
+            }
+            catch (Exception e)
+            {
+                SimpleWebLog.Exception(e);
+            }
             finally
             {
                 // close here incase connect fails
-                conn?.Dispose();
+                _conn?.Dispose();
             }
         }
 
-        void AfterConnectionDisposed(Connection conn)
+
+        private void AfterConnectionDisposed(Connection conn)
         {
-            state = ClientState.NotConnected;
+            State = ConnectionState.Disconnected;
+
             // make sure Disconnected event is only called once
-            receiveQueue.Enqueue(new Message(EventType.Disconnected));
+            ReceiveQueue.Enqueue(new Message(EventType.Disconnected));
         }
+
 
         public override void Disconnect()
         {
-            state = ClientState.Disconnecting;
+            State = ConnectionState.Disconnecting;
             SimpleWebLog.Info("Disconnect Called");
-            if (conn == null)
-            {
-                state = ClientState.NotConnected;
-            }
+            if (_conn == null)
+                State = ConnectionState.Disconnected;
             else
-            {
-                conn?.Dispose();
-            }
+                _conn?.Dispose();
         }
 
-        public override void Send(ArraySegment<byte> segment)
-        {
-            ArrayBuffer buffer = bufferPool.Take(segment.Count);
-            buffer.CopyFrom(segment);
 
-            conn.sendQueue.Enqueue(buffer);
-            conn.sendPending.Set();
+        public override void Send(byte[] data, int offset, int length)
+        {
+            ArrayBuffer buffer = BufferPool.Take(length);
+            buffer.CopyFrom(data, offset, length);
+
+            _conn!.SendQueue.Enqueue(buffer);
+            _conn.SendPending.Set();
         }
     }
 }

@@ -7,7 +7,6 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket
 {
     public class WebSocketClientTransport : IClientTransport
     {
-        private readonly bool _useWss;
         private readonly IPacketMiddleware? _middleware;
         private readonly ClientSocket _clientSocket;
         
@@ -19,15 +18,14 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket
         public event Action<DeserializedNetMessage>? MessageReceived;
 
 
-        public WebSocketClientTransport(string address, ushort port, bool useWss = true, IPacketMiddleware? middleware = null)
+        public WebSocketClientTransport(string address, ushort port, ClientSslContext? sslContext, IPacketMiddleware? middleware = null)
         {
             Address = address;
             Port = port;
-            _useWss = useWss;
-            
+
             _middleware = middleware;
             
-            _clientSocket = new ClientSocket();
+            _clientSocket = new ClientSocket(sslContext);
             _clientSocket.ClientStateChanged += OnClientStateChanged;
             _clientSocket.MessageReceived += OnClientReceivedData;
         }
@@ -84,7 +82,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket
 
         public bool ConnectClient()
         {
-            return _clientSocket.StartConnection(Address, Port, _useWss);
+            return _clientSocket.StartConnection(Address, Port);
         }
 
 

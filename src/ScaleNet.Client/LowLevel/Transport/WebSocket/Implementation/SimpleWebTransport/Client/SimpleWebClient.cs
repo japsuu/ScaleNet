@@ -5,96 +5,82 @@ using ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
 namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
 {
-    /*public enum ClientState
-    {
-        NotConnected = 0,
-        Connecting = 1,
-        Connected = 2,
-        Disconnecting = 3,
-    }*/
     /// <summary>
     /// Client used to control websockets
     /// <para>Base class used by WebSocketClientWebGl and WebSocketClientStandAlone</para>
     /// </summary>
     public abstract class SimpleWebClient
     {
-        public static SimpleWebClient Create(int maxMessageSize, int maxMessagesPerTick, TcpConfig tcpConfig)
+        public static SimpleWebClient Create(int maxMessageSize, int maxMessagesPerTick, TcpConfig tcpConfig, ClientSslContext? sslContext)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
             return new WebSocketClientWebGl(maxMessageSize, maxMessagesPerTick);
 #else
-            return new WebSocketClientStandAlone(maxMessageSize, maxMessagesPerTick, tcpConfig);
+            return new WebSocketClientStandAlone(maxMessageSize, maxMessagesPerTick, tcpConfig, sslContext);
 #endif
         }
 
-        readonly int maxMessagesPerTick;
-        protected readonly int maxMessageSize;
-        public readonly ConcurrentQueue<Message> receiveQueue = new ConcurrentQueue<Message>();
-        protected readonly BufferPool bufferPool;
 
-        protected ClientState state;
+        private readonly int _maxMessagesPerTick;
+        protected readonly int MaxMessageSize;
+        protected readonly ConcurrentQueue<Message> ReceiveQueue = new();
+        protected readonly BufferPool BufferPool;
+
+        protected ConnectionState State;
+
 
         protected SimpleWebClient(int maxMessageSize, int maxMessagesPerTick)
         {
-            this.maxMessageSize = maxMessageSize;
-            this.maxMessagesPerTick = maxMessagesPerTick;
-            bufferPool = new BufferPool(5, 20, maxMessageSize);
+            MaxMessageSize = maxMessageSize;
+            _maxMessagesPerTick = maxMessagesPerTick;
+            BufferPool = new BufferPool(5, 20, maxMessageSize);
         }
 
-        public ClientState ConnectionState => state;
 
-        public event Action onConnect;
-        public event Action onDisconnect;
-        public event Action<ArraySegment<byte>> onData;
-        public event Action<Exception> onError;
+        public ConnectionState ConnectionState => State;
+
+        public event Action? OnConnect;
+        public event Action? OnDisconnect;
+        public event Action<ArraySegment<byte>>? OnData;
+        public event Action<Exception>? OnError;
+
 
         /// <summary>
-        /// Processes all new messages
+        /// Processes all messages.
         /// </summary>
         public void ProcessMessageQueue()
         {
-            ProcessMessageQueue(null);
-        }
-
-        /// <summary>
-        /// Processes all messages while <paramref name="behaviour"/> is enabled
-        /// </summary>
-        /// <param name="behaviour"></param>
-        public void ProcessMessageQueue(MonoBehaviour behaviour)
-        {
             int processedCount = 0;
-            bool skipEnabled = behaviour == null;
-            // check enabled every time incase behaviour was disabled after data
-            while (
-                (skipEnabled || behaviour.enabled) &&
-                processedCount < maxMessagesPerTick &&
-                // Dequeue last
-                receiveQueue.TryDequeue(out Message next)
-                )
+            while (processedCount < _maxMessagesPerTick && ReceiveQueue.TryDequeue(out Message next))
             {
                 processedCount++;
 
-                switch (next.type)
+                switch (next.Type)
                 {
                     case EventType.Connected:
-                        onConnect?.Invoke();
+                        OnConnect?.Invoke();
                         break;
                     case EventType.Data:
-                        onData?.Invoke(next.data.ToSegment());
-                        next.data.Release();
+                        OnData?.Invoke(next.Data!.ToSegment());
+                        next.Data!.Release();
                         break;
                     case EventType.Disconnected:
-                        onDisconnect?.Invoke();
+                        OnDisconnect?.Invoke();
                         break;
                     case EventType.Error:
-                        onError?.Invoke(next.exception);
+                        OnError?.Invoke(next.Exception!);
                         break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
                 }
             }
         }
 
+
         public abstract void Connect(Uri serverAddress);
+
         public abstract void Disconnect();
-        public abstract void Send(ArraySegment<byte> segment);
+
+        public abstract void Send(byte[] data, int offset, int length);
     }
 }

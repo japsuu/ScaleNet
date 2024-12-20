@@ -6,18 +6,19 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
 {
     public class WebSocketClientWebGl : SimpleWebClient
     {
-        static readonly Dictionary<int, WebSocketClientWebGl> instances = new Dictionary<int, WebSocketClientWebGl>();
+        private static readonly Dictionary<int, WebSocketClientWebGl> Instances = new();
 
         /// <summary>
         /// key for instances sent between c# and js
         /// </summary>
-        int index;
+        private int _index;
 
         /// <summary>
         /// Message sent by high level while still connecting, they will be send after onOpen is called
-        /// <para>this is a workaround for mirage where send it called right after Connect</para>
+        /// <para>this is a workaround for mirage where send is called right after Connect</para>
         /// </summary>
-        Queue<byte[]> ConnectingSendQueue;
+        private Queue<byte[]>? _connectingSendQueue;
+
 
         internal WebSocketClientWebGl(int maxMessageSize, int maxMessagesPerTick) : base(maxMessageSize, maxMessagesPerTick)
         {
@@ -26,99 +27,116 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
 #endif
         }
 
-        public bool CheckJsConnected() => SimpleWebJSLib.IsConnected(index);
+
+        public bool CheckJsConnected() => SimpleWebJsLib.IsConnected(_index);
+
 
         public override void Connect(Uri serverAddress)
         {
-            index = SimpleWebJSLib.Connect(serverAddress.ToString(), OpenCallback, CloseCallBack, MessageCallback, ErrorCallback);
-            instances.Add(index, this);
-            state = ClientState.Connecting;
+            _index = SimpleWebJsLib.Connect(serverAddress.ToString(), OpenCallback, CloseCallBack, MessageCallback, ErrorCallback);
+            Instances.Add(_index, this);
+            State = ConnectionState.Connecting;
         }
+
 
         public override void Disconnect()
         {
-            state = ClientState.Disconnecting;
+            State = ConnectionState.Disconnecting;
+
             // disconnect should cause closeCallback and OnDisconnect to be called
-            SimpleWebJSLib.Disconnect(index);
+            SimpleWebJsLib.Disconnect(_index);
         }
 
-        public override void Send(ArraySegment<byte> segment)
+
+        public override void Send(byte[] data, int offset, int length)
         {
-            if (segment.Count > maxMessageSize)
+            if (length > MaxMessageSize)
             {
-                SimpleWebLog.Error($"Cant send message with length {segment.Count} because it is over the max size of {maxMessageSize}");
+                SimpleWebLog.Error($"Cant send message with length {length} because it is over the max size of {MaxMessageSize}");
                 return;
             }
 
-            if (state == ClientState.Connected)
-            {
-                SimpleWebJSLib.Send(index, segment.Array, segment.Offset, segment.Count);
-            }
+            if (State == ConnectionState.Connected)
+                SimpleWebJsLib.Send(_index, data, offset, length);
             else
             {
-                if (ConnectingSendQueue == null)
-                    ConnectingSendQueue = new Queue<byte[]>();
-                ConnectingSendQueue.Enqueue(segment.ToArray());
+                if (_connectingSendQueue == null)
+                    _connectingSendQueue = new Queue<byte[]>();
+                _connectingSendQueue.Enqueue(data.AsSpan(offset, length).ToArray());
             }
         }
 
-        void onOpen()
+
+        private void OnOpen()
         {
-            receiveQueue.Enqueue(new Message(EventType.Connected));
-            state = ClientState.Connected;
+            ReceiveQueue.Enqueue(new Message(EventType.Connected));
+            State = ConnectionState.Connected;
 
-            if (ConnectingSendQueue != null)
+            if (_connectingSendQueue != null)
             {
-                while (ConnectingSendQueue.Count > 0)
+                while (_connectingSendQueue.Count > 0)
                 {
-                    byte[] next = ConnectingSendQueue.Dequeue();
-                    SimpleWebJSLib.Send(index, next, 0, next.Length);
+                    byte[] next = _connectingSendQueue.Dequeue();
+                    SimpleWebJsLib.Send(_index, next, 0, next.Length);
                 }
-                ConnectingSendQueue = null;
+
+                _connectingSendQueue = null;
             }
         }
 
-        void onClose()
+
+        private void OnClose()
         {
             // this code should be last in this class
 
-            receiveQueue.Enqueue(new Message(EventType.Disconnected));
-            state = ClientState.NotConnected;
-            instances.Remove(index);
+            ReceiveQueue.Enqueue(new Message(EventType.Disconnected));
+            State = ConnectionState.Disconnected;
+            Instances.Remove(_index);
         }
 
-        void onMessage(IntPtr bufferPtr, int count)
+
+        private void OnMessage(IntPtr bufferPtr, int count)
         {
             try
             {
-                ArrayBuffer buffer = bufferPool.Take(count);
+                ArrayBuffer buffer = BufferPool.Take(count);
                 buffer.CopyFrom(bufferPtr, count);
 
-                receiveQueue.Enqueue(new Message(buffer));
+                ReceiveQueue.Enqueue(new Message(buffer));
             }
             catch (Exception e)
             {
                 SimpleWebLog.Error($"onData {e.GetType()}: {e.Message}\n{e.StackTrace}");
-                receiveQueue.Enqueue(new Message(e));
+                ReceiveQueue.Enqueue(new Message(e));
             }
         }
 
-        void onErr()
+
+        private void OnErr()
         {
-            receiveQueue.Enqueue(new Message(new Exception("Javascript Websocket error")));
+            ReceiveQueue.Enqueue(new Message(new Exception("Javascript Websocket error")));
             Disconnect();
         }
 
-        [MonoPInvokeCallback(typeof(Action<int>))]
-        static void OpenCallback(int index) => instances[index].onOpen();
 
+#if UNITY_WEBGL
         [MonoPInvokeCallback(typeof(Action<int>))]
-        static void CloseCallBack(int index) => instances[index].onClose();
+#endif
+        private static void OpenCallback(int index) => Instances[index].OnOpen();
 
+#if UNITY_WEBGL
+        [MonoPInvokeCallback(typeof(Action<int>))]
+#endif
+        private static void CloseCallBack(int index) => Instances[index].OnClose();
+
+#if UNITY_WEBGL
         [MonoPInvokeCallback(typeof(Action<int, IntPtr, int>))]
-        static void MessageCallback(int index, IntPtr bufferPtr, int count) => instances[index].onMessage(bufferPtr, count);
+#endif
+        private static void MessageCallback(int index, IntPtr bufferPtr, int count) => Instances[index].OnMessage(bufferPtr, count);
 
+#if UNITY_WEBGL
         [MonoPInvokeCallback(typeof(Action<int>))]
-        static void ErrorCallback(int index) => instances[index].onErr();
+#endif
+        private static void ErrorCallback(int index) => Instances[index].OnErr();
     }
 }

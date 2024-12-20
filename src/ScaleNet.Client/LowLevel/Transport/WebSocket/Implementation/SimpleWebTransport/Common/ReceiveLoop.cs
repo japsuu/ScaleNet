@@ -28,7 +28,12 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
             }
 
 
-            public void Deconstruct(out Connection conn, out int maxMessageSize, out bool expectMask, out ConcurrentQueue<Message> queue, out BufferPool bufferPool)
+            public void Deconstruct(
+                out Connection conn,
+                out int maxMessageSize,
+                out bool expectMask,
+                out ConcurrentQueue<Message> queue,
+                out BufferPool bufferPool)
             {
                 conn = Conn;
                 maxMessageSize = MaxMessageSize;
@@ -81,23 +86,23 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
             {
                 // this could happen if wss client closes stream
                 SimpleWebLog.Warn($"ReceiveLoop SocketException\n{e.Message}", false);
-                queue.Enqueue(new Message(conn.ConnId, e));
+                queue.Enqueue(new Message(e));
             }
             catch (IOException e)
             {
                 // this could happen if client disconnects
                 SimpleWebLog.Warn($"ReceiveLoop IOException\n{e.Message}", false);
-                queue.Enqueue(new Message(conn.ConnId, e));
+                queue.Enqueue(new Message(e));
             }
             catch (InvalidDataException e)
             {
                 SimpleWebLog.Error($"Invalid data from {conn}: {e.Message}");
-                queue.Enqueue(new Message(conn.ConnId, e));
+                queue.Enqueue(new Message(e));
             }
             catch (Exception e)
             {
                 SimpleWebLog.Exception(e);
-                queue.Enqueue(new Message(conn.ConnId, e));
+                queue.Enqueue(new Message(e));
             }
             finally
             {
@@ -150,7 +155,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
 
         private static void HandleArrayMessage(Config config, byte[] buffer, int msgOffset, int payloadLength)
         {
-            (Connection conn, int _, bool expectMask, ConcurrentQueue<Message> queue, BufferPool bufferPool) = config;
+            (Connection _, int _, bool expectMask, ConcurrentQueue<Message> queue, BufferPool bufferPool) = config;
 
             ArrayBuffer arrayBuffer = bufferPool.Take(payloadLength);
 
@@ -167,7 +172,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
             // dump after mask off
             SimpleWebLog.DumpBuffer($"Message", arrayBuffer);
 
-            queue.Enqueue(new Message(conn.ConnId, arrayBuffer));
+            queue.Enqueue(new Message(arrayBuffer));
         }
 
 
@@ -190,7 +195,9 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
         }
 
 
-        private static string GetCloseMessage(byte[] buffer, int msgOffset, int payloadLength) => Encoding.UTF8.GetString(buffer, msgOffset + 2, payloadLength - 2);
+        private static string GetCloseMessage(byte[] buffer, int msgOffset, int payloadLength) =>
+            Encoding.UTF8.GetString(buffer, msgOffset + 2, payloadLength - 2);
+
 
         private static int GetCloseCode(byte[] buffer, int msgOffset) => (buffer[msgOffset + 0] << 8) | buffer[msgOffset + 1];
     }
