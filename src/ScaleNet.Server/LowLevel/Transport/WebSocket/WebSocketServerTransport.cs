@@ -103,12 +103,11 @@ public sealed class WebSocketServerTransport : IServerTransport
             return;
         }
         
-        NetMessagePacket packet = NetMessagePacket.CreateIncoming(data);
+        NetMessagePacket packet = NetMessagePacket.CreateIncomingNoCopy(data, false);
         
         _middleware?.HandleIncomingPacket(ref packet);
         
         bool serializeSuccess = NetMessages.TryDeserialize(packet, out DeserializedNetMessage msg);
-        packet.Dispose();
                 
         if (!serializeSuccess)
         {

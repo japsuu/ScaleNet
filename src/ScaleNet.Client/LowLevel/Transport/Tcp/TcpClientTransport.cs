@@ -193,12 +193,11 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
 
         private void OnReceiveFullPacket(byte[] data, int length)
         {
-            NetMessagePacket packet = NetMessagePacket.CreateIncoming(data, 0, length);
+            NetMessagePacket packet = NetMessagePacket.CreateIncomingNoCopy(data, 0, length, false);
         
             _middleware?.HandleIncomingPacket(ref packet);
             
             bool serializeSuccess = NetMessages.TryDeserialize(packet, out DeserializedNetMessage msg);
-            packet.Dispose();
                 
             if (!serializeSuccess)
             {

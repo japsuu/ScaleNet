@@ -35,23 +35,21 @@ namespace ScaleNet.Common
         public readonly byte[] Buffer;
         public readonly int Offset;
         public readonly int Length;
+        public readonly bool RequireDispose;
 
 
-        /// <summary>
-        /// Constructs a new incoming network message packet.
-        /// The data is NOT copied internally.
-        /// </summary>
-        private NetMessagePacket(byte[] data, int offset, int length)
+        private NetMessagePacket(byte[] data, int offset, int length, bool requireDispose)
         {
             Buffer = data;
             Offset = offset;
             Length = length;
+            RequireDispose = requireDispose;
         }
         
 
         /// <summary>
         /// Constructs a new outgoing network message packet.
-        /// All data is copied internally.
+        /// All data is copied internally, and the returned packet MUST be disposed.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static NetMessagePacket CreateOutgoing(ushort id, byte[] data)
@@ -67,29 +65,43 @@ namespace ScaleNet.Common
             // Copy the message data to the buffer.
             data.CopyTo(buffer.AsSpan(2));
             
-            return new NetMessagePacket(buffer, 0, packetLength);
+            return new NetMessagePacket(buffer, 0, packetLength, true);
         }
         
         
         /// <summary>
         /// Constructs a new incoming network message packet.
-        /// The data is NOT copied internally, but the buffer is returned to the pool when disposed.
+        /// All data is copied internally, and the returned packet MUST be disposed.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static NetMessagePacket CreateIncoming(byte[] data, int offset, int length)
         {
-            return new NetMessagePacket(data, offset, length);
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(length);
+            System.Buffer.BlockCopy(data, offset, buffer, 0, length);
+            
+            return new NetMessagePacket(buffer, 0, length, true);
         }
         
         
         /// <summary>
         /// Constructs a new incoming network message packet.
-        /// The data is NOT copied internally, but the buffer is returned to the pool when disposed.
+        /// The data is NOT copied internally.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static NetMessagePacket CreateIncoming(ArraySegment<byte> data)
+        public static NetMessagePacket CreateIncomingNoCopy(byte[] data, int offset, int length, bool requireDispose)
         {
-            return new NetMessagePacket(data.Array!, data.Offset, data.Count);
+            return new NetMessagePacket(data, offset, length, requireDispose);
+        }
+        
+        
+        /// <summary>
+        /// Constructs a new incoming network message packet.
+        /// The data is NOT copied internally.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static NetMessagePacket CreateIncomingNoCopy(ArraySegment<byte> data, bool requireDispose)
+        {
+            return new NetMessagePacket(data.Array!, data.Offset, data.Count, requireDispose);
         }
         
         
@@ -108,11 +120,14 @@ namespace ScaleNet.Common
 
 
         public Span<byte> AsSpan() => Buffer.AsSpan(Offset, Length);
-        public ArraySegment<byte> AsArraySegment() => new(Buffer, Offset, Length);
         
         
         public void Dispose()
         {
+            // Safeguard, if the user calls Dispose on a packet that doesn't require it.
+            if (!RequireDispose)
+                return;
+            
             ArrayPool<byte>.Shared.Return(Buffer);
         }
     }
@@ -234,6 +249,8 @@ namespace ScaleNet.Common
         /// Serializes a network message to a packet.
         /// Internally adds a type ID header.
         /// </summary>
+        /// <param name="msg">The message to serialize.</param>
+        /// <param name="packet">The resulting packet, if successful. Must be disposed of after use.</param>
         public static bool TrySerialize<T>(T msg, out NetMessagePacket packet)
         {
             Debug.Assert(msg != null, nameof(msg) + " != null");

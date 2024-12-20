@@ -47,12 +47,11 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket
 
         private void OnClientReceivedData(ArraySegment<byte> data)
         {
-            NetMessagePacket packet = NetMessagePacket.CreateIncoming(data);
+            NetMessagePacket packet = NetMessagePacket.CreateIncomingNoCopy(data, false);
         
             _middleware?.HandleIncomingPacket(ref packet);
         
             bool serializeSuccess = NetMessages.TryDeserialize(packet, out DeserializedNetMessage msg);
-            packet.Dispose();
                 
             if (!serializeSuccess)
             {
