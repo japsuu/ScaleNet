@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Threading;
+using System.Threading.Tasks;
 using ScaleNet.Client;
 using ScaleNet.Client.LowLevel;
-using ScaleNet.Client.LowLevel.Transport.Tcp;
+using ScaleNet.Client.LowLevel.Transport.WebSocket;
 using ScaleNet.Common;
 using Shared.Authentication;
 using NetMessages = Shared.NetMessages;
@@ -12,20 +14,14 @@ namespace Client;
 
 public sealed class ChatClient : IDisposable
 {
-    public readonly ClientNetworkManager NetManager;
     private readonly Authenticator _authenticator;
+    private readonly ConcurrentQueue<string> _chatMsgQueue = new();
+    private readonly CancellationTokenSource _ctSource = new();
 
-    /// <summary>
-    /// True if the local client is authenticated with the server.
-    /// </summary>
     private bool _isAuthenticated;
-    
     private bool _serverAllowsRegistration;
-
-    /// <summary>
-    /// The current unique account ID.
-    /// </summary>
-    private AccountUID _accountUid;
+    
+    public readonly ClientNetworkManager NetManager;
 
 
     public ChatClient(ClientSslContext context, string address, ushort port)
@@ -33,34 +29,35 @@ public sealed class ChatClient : IDisposable
         // IMPORTANT: Initialize the ScaleNetManager before creating any network-related objects.
         ScaleNetManager.Initialize();
 
-        NetManager = new ClientNetworkManager(new TcpClientTransport(context, address, port));
+        WebSocketClientTransport transport = new(address, port, context);
+        NetManager = new ClientNetworkManager(transport);
         _authenticator = new Authenticator(this);
         
         // Called when authentication information is received from the server
-        NetManager.RegisterMessageHandler<NetMessages.AuthenticationInfoMessage>(
-            msg =>
-            {
-                _serverAllowsRegistration = msg.RegistrationAllowed;
-
-                RegisterOrLogin();
-            });
+        NetManager.RegisterMessageHandler<NetMessages.AuthenticationInfoMessage>(msg =>
+        {
+            _serverAllowsRegistration = msg.RegistrationAllowed;
+            Task.Run(RegisterOrLogin, _ctSource.Token);
+        });
         
         // Called when a chat message is received from the server
-        NetManager.RegisterMessageHandler<NetMessages.ChatMessageNotification>(
-            msg =>
-            {
-                ScaleNetManager.Logger.LogInfo($"[Chat] {msg.User}: {msg.Message}");
-            });
+        NetManager.RegisterMessageHandler<NetMessages.ChatMessageNotification>(msg =>
+        {
+            ScaleNetManager.Logger.LogInfo($"[Chat] {msg.User}: {msg.Message}");
+        });
         
         // Called when the server has determined the authentication (login) result
         _authenticator.AuthenticationResultReceived += result =>
         {
             if (result == AuthenticationResult.Success)
+            {
                 ScaleNetManager.Logger.LogInfo("Authenticated successfully");
+                Task.Run(ChatLoop, _ctSource.Token);
+            }
             else
             {
                 ScaleNetManager.Logger.LogError("Failed to authenticate");
-                RegisterOrLogin();
+                Task.Run(RegisterOrLogin, _ctSource.Token);
             }
         };
         
@@ -72,7 +69,7 @@ public sealed class ChatClient : IDisposable
             else
                 ScaleNetManager.Logger.LogError("Failed to create account");
 
-            RegisterOrLogin();
+            Task.Run(RegisterOrLogin, _ctSource.Token);
         };
     }
 
@@ -86,40 +83,37 @@ public sealed class ChatClient : IDisposable
     public void Run()
     {
         NetManager.Connect();
-        
-        // Wait for the connection to be established
-        while (!NetManager.IsConnected)
-            Thread.Yield();
-        
-        // Wait for the user to be authenticated
-        while (!_isAuthenticated)
-            Thread.Yield();
-
-        ScaleNetManager.Logger.LogInfo("'!' to exit");
-
-        while (NetManager.IsConnected)
-        {
-            if (!_isAuthenticated)
-                continue;
-
-            string? line = Console.ReadLine();
-
-            // Since Console.ReadLine is blocking, we need to check if the client is still connected and authenticated
-            if (!NetManager.IsConnected || !_isAuthenticated)
-                break;
-
-            if (string.IsNullOrWhiteSpace(line))
-                continue;
-
-            if (line == "!")
-                break;
-
-            ClearPreviousConsoleLine();
-
-            NetManager.SendMessageToServer(new NetMessages.ChatMessage(line));
-        }
+            
+        ClientLoop();
 
         NetManager.Disconnect();
+    }
+
+
+    private void ClientLoop()
+    {
+        while (!_ctSource.Token.IsCancellationRequested)
+        {
+            NetManager.Update();
+            
+            while (_chatMsgQueue.TryDequeue(out string? line))
+            {
+                if (line == "!")
+                {
+                    _ctSource.Cancel();
+                    break;
+                }
+
+                if (!_isAuthenticated)
+                    continue;
+                
+                ClearPreviousConsoleLine();
+                NetManager.SendMessageToServer(new NetMessages.ChatMessage(line));
+            }
+        }
+        
+        NetManager.Disconnect();
+        _ctSource.Cancel();
     }
 
 
@@ -128,8 +122,30 @@ public sealed class ChatClient : IDisposable
         ScaleNetManager.Logger.LogDebug($"Local client is now authenticated with account UID: {accountUid}");
 
         _isAuthenticated = true;
-        _accountUid = accountUid;
     }
+
+
+#region Threaded input loops
+
+    // Input loops are threaded to not block the main loop,
+    // since the NetManager.Update() method must be called frequently.
+    
+    private void ChatLoop()
+    {
+        ScaleNetManager.Logger.LogInfo("'!' to exit");
+
+        while (NetManager.IsConnected && !_ctSource.Token.IsCancellationRequested)
+        {
+            string? line = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
+
+            _chatMsgQueue.Enqueue(line);
+        }
+    }
+
+#endregion
 
 
 #region Prompting stuff
