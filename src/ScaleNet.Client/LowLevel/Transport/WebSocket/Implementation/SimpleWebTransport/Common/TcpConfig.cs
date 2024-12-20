@@ -1,26 +1,31 @@
+using System;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 
 namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
 {
-    [System.Serializable]
+    [Serializable]
     public struct TcpConfig
     {
-        public readonly bool noDelay;
-        public readonly int sendTimeout;
-        public readonly int receiveTimeout;
+        public readonly bool NoDelay;
+        public readonly int SendTimeout;
+        public readonly int ReceiveTimeout;
+
 
         public TcpConfig(bool noDelay, int sendTimeout, int receiveTimeout)
         {
-            this.noDelay = noDelay;
-            this.sendTimeout = sendTimeout;
-            this.receiveTimeout = receiveTimeout;
+            NoDelay = noDelay;
+            SendTimeout = sendTimeout;
+            ReceiveTimeout = receiveTimeout;
         }
 
-        public void ApplyTo(TcpClient client)
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Apply(TcpConfig config, TcpClient client)
         {
-            client.SendTimeout = sendTimeout;
-            client.ReceiveTimeout = receiveTimeout;
-            client.NoDelay = noDelay;
+            client.SendTimeout = config.SendTimeout;
+            client.ReceiveTimeout = config.ReceiveTimeout;
+            client.NoDelay = config.NoDelay;
         }
     }
 }

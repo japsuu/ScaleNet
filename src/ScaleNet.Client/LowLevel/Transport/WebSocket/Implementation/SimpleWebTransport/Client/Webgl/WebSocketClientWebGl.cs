@@ -46,7 +46,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
         {
             if (segment.Count > maxMessageSize)
             {
-                Log.Error($"Cant send message with length {segment.Count} because it is over the max size of {maxMessageSize}");
+                SimpleWebLog.Error($"Cant send message with length {segment.Count} because it is over the max size of {maxMessageSize}");
                 return;
             }
 
@@ -98,7 +98,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
             }
             catch (Exception e)
             {
-                Log.Error($"onData {e.GetType()}: {e.Message}\n{e.StackTrace}");
+                SimpleWebLog.Error($"onData {e.GetType()}: {e.Message}\n{e.StackTrace}");
                 receiveQueue.Enqueue(new Message(e));
             }
         }

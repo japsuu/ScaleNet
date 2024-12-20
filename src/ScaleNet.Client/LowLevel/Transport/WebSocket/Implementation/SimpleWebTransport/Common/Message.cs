@@ -4,46 +4,32 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
 {
     public struct Message
     {
-        public readonly int connId;
-        public readonly EventType type;
-        public readonly ArrayBuffer data;
-        public readonly Exception exception;
+        public readonly ConnectionId ConnId;
+        public readonly EventType Type;
+        public readonly ArrayBuffer? Data;
+        public readonly Exception? Exception;
 
-        public Message(EventType type) : this()
+
+        public Message(ConnectionId connId, EventType type) : this()
         {
-            this.type = type;
+            ConnId = connId;
+            Type = type;
         }
 
-        public Message(ArrayBuffer data) : this()
+
+        public Message(ConnectionId connId, ArrayBuffer data) : this()
         {
-            type = EventType.Data;
-            this.data = data;
+            ConnId = connId;
+            Type = EventType.Data;
+            Data = data;
         }
 
-        public Message(Exception exception) : this()
-        {
-            type = EventType.Error;
-            this.exception = exception;
-        }
 
-        public Message(int connId, EventType type) : this()
+        public Message(ConnectionId connId, Exception exception) : this()
         {
-            this.connId = connId;
-            this.type = type;
-        }
-
-        public Message(int connId, ArrayBuffer data) : this()
-        {
-            this.connId = connId;
-            type = EventType.Data;
-            this.data = data;
-        }
-
-        public Message(int connId, Exception exception) : this()
-        {
-            this.connId = connId;
-            type = EventType.Error;
-            this.exception = exception;
+            ConnId = connId;
+            Type = EventType.Error;
+            Exception = exception;
         }
     }
 }

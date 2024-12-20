@@ -8,45 +8,47 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
 {
     public static class SendLoopConfig
     {
-        public static volatile bool batchSend = false;
-        public static volatile bool sleepBeforeSend = false;
+        public static volatile bool BatchSend = false;
+        public static volatile bool SleepBeforeSend = false;
     }
+
     internal static class SendLoop
     {
-        public struct Config
+        public readonly struct Config
         {
-            public readonly Connection conn;
-            public readonly int bufferSize;
-            public readonly bool setMask;
+            public readonly Connection Conn;
+            public readonly int BufferSize;
+            public readonly bool SetMask;
+
 
             public Config(Connection conn, int bufferSize, bool setMask)
             {
-                this.conn = conn ?? throw new ArgumentNullException(nameof(conn));
-                this.bufferSize = bufferSize;
-                this.setMask = setMask;
+                Conn = conn ?? throw new ArgumentNullException(nameof(conn));
+                BufferSize = bufferSize;
+                SetMask = setMask;
             }
+
 
             public void Deconstruct(out Connection conn, out int bufferSize, out bool setMask)
             {
-                conn = this.conn;
-                bufferSize = this.bufferSize;
-                setMask = this.setMask;
+                conn = Conn;
+                bufferSize = BufferSize;
+                setMask = SetMask;
             }
         }
+
 
         public static void Loop(Config config)
         {
             (Connection conn, int bufferSize, bool setMask) = config;
 
-            //Profiler.BeginThreadProfiling("SimpleWeb", $"SendLoop {conn.connId}");
-
             // create write buffer for this thread
             byte[] writeBuffer = new byte[bufferSize];
-            MaskHelper maskHelper = setMask ? new MaskHelper() : null;
+            MaskHelper? maskHelper = setMask ? new MaskHelper() : null;
             try
             {
-                TcpClient client = conn.client;
-                Stream stream = conn.stream;
+                TcpClient? client = conn.Client;
+                Stream stream = conn.Stream!;
 
                 // null check incase disconnect while send thread is starting
                 if (client == null)
@@ -55,27 +57,26 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
                 while (client.Connected)
                 {
                     // wait for message
-                    conn.sendPending.Wait();
-                    // wait for 1ms for mirror to send other messages
-                    if (SendLoopConfig.sleepBeforeSend)
-                    {
-                        Thread.Sleep(1);
-                    }
-                    conn.sendPending.Reset();
+                    conn.SendPending.Wait();
 
-                    if (SendLoopConfig.batchSend)
+                    // wait for 1 ms to send other messages
+                    if (SendLoopConfig.SleepBeforeSend)
+                        Thread.Sleep(1);
+                    conn.SendPending.Reset();
+
+                    if (SendLoopConfig.BatchSend)
                     {
                         int offset = 0;
-                        while (conn.sendQueue.TryDequeue(out ArrayBuffer msg))
+                        while (conn.SendQueue.TryDequeue(out ArrayBuffer? msg))
                         {
                             // check if connected before sending message
                             if (!client.Connected)
                             {
-                                //Log.Info($"SendLoop {conn} not connected");
+                                //SimpleWebLog.Info($"SendLoop {conn} not connected");
                                 return;
                             }
 
-                            int maxLength = msg.count + Constants.HeaderSize + Constants.MaskSize;
+                            int maxLength = msg.Count + Constants.HEADER_SIZE + Constants.MASK_SIZE;
 
                             // if next writer could overflow, write to stream and clear buffer
                             if (offset + maxLength > bufferSize)
@@ -95,12 +96,12 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
                     }
                     else
                     {
-                        while (conn.sendQueue.TryDequeue(out ArrayBuffer msg))
+                        while (conn.SendQueue.TryDequeue(out ArrayBuffer? msg))
                         {
                             // check if connected before sending message
                             if (!client.Connected)
                             {
-                                //Log.Info($"SendLoop {conn} not connected");
+                                //SimpleWebLog.Info($"SendLoop {conn} not connected");
                                 return;
                             }
 
@@ -111,55 +112,53 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
                     }
                 }
 
-                Log.Info($"{conn} Not Connected");
+                SimpleWebLog.Info($"{conn} Not Connected");
             }
             catch (ThreadInterruptedException e)
             {
-                Log.InfoException(e);
+                SimpleWebLog.InfoException(e);
             }
             catch (ThreadAbortException e)
             {
-                Log.InfoException(e);
+                SimpleWebLog.InfoException(e);
             }
             catch (Exception e)
             {
-                Log.Exception(e);
+                SimpleWebLog.Exception(e);
             }
             finally
             {
-                Profiler.EndThreadProfiling();
                 conn.Dispose();
-                maskHelper?.Dispose();
             }
         }
 
+
         /// <returns>new offset in buffer</returns>
-        static int SendMessage(byte[] buffer, int startOffset, ArrayBuffer msg, bool setMask, MaskHelper maskHelper)
+        private static int SendMessage(byte[] buffer, int startOffset, ArrayBuffer msg, bool setMask, MaskHelper? maskHelper)
         {
-            int msgLength = msg.count;
+            int msgLength = msg.Count;
             int offset = WriteHeader(buffer, startOffset, msgLength, setMask);
 
             if (setMask)
-            {
-                offset = maskHelper.WriteMask(buffer, offset);
-            }
+                offset = maskHelper!.WriteMask(buffer, offset);
 
             msg.CopyTo(buffer, offset);
             offset += msgLength;
 
             // dump before mask on
-            //Log.DumpBuffer("Send", buffer, startOffset, offset);
+            //SimpleWebLog.DumpBuffer("Send", buffer, startOffset, offset);
 
             if (setMask)
             {
                 int messageOffset = offset - msgLength;
-                MessageProcessor.ToggleMask(buffer, messageOffset, msgLength, buffer, messageOffset - Constants.MaskSize);
+                MessageProcessor.ToggleMask(buffer, messageOffset, msgLength, buffer, messageOffset - Constants.MASK_SIZE);
             }
 
             return offset;
         }
 
-        static int WriteHeader(byte[] buffer, int startOffset, int msgLength, bool setMask)
+
+        private static int WriteHeader(byte[] buffer, int startOffset, int msgLength, bool setMask)
         {
             int sendLength = 0;
             const byte finished = 128;
@@ -168,7 +167,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
             buffer[startOffset + 0] = finished | byteOpCode;
             sendLength++;
 
-            if (msgLength <= Constants.BytePayloadLength)
+            if (msgLength <= Constants.BYTE_PAYLOAD_LENGTH)
             {
                 buffer[startOffset + 1] = (byte)msgLength;
                 sendLength++;
@@ -181,37 +180,24 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
                 sendLength += 3;
             }
             else
-            {
                 throw new InvalidDataException($"Trying to send a message larger than {ushort.MaxValue} bytes");
-            }
 
             if (setMask)
-            {
                 buffer[startOffset + 1] |= 0b1000_0000;
-            }
 
             return sendLength + startOffset;
         }
 
-        sealed class MaskHelper : IDisposable
-        {
-            readonly byte[] maskBuffer;
-            readonly RNGCryptoServiceProvider random;
 
-            public MaskHelper()
-            {
-                maskBuffer = new byte[4];
-                random = new RNGCryptoServiceProvider();
-            }
-            public void Dispose()
-            {
-                random.Dispose();
-            }
+        private sealed class MaskHelper
+        {
+            private readonly byte[] _maskBuffer = new byte[4];
+
 
             public int WriteMask(byte[] buffer, int offset)
             {
-                random.GetBytes(maskBuffer);
-                Buffer.BlockCopy(maskBuffer, 0, buffer, offset, 4);
+                RandomNumberGenerator.Fill(_maskBuffer);
+                Buffer.BlockCopy(_maskBuffer, 0, buffer, offset, 4);
 
                 return offset + 4;
             }

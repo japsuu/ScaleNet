@@ -27,7 +27,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
                 string key = Convert.ToBase64String(keyBuffer);
                 string keySum = key + Constants.HandshakeGUID;
                 byte[] keySumBytes = Encoding.ASCII.GetBytes(keySum);
-                Log.Verbose($"Handshake Hashing {Encoding.ASCII.GetString(keySumBytes)}");
+                SimpleWebLog.Verbose($"Handshake Hashing {Encoding.ASCII.GetString(keySumBytes)}");
 
                 byte[] keySumHash = SHA1.Create().ComputeHash(keySumBytes);
 
@@ -49,7 +49,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
 
                 if (!lengthOrNull.HasValue)
                 {
-                    Log.Error("Connected closed before handshake");
+                    SimpleWebLog.Error("Connected closed before handshake");
                     return false;
                 }
 
@@ -62,7 +62,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
 
                 if (responseKey != expectedResponse)
                 {
-                    Log.Error($"Response key incorrect, Response:{responseKey} Expected:{expectedResponse}");
+                    SimpleWebLog.Error($"Response key incorrect, Response:{responseKey} Expected:{expectedResponse}");
                     return false;
                 }
 
@@ -70,7 +70,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
             }
             catch (Exception e)
             {
-                Log.Exception(e);
+                SimpleWebLog.Exception(e);
                 return false;
             }
         }

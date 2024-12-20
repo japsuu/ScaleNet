@@ -10,27 +10,29 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
     {
         void Return(ArrayBuffer buffer);
     }
-
+    
     public sealed class ArrayBuffer : IDisposable
     {
-        readonly IBufferOwner owner;
-
-        public readonly byte[] array;
-
+        private readonly IBufferOwner _owner;
+    
+        public readonly byte[] Array;
+    
         /// <summary>
-        /// number of bytes writen to buffer
+        /// number of bytes written to buffer
         /// </summary>
-        public int count { get; internal set; }
-
+        public int Count { get; internal set; }
+    
+    
         /// <summary>
         /// How many times release needs to be called before buffer is returned to pool
         /// <para>This allows the buffer to be used in multiple places at the same time</para>
         /// </summary>
         public void SetReleasesRequired(int required)
         {
-            releasesRequired = required;
+            _releasesRequired = required;
         }
-
+    
+    
         /// <summary>
         /// How many times release needs to be called before buffer is returned to pool
         /// <para>This allows the buffer to be used in multiple places at the same time</para>
@@ -38,123 +40,119 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
         /// <remarks>
         /// This value is normally 0, but can be changed to require release to be called multiple times
         /// </remarks>
-        int releasesRequired;
-
+        private int _releasesRequired;
+    
+    
         public ArrayBuffer(IBufferOwner owner, int size)
         {
-            this.owner = owner;
-            array = new byte[size];
+            _owner = owner;
+            Array = new byte[size];
         }
-
+    
+    
         public void Release()
         {
-            int newValue = Interlocked.Decrement(ref releasesRequired);
+            int newValue = Interlocked.Decrement(ref _releasesRequired);
             if (newValue <= 0)
             {
-                count = 0;
-                owner.Return(this);
+                Count = 0;
+                _owner.Return(this);
             }
         }
+    
+    
         public void Dispose()
         {
             Release();
         }
-
-
+    
+    
         public void CopyTo(byte[] target, int offset)
         {
-            if (count > (target.Length + offset)) throw new ArgumentException($"{nameof(count)} was greater than {nameof(target)}.length", nameof(target));
-
-            Buffer.BlockCopy(array, 0, target, offset, count);
+            if (Count > target.Length + offset)
+                throw new ArgumentException($"{nameof(Count)} was greater than {nameof(target)}.length", nameof(target));
+    
+            Buffer.BlockCopy(Array, 0, target, offset, Count);
         }
-
-        public void CopyFrom(ArraySegment<byte> segment)
-        {
-            CopyFrom(segment.Array, segment.Offset, segment.Count);
-        }
-
+    
+    
         public void CopyFrom(byte[] source, int offset, int length)
         {
-            if (length > array.Length) throw new ArgumentException($"{nameof(length)} was greater than {nameof(array)}.length", nameof(length));
-
-            count = length;
-            Buffer.BlockCopy(source, offset, array, 0, length);
+            if (length > Array.Length)
+                throw new ArgumentException($"{nameof(length)} was greater than {nameof(Array)}.length", nameof(length));
+    
+            Count = length;
+            Buffer.BlockCopy(source, offset, Array, 0, length);
         }
-
+    
+    
         public void CopyFrom(IntPtr bufferPtr, int length)
         {
-            if (length > array.Length) throw new ArgumentException($"{nameof(length)} was greater than {nameof(array)}.length", nameof(length));
-
-            count = length;
-            Marshal.Copy(bufferPtr, array, 0, length);
+            if (length > Array.Length)
+                throw new ArgumentException($"{nameof(length)} was greater than {nameof(Array)}.length", nameof(length));
+    
+            Count = length;
+            Marshal.Copy(bufferPtr, Array, 0, length);
         }
-
-        public ArraySegment<byte> ToSegment()
+    
+    
+        public void CopyFrom(ref ReadOnlySpan<byte> source)
         {
-            return new ArraySegment<byte>(array, 0, count);
+            Count = source.Length;
+    
+            // May throw, or may not ;)
+            source.CopyTo(Array);
         }
-
+    
+    
+        public void CopyFrom(ref ReadOnlyMemory<byte> source)
+        {
+            Count = source.Length;
+    
+            // May throw, or may not ;)
+            source.Span.CopyTo(Array);
+        }
+    
+    
+        public ArraySegment<byte> ToSegment() => new(Array, 0, Count);
+    
+    
         [Conditional("UNITY_ASSERTIONS")]
         internal void Validate(int arraySize)
         {
-            if (array.Length != arraySize)
-            {
-                Log.Error("Buffer that was returned had an array of the wrong size");
-            }
+            if (Array.Length != arraySize)
+                SimpleWebLog.Error("Buffer that was returned had an array of the wrong size");
         }
     }
-
+    
     internal class BufferBucket : IBufferOwner
     {
-        public readonly int arraySize;
-        readonly ConcurrentQueue<ArrayBuffer> buffers;
-
-        /// <summary>
-        /// keeps track of how many arrays are taken vs returned
-        /// </summary>
-        internal int _current = 0;
-
+        public readonly int ArraySize;
+        private readonly ConcurrentQueue<ArrayBuffer> _buffers;
+    
+        
         public BufferBucket(int arraySize)
         {
-            this.arraySize = arraySize;
-            buffers = new ConcurrentQueue<ArrayBuffer>();
+            ArraySize = arraySize;
+            _buffers = new ConcurrentQueue<ArrayBuffer>();
         }
-
+    
+    
         public ArrayBuffer Take()
         {
-            IncrementCreated();
-            if (buffers.TryDequeue(out ArrayBuffer buffer))
-            {
+            if (_buffers.TryDequeue(out ArrayBuffer? buffer))
                 return buffer;
-            }
-            else
-            {
-                //Log.Verbose($"BufferBucket({arraySize}) create new");
-                return new ArrayBuffer(this, arraySize);
-            }
+    
+            return new ArrayBuffer(this, ArraySize);
         }
-
+    
+    
         public void Return(ArrayBuffer buffer)
         {
-            DecrementCreated();
-            buffer.Validate(arraySize);
-            buffers.Enqueue(buffer);
-        }
-
-        [Conditional("DEBUG")]
-        void IncrementCreated()
-        {
-            int next = Interlocked.Increment(ref _current);
-            //Log.Verbose($"BufferBucket({arraySize}) count:{next}");
-        }
-        [Conditional("DEBUG")]
-        void DecrementCreated()
-        {
-            int next = Interlocked.Decrement(ref _current);
-            //Log.Verbose($"BufferBucket({arraySize}) count:{next}");
+            _buffers.Enqueue(buffer);
         }
     }
-
+    
     /// <summary>
     /// Collection of different sized buffers
     /// </summary>
@@ -175,91 +173,93 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
     /// </remarks>
     public class BufferPool
     {
-        internal readonly BufferBucket[] buckets;
-        readonly int bucketCount;
-        readonly int smallest;
-        readonly int largest;
-
+        internal readonly BufferBucket[] Buckets;
+        private readonly int _bucketCount;
+        private readonly int _smallest;
+        private readonly int _largest;
+    
+    
         public BufferPool(int bucketCount, int smallest, int largest)
         {
-            if (bucketCount < 2) throw new ArgumentException("Count must be atleast 2");
-            if (smallest < 1) throw new ArgumentException("Smallest must be atleast 1");
-            if (largest < smallest) throw new ArgumentException("Largest must be greater than smallest");
-
-
-            this.bucketCount = bucketCount;
-            this.smallest = smallest;
-            this.largest = largest;
-
-
+            if (bucketCount < 2)
+                throw new ArgumentException("Count must be atleast 2");
+            if (smallest < 1)
+                throw new ArgumentException("Smallest must be atleast 1");
+            if (largest < smallest)
+                throw new ArgumentException("Largest must be greater than smallest");
+    
+    
+            _bucketCount = bucketCount;
+            _smallest = smallest;
+            _largest = largest;
+    
+    
             // split range over log scale (more buckets for smaller sizes)
-
-            double minLog = Math.Log(this.smallest);
-            double maxLog = Math.Log(this.largest);
-
+    
+            double minLog = Math.Log(_smallest);
+            double maxLog = Math.Log(_largest);
+    
             double range = maxLog - minLog;
             double each = range / (bucketCount - 1);
-
-            buckets = new BufferBucket[bucketCount];
-
+    
+            Buckets = new BufferBucket[bucketCount];
+    
             for (int i = 0; i < bucketCount; i++)
             {
                 double size = smallest * Math.Pow(Math.E, each * i);
-                buckets[i] = new BufferBucket((int)Math.Ceiling(size));
+                Buckets[i] = new BufferBucket((int)Math.Ceiling(size));
             }
-
-
+    
+    
             Validate();
-
+    
             // Example
             // 5         count  
             // 20        smallest
             // 16400     largest
-
+    
             // 3.0       log 20
             // 9.7       log 16400 
-
+    
             // 6.7       range 9.7 - 3
             // 1.675     each  6.7 / (5-1)
-
+    
             // 20        e^ (3 + 1.675 * 0)
             // 107       e^ (3 + 1.675 * 1)
             // 572       e^ (3 + 1.675 * 2)
             // 3056      e^ (3 + 1.675 * 3)
             // 16,317    e^ (3 + 1.675 * 4)
-
+    
             // perceision wont be lose when using doubles
         }
-
+    
+    
         [Conditional("UNITY_ASSERTIONS")]
-        void Validate()
+        private void Validate()
         {
-            if (buckets[0].arraySize != smallest)
-            {
-                Log.Error($"BufferPool Failed to create bucket for smallest. bucket:{buckets[0].arraySize} smallest{smallest}");
-            }
-
-            int largestBucket = buckets[bucketCount - 1].arraySize;
+            if (Buckets[0].ArraySize != _smallest)
+                SimpleWebLog.Error($"BufferPool Failed to create bucket for smallest. bucket:{Buckets[0].ArraySize} smallest{_smallest}");
+    
+            int largestBucket = Buckets[_bucketCount - 1].ArraySize;
+    
             // rounded using Ceiling, so allowed to be 1 more that largest
-            if (largestBucket != largest && largestBucket != largest + 1)
-            {
-                Log.Error($"BufferPool Failed to create bucket for largest. bucket:{largestBucket} smallest{largest}");
-            }
+            if (largestBucket != _largest && largestBucket != _largest + 1)
+                SimpleWebLog.Error($"BufferPool Failed to create bucket for largest. bucket:{largestBucket} smallest{_largest}");
         }
-
+    
+    
         public ArrayBuffer Take(int size)
         {
-            if (size > largest) { throw new ArgumentException($"Size ({size}) is greatest that largest ({largest})"); }
-
-            for (int i = 0; i < bucketCount; i++)
+            if (size > _largest)
+                throw new ArgumentException($"Size ({size}) is greatest that largest ({_largest})");
+    
+            for (int i = 0; i < _bucketCount; i++)
             {
-                if (size <= buckets[i].arraySize)
-                {
-                    return buckets[i].Take();
-                }
+                if (size <= Buckets[i].ArraySize)
+                    return Buckets[i].Take();
             }
-
-            throw new ArgumentException($"Size ({size}) is greatest that largest ({largest})");
+    
+            throw new ArgumentException($"Size ({size}) is greatest that largest ({_largest})");
         }
     }
 }

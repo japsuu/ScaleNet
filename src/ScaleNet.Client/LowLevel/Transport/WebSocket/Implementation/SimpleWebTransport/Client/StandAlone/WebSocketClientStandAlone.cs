@@ -67,7 +67,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
                 bool success = sslHelper.TryCreateStream(conn, serverAddress);
                 if (!success)
                 {
-                    Log.Warn("Failed to create Stream");
+                    SimpleWebLog.Warn("Failed to create Stream");
                     conn.Dispose();
                     return;
                 }
@@ -75,12 +75,12 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
                 success = handshake.TryHandshake(conn, serverAddress);
                 if (!success)
                 {
-                    Log.Warn("Failed Handshake");
+                    SimpleWebLog.Warn("Failed Handshake");
                     conn.Dispose();
                     return;
                 }
 
-                Log.Info("HandShake Successful");
+                SimpleWebLog.Info("HandShake Successful");
 
                 state = ClientState.Connected;
 
@@ -107,9 +107,9 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
                     bufferPool);
                 ReceiveLoop.Loop(config);
             }
-            catch (ThreadInterruptedException e) { Log.InfoException(e); }
-            catch (ThreadAbortException e) { Log.InfoException(e); }
-            catch (Exception e) { Log.Exception(e); }
+            catch (ThreadInterruptedException e) { SimpleWebLog.InfoException(e); }
+            catch (ThreadAbortException e) { SimpleWebLog.InfoException(e); }
+            catch (Exception e) { SimpleWebLog.Exception(e); }
             finally
             {
                 // close here incase connect fails
@@ -127,7 +127,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
         public override void Disconnect()
         {
             state = ClientState.Disconnecting;
-            Log.Info("Disconnect Called");
+            SimpleWebLog.Info("Disconnect Called");
             if (conn == null)
             {
                 state = ClientState.NotConnected;

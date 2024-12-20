@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Runtime.Serialization;
 
 namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
 {
@@ -20,28 +19,24 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
                 {
                     int read = stream.Read(outBuffer, outOffset + received, length - received);
                     if (read == 0)
-                    {
                         throw new ReadHelperException("returned 0");
-                    }
                     received += read;
                 }
             }
             catch (AggregateException ae)
             {
-                // if interupt is called we dont care about Exceptions
-                Utils.CheckForInterupt();
+                Utils.SleepForInterrupt();
 
                 // rethrow
-                ae.Handle(e => false);
+                ae.Handle(_ => false);
             }
 
             if (received != length)
-            {
                 throw new ReadHelperException("returned not equal to length");
-            }
 
             return outOffset + received;
         }
+
 
         /// <summary>
         /// Reads and returns results. This should never throw an exception
@@ -63,10 +58,11 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
             }
             catch (Exception e)
             {
-                Log.Exception(e);
+                SimpleWebLog.Exception(e);
                 return false;
             }
         }
+
 
         public static int? SafeReadTillMatch(Stream stream, byte[] outBuffer, int outOffset, int maxLength, byte[] endOfHeader)
         {
@@ -83,7 +79,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
 
                     if (read >= maxLength)
                     {
-                        Log.Error("SafeReadTillMatch exceeded maxLength");
+                        SimpleWebLog.Error("SafeReadTillMatch exceeded maxLength");
                         return null;
                     }
 
@@ -94,27 +90,25 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
                     if (endOfHeader[endIndex] == next)
                     {
                         endIndex++;
+
                         // when all is match return with read length
                         if (endIndex >= endLength)
-                        {
                             return read;
-                        }
                     }
+
                     // if n not match reset to 0
                     else
-                    {
                         endIndex = 0;
-                    }
                 }
             }
             catch (IOException e)
             {
-                Log.InfoException(e);
+                SimpleWebLog.InfoException(e);
                 return null;
             }
             catch (Exception e)
             {
-                Log.Exception(e);
+                SimpleWebLog.Exception(e);
                 return null;
             }
         }
@@ -123,9 +117,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
     [Serializable]
     public class ReadHelperException : Exception
     {
-        public ReadHelperException(string message) : base(message) { }
-
-        protected ReadHelperException(SerializationInfo info, StreamingContext context) : base(info, context)
+        public ReadHelperException(string message) : base(message)
         {
         }
     }

@@ -25,7 +25,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
             }
             catch (Exception e)
             {
-                Log.Error($"Create SSLStream Failed: {e}", false);
+                SimpleWebLog.Error($"Create SSLStream Failed: {e}", false);
                 return false;
             }
         }

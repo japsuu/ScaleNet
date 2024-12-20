@@ -16,7 +16,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
         /// If message is less than 125 then header is 2 bytes, else header is 4 bytes
         /// </para>
         /// </summary>
-        public const int HeaderSize = 4;
+        public const int HEADER_SIZE = 4;
 
         /// <summary>
         /// Smallest size of header
@@ -24,17 +24,17 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
         /// If message is less than 125 then header is 2 bytes, else header is 4 bytes
         /// </para>
         /// </summary>
-        public const int HeaderMinSize = 2;
+        public const int HEADER_MIN_SIZE = 2;
 
         /// <summary>
         /// bytes for short length
         /// </summary>
-        public const int ShortLength = 2;
+        public const int SHORT_LENGTH = 2;
 
         /// <summary>
         /// Message mask is always 4 bytes
         /// </summary>
-        public const int MaskSize = 4;
+        public const int MASK_SIZE = 4;
 
         /// <summary>
         /// Max size of a message for length to be 1 byte long
@@ -42,31 +42,30 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Common
         /// payload length between 0-125
         /// </para>
         /// </summary>
-        public const int BytePayloadLength = 125;
+        public const int BYTE_PAYLOAD_LENGTH = 125;
 
         /// <summary>
         /// if payload length is 126 when next 2 bytes will be the length
         /// </summary>
-        public const int UshortPayloadLength = 126;
+        public const int USHORT_PAYLOAD_LENGTH = 126;
 
         /// <summary>
         /// if payload length is 127 when next 8 bytes will be the length
         /// </summary>
-        public const int UlongPayloadLength = 127;
-
+        public const int ULONG_PAYLOAD_LENGTH = 127;
 
         /// <summary>
         /// Guid used for WebSocket Protocol
         /// </summary>
-        public const string HandshakeGUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+        public const string HANDSHAKE_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
-        public static readonly int HandshakeGUIDLength = HandshakeGUID.Length;
+        public static readonly int HandshakeGuidLength = HANDSHAKE_GUID.Length;
 
-        public static readonly byte[] HandshakeGUIDBytes = Encoding.ASCII.GetBytes(HandshakeGUID);
+        public static readonly byte[] HandshakeGuidBytes = Encoding.ASCII.GetBytes(HANDSHAKE_GUID);
 
         /// <summary>
         /// Handshake messages will end with \r\n\r\n
         /// </summary>
-        public static readonly byte[] endOfHandshake = new byte[4] { (byte)'\r', (byte)'\n', (byte)'\r', (byte)'\n' };
+        public static readonly byte[] EndOfHandshake = new byte[4] {(byte)'\r', (byte)'\n', (byte)'\r', (byte)'\n'};
     }
 }
