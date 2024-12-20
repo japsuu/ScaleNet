@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Net.Security;
-using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using ScaleNet.Client.LowLevel;
 using Shared;
@@ -10,14 +9,14 @@ namespace Client;
 internal static class Program
 {
     private const string DEFAULT_ADDRESS = "127.0.0.1";
-    private const int DEFAULT_PORT = SharedConstants.SERVER_PORT;
+    private const ushort DEFAULT_PORT = SharedConstants.SERVER_PORT;
     
     
     private static void Main(string[] args)
     {
         Console.Title = "Chat Client";
 
-        (string address, int port) = GetAddressAndPort(args);
+        (string address, ushort port) = GetAddressAndPort(args);
         
         // Create and prepare a new SSL server context
         ClientSslContext context = new(new X509Certificate2(
@@ -35,7 +34,7 @@ internal static class Program
     }
 
 
-    private static (string, int) GetAddressAndPort(string[] args)
+    private static (string, ushort) GetAddressAndPort(string[] args)
     {
         string? address = null;
         string? portStr = null;
@@ -64,7 +63,7 @@ internal static class Program
             Console.WriteLine("Enter the server port:");
             portStr = Console.ReadLine();
         }
-        if (string.IsNullOrEmpty(portStr) || !int.TryParse(portStr, out int port))
+        if (string.IsNullOrEmpty(portStr) || !ushort.TryParse(portStr, out ushort port))
             port = DEFAULT_PORT;
         return (address, port);
     }

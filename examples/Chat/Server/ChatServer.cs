@@ -3,13 +3,20 @@ using System.Net;
 using ScaleNet.Common;
 using ScaleNet.Server;
 using ScaleNet.Server.LowLevel;
+using ScaleNet.Server.LowLevel.Transport;
 using ScaleNet.Server.LowLevel.Transport.Tcp;
 using Server.Authentication;
 using Server.Database;
+using Shared;
 using Shared.Authentication;
 using NetMessages = Shared.NetMessages;
 
 namespace Server;
+
+internal class BasicConnectionManager(IServerTransport transport) : ConnectionManager<ClientConnection>(transport)
+{
+    protected override ClientConnection CreateConnection(ConnectionId connectionId, IServerTransport transport) => new(connectionId, transport);
+}
 
 internal sealed class ChatServer : IDisposable
 {
@@ -21,17 +28,19 @@ internal sealed class ChatServer : IDisposable
     public ChatServer(ServerSslContext context, IPAddress address, int port, int maxConnections, bool allowAccountRegistration)
     {
         ScaleNetManager.Initialize();
-        
+
         InMemoryDatabase db = new();
         _databaseAccess = db;
-        
-        _netManager = new ServerNetworkManager<ClientConnection>(new TcpServerTransport(context, address, port, maxConnections));
-        
+
+        TcpServerTransport transport = new(context, address, port, maxConnections);
+        BasicConnectionManager connectionManager = new(transport);
+        _netManager = new ServerNetworkManager<ClientConnection>(transport, connectionManager);
+
         _authenticator = new Authenticator(_netManager, _databaseAccess, allowAccountRegistration);
         _authenticator.ClientAuthSuccess += OnClientAuthenticated;
-        
+
         _netManager.ClientStateChanged += OnClientStateChanged;
-        
+
         _netManager.RegisterMessageHandler<NetMessages.ChatMessage>(OnChatMessageReceived);
     }
 
@@ -39,16 +48,16 @@ internal sealed class ChatServer : IDisposable
     public void Run()
     {
         _netManager.Start();
-        
+
         ScaleNetManager.Logger.LogInfo("Server started.");
-        
+
         while (_netManager.IsStarted)
         {
             _netManager.Update();
-            
+
             Thread.Sleep(1000 / ServerConstants.TICKS_PER_SECOND);
         }
-        
+
         _netManager.Stop();
     }
 
@@ -57,7 +66,7 @@ internal sealed class ChatServer : IDisposable
     {
         switch (args.NewState)
         {
-            case ConnectionState.Ready:
+            case ConnectionState.Connected:
             {
                 _authenticator.OnNewClientReadyForAuthentication(args.Connection);
                 break;
@@ -68,7 +77,8 @@ internal sealed class ChatServer : IDisposable
 
                 // Only authenticated sessions have player data.
                 if (connection.IsAuthenticated)
-                    _netManager.SendMessageToAllClientsExcept(new NetMessages.ChatMessageNotification(connection.PlayerData!.Username, "Left the chat."), connection);
+                    _netManager.SendMessageToAllClientsExcept(
+                        new NetMessages.ChatMessageNotification(connection.PlayerData!.Username, "Left the chat."), connection);
                 break;
             }
         }
@@ -82,18 +92,18 @@ internal sealed class ChatServer : IDisposable
             connection.Kick(DisconnectReason.ExploitAttempt);
             return;
         }
-        
-        ScaleNetManager.Logger.LogInfo($"Received chat message from {connection.SessionId}: {msg.Message}");
-        
+
+        ScaleNetManager.Logger.LogInfo($"Received chat message from {connection.ConnectionId}: {msg.Message}");
+
         // If the message is empty, ignore it.
         if (string.IsNullOrWhiteSpace(msg.Message))
             return;
-        
+
         // Forward the message to all clients.
         _netManager.SendMessageToAllClients(new NetMessages.ChatMessageNotification(connection.PlayerData!.Username, msg.Message));
     }
-    
-    
+
+
     public void Dispose()
     {
         _netManager.Dispose();
@@ -108,18 +118,18 @@ internal sealed class ChatServer : IDisposable
     private void OnClientAuthenticated(ClientConnection connection)
     {
         Debug.Assert(connection.IsAuthenticated, "Client is not authenticated.");
-        
+
         AccountUID accountId = connection.AccountId;
-        ScaleNetManager.Logger.LogInfo($"Session {connection.SessionId} authenticated as account {accountId}.");
-        
+        ScaleNetManager.Logger.LogInfo($"Session {connection.ConnectionId} authenticated as account {accountId}.");
+
         // Load user data.
         if (!_databaseAccess.TryGetPlayerData(accountId, out PlayerData? playerData))
         {
-            ScaleNetManager.Logger.LogWarning($"Session {connection.SessionId} player data could not be loaded.");
+            ScaleNetManager.Logger.LogWarning($"Session {connection.ConnectionId} player data could not be loaded.");
             connection.Kick(DisconnectReason.CorruptPlayerData);
             return;
         }
-        
+
         connection.PlayerData = playerData;
 
         _netManager.SendMessageToAllClientsExcept(new NetMessages.ChatMessageNotification(connection.PlayerData!.Username, "Joined the chat."), connection);

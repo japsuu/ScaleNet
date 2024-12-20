@@ -28,7 +28,7 @@ public sealed class ChatClient : IDisposable
     private AccountUID _accountUid;
 
 
-    public ChatClient(ClientSslContext context, string address, int port)
+    public ChatClient(ClientSslContext context, string address, ushort port)
     {
         // IMPORTANT: Initialize the ScaleNetManager before creating any network-related objects.
         ScaleNetManager.Initialize();

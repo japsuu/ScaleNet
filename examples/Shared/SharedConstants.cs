@@ -2,7 +2,7 @@
 {
     public static class SharedConstants
     {
-        public const int SERVER_PORT = 11221;
+        public const ushort SERVER_PORT = 11221;
         public const uint GAME_VERSION = 4;
     
         // Account registration
