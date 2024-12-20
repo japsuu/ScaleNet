@@ -15,22 +15,4 @@ public enum ConnectionState : byte
     /// Connection is encrypted and ready to send and receive data.
     /// </summary>
     Connected = 1,
-
-    /*/// <summary>
-    /// Connection is starting but not yet established.<br/>
-    /// Not encrypted yet.
-    /// </summary>
-    Connecting = 1,
-    
-    /// <summary>
-    /// Connection has completed the SSL handshake and is ready to send and receive data.<br/>
-    /// Encrypted.
-    /// </summary>
-    Ready = 3,
-
-    /// <summary>
-    /// Connection is stopping.<br/>
-    /// Encrypted.
-    /// </summary>
-    Disconnecting = 4*/
 }
