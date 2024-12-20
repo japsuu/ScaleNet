@@ -1,11 +1,16 @@
 ﻿using ScaleNet.Common;
+using ScaleNet.Common.LowLevel;
 
 namespace ScaleNet.Server.LowLevel.Transport;
 
+/// <summary>
+/// Represents a server transport that can send and receive network messages.
+/// </summary>
 public interface IServerTransport : IDisposable
 {
-    public int Port { get; }
+    public ushort Port { get; }
     public int MaxConnections { get; }
+    public ServerState State { get; }
 
     public event Action<ServerStateChangeArgs>? ServerStateChanged;
 
@@ -18,29 +23,34 @@ public interface IServerTransport : IDisposable
     /// Called to handle incoming messages.<br/>
     /// Implementations are required to be thread-safe, as this event may be raised from multiple threads.
     /// </summary>
-    public event Action<SessionId, DeserializedNetMessage>? MessageReceived;
+    public event Action<ConnectionId, DeserializedNetMessage>? MessageReceived;
 
 
     /// <summary>
     /// Queues the given message to be sent.
     /// The message will not be sent immediately, but the next time outgoing packets are iterated.
     /// </summary>
-    /// <param name="sessionId">The session to send the message to.</param>
+    /// <param name="connectionId">The connectionId to send the message to.</param>
     /// <param name="message">The message to send.</param>
-    public void QueueSendAsync<T>(SessionId sessionId, T message) where T : INetMessage;
+    public void QueueSendAsync<T>(ConnectionId connectionId, T message) where T : INetMessage;
 
 
     /// <summary>
-    /// Disconnect the session.
+    /// Disconnects the connectionId, sending a reason for the disconnection.
     /// </summary>
-    /// <param name="sessionId">The session to disconnect.</param>
+    /// <param name="connectionId">The connectionId to disconnect.</param>
     /// <param name="reason">The reason for the disconnection.</param>
-    /// <param name="iterateOutgoing">True to send outgoing packets before disconnecting.</param>
     /// 
-    /// <remarks>
-    /// The disconnect reason will only be sent to the session if <paramref name="iterateOutgoing"/> is true.
-    /// </remarks>
-    public void DisconnectSession(SessionId sessionId, InternalDisconnectReason reason, bool iterateOutgoing = true);
+    /// <returns>True if the connectionId was disconnected, false if the connectionId was not found.</returns>
+    public bool StopConnection(ConnectionId connectionId, InternalDisconnectReason reason);
+
+
+    /// <summary>
+    /// Immediately disconnects the connectionId, without sending any outgoing packets.
+    /// </summary>
+    /// 
+    /// <returns>True if the connectionId was disconnected, false if the connectionId was not found.</returns>
+    public bool StopConnectionImmediate(ConnectionId connectionId);
 
 
     /// <summary>
@@ -54,25 +64,25 @@ public interface IServerTransport : IDisposable
     /// Stops the server.
     /// </summary>
     /// <returns>True if the server was stopped, false if it was already stopped.</returns>
-    public bool StopServer(bool gracefully = true);
+    public bool StopServer();
 
 
     /// <summary>
-    /// Gets the connection state of the given session.
+    /// Gets the connection state of the given connectionId.
     /// </summary>
-    /// <param name="sessionId">The session to get the connection state of.</param>
-    /// <returns>The connection state of the session.</returns>
-    public ConnectionState GetConnectionState(SessionId sessionId);
+    /// <param name="connectionId">The connectionId to get the connection state of.</param>
+    /// <returns>The connection state of the connectionId.</returns>
+    public ConnectionState GetConnectionState(ConnectionId connectionId);
 
 
     /// <summary>
     /// Handles incoming packets, calling <see cref="MessageReceived"/> for each received message.
     /// </summary>
-    public void HandleIncomingMessages();
+    public void IterateIncomingMessages();
 
 
     /// <summary>
     /// Handles outgoing packets, sending all queued packets to their respective clients.
     /// </summary>
-    public void HandleOutgoingMessages();
+    public void IterateOutgoingMessages();
 }

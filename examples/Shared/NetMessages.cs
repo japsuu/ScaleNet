@@ -6,6 +6,21 @@ namespace Shared
 {
     public static class NetMessages
     {
+        [NetMessage(100)]
+        [MessagePackObject]
+        public readonly struct DisconnectMessage : INetMessage
+        {
+            [Key(0)]
+            public readonly DisconnectReason Reason;
+
+
+            public DisconnectMessage(DisconnectReason reason)
+            {
+                Reason = reason;
+            }
+        }
+        
+        
 #region Chat
 
         [NetMessage(0)]

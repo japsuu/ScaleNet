@@ -57,6 +57,13 @@ namespace ScaleNet.Client
             ScaleNetManager.Logger.LogInfo("Disconnecting...");
             _transport.DisconnectClient();
         }
+
+    
+        public void Update()
+        {
+            _transport.IterateIncoming();
+            _transport.IterateOutgoing();
+        }
     
 
         /// <summary>

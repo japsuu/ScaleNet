@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Text;
 
-namespace ScaleNet.Common
+namespace ScaleNet.Common.LowLevel
 {
     /// <summary>
     /// Dynamic byte buffer

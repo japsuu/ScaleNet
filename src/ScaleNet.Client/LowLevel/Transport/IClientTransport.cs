@@ -1,4 +1,5 @@
 ﻿using System;
+using ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client;
 using ScaleNet.Common;
 
 namespace ScaleNet.Client.LowLevel.Transport
@@ -6,11 +7,15 @@ namespace ScaleNet.Client.LowLevel.Transport
     public interface IClientTransport : IDisposable
     {
         public string Address { get; }
-        public int Port { get; }
+        public ushort Port { get; }
+        public ConnectionState State { get; }
     
-        public void ConnectClient();
-        public void ReconnectClient();
-        public void DisconnectClient();
+        public bool ConnectClient();
+        public bool ReconnectClient();
+        public bool DisconnectClient();
+        
+        public void IterateIncoming();
+        public void IterateOutgoing();
 
         /// <summary>
         /// Sends the given message to the server asynchronously.

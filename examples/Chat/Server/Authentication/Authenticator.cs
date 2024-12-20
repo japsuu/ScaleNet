@@ -1,6 +1,6 @@
-using ScaleNet.Common;
 using ScaleNet.Server;
 using Server.Database;
+using Shared;
 using Shared.Authentication;
 using NetMessages = Shared.NetMessages;
 using SharedConstants = Shared.SharedConstants;

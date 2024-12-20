@@ -38,7 +38,7 @@ public class SslServer : IDisposable
     /// <summary>
     /// SSL server port
     /// </summary>
-    public int Port { get; }
+    public ushort Port { get; }
 
     /// <summary>
     /// SSL context
@@ -180,7 +180,7 @@ public class SslServer : IDisposable
     /// </summary>
     /// <param name="context">SSL context</param>
     /// <param name="endpoint">IP endpoint</param>
-    public SslServer(ServerSslContext context, IPEndPoint endpoint) : this(context, endpoint, endpoint.Address.ToString(), endpoint.Port)
+    public SslServer(ServerSslContext context, IPEndPoint endpoint) : this(context, endpoint, endpoint.Address.ToString(), (ushort)endpoint.Port)
     {
     }
 
@@ -192,7 +192,7 @@ public class SslServer : IDisposable
     /// <param name="endpoint">Endpoint</param>
     /// <param name="address">Server address</param>
     /// <param name="port">Server port</param>
-    private SslServer(ServerSslContext context, EndPoint endpoint, string address, int port)
+    private SslServer(ServerSslContext context, EndPoint endpoint, string address, ushort port)
     {
         Id = Guid.NewGuid();
         Address = address;

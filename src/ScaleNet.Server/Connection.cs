@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using ScaleNet.Common;
+using ScaleNet.Common.LowLevel;
 using ScaleNet.Server.LowLevel.Transport;
 
 namespace ScaleNet.Server;
@@ -15,16 +16,16 @@ public abstract class Connection
     /// ID of the session/connection.
     /// Changes when the client reconnects.
     /// </summary>
-    public readonly SessionId SessionId;
+    public readonly ConnectionId ConnectionId;
     
-    public ConnectionState ConnectionState => _transport.GetConnectionState(SessionId);
+    public ConnectionState ConnectionState => _transport.GetConnectionState(ConnectionId);
     public bool IsConnected => ConnectionState == ConnectionState.Connected;
     
     
-    protected Connection(SessionId sessionId, IServerTransport transport)
+    protected Connection(ConnectionId connectionId, IServerTransport transport)
     {
         _transport = transport;
-        SessionId = sessionId;
+        ConnectionId = connectionId;
     }
 
 
@@ -32,18 +33,26 @@ public abstract class Connection
     /// Disconnect the client.
     /// </summary>
     /// <param name="reason">The reason for the disconnection.</param>
-    /// <param name="iterateOutgoing">True to send outgoing packets before disconnecting.</param>
-    ///
-    /// <remarks>
-    /// The disconnect reason will only be sent to the client if <paramref name="iterateOutgoing"/> is true.
-    /// </remarks>
-    public void Kick(InternalDisconnectReason reason, bool iterateOutgoing = true)
+    public void Kick(InternalDisconnectReason reason)
     {
         Debug.Assert(_transport != null, nameof(_transport) + " != null");
         
-        ScaleNetManager.Logger.LogDebug($"Disconnecting client {SessionId} with reason {reason}.");
+        ScaleNetManager.Logger.LogDebug($"Disconnecting client {ConnectionId} with reason {reason}.");
 
-        _transport.DisconnectSession(SessionId, reason, iterateOutgoing);
+        _transport.StopConnection(ConnectionId, reason);
+    }
+
+
+    /// <summary>
+    /// Immediately disconnects the client, without sending a message.
+    /// </summary>
+    public void KickImmediate()
+    {
+        Debug.Assert(_transport != null, nameof(_transport) + " != null");
+        
+        ScaleNetManager.Logger.LogDebug($"Disconnecting client {ConnectionId} immediately.");
+
+        _transport.StopConnectionImmediate(ConnectionId);
     }
 
 
@@ -55,10 +64,10 @@ public abstract class Connection
     {
         Debug.Assert(_transport != null, nameof(_transport) + " != null");
         
-        ScaleNetManager.Logger.LogDebug($"Disconnecting client {SessionId}.");
+        ScaleNetManager.Logger.LogDebug($"Disconnecting client {ConnectionId}.");
 
         QueueSend(message);
-        _transport.DisconnectSession(SessionId, InternalDisconnectReason.User);
+        _transport.StopConnection(ConnectionId, InternalDisconnectReason.User);
     }
 
 
@@ -73,6 +82,6 @@ public abstract class Connection
         
         ScaleNetManager.Logger.LogDebug($"QUE - {message}");
 
-        _transport.QueueSendAsync(SessionId, message);
+        _transport.QueueSendAsync(ConnectionId, message);
     }
 }

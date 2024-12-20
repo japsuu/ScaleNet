@@ -1,4 +1,5 @@
 ﻿using ScaleNet.Common;
+using ScaleNet.Common.LowLevel;
 using ScaleNet.Server.LowLevel;
 using ScaleNet.Server.LowLevel.Transport;
 
@@ -55,16 +56,16 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
     }
 
 
-    public void Stop(bool gracefully = true)
+    public void Stop()
     {
-        _transport.StopServer(gracefully);
+        _transport.StopServer();
     }
 
     
     public void Update()
     {
-        _transport.HandleIncomingMessages();
-        _transport.HandleOutgoingMessages();
+        _transport.IterateIncomingMessages();
+        _transport.IterateOutgoingMessages();
     }
 
 
@@ -174,16 +175,16 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
 
 #region Message processing
     
-    private void OnMessageReceived(SessionId sessionId, DeserializedNetMessage msg)
+    private void OnMessageReceived(ConnectionId connectionId, DeserializedNetMessage msg)
     {
-        if (!ConnectionManager.TryGetConnection(sessionId, out TConnection? connection))
+        if (!ConnectionManager.TryGetConnection(connectionId, out TConnection? connection))
         {
-            ScaleNetManager.Logger.LogWarning($"Received a message from an unknown session {sessionId}. Ignoring, and ending the session.");
-            _transport.DisconnectSession(sessionId, InternalDisconnectReason.UnexpectedProblem);
+            ScaleNetManager.Logger.LogWarning($"Received a message from an unknown connectionId {connectionId}. Ignoring, and ending the connectionId.");
+            _transport.StopConnection(connectionId, InternalDisconnectReason.UnexpectedProblem);
             return;
         }
         
-        ScaleNetManager.Logger.LogDebug($"RCV - {msg.Type} from session {connection.SessionId}");
+        ScaleNetManager.Logger.LogDebug($"RCV - {msg.Type} from connectionId {connection.ConnectionId}");
         
         _messageHandlerManager.TryHandleMessage(connection, msg);
     }
@@ -210,19 +211,19 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
 
     private void OnSessionStateChanged(SessionStateChangeArgs sessionStateChangeArgs)
     {
-        SessionId sessionId = sessionStateChangeArgs.SessionId;
+        ConnectionId connectionId = sessionStateChangeArgs.ConnectionId;
         TConnection? connection;
         
-        ScaleNetManager.Logger.LogInfo($"Session {sessionId} is {sessionStateChangeArgs.NewState.ToString().ToLower()}");
+        ScaleNetManager.Logger.LogInfo($"Session {connectionId} is {sessionStateChangeArgs.NewState.ToString().ToLower()}");
         
         switch (sessionStateChangeArgs.NewState)
         {
-            case ConnectionState.Connecting:
+            case ConnectionState.Connected:
             {
-                if (!ConnectionManager.TryCreateConnection(sessionId, out connection))
+                if (!ConnectionManager.TryCreateConnection(connectionId, out connection))
                 {
-                    ScaleNetManager.Logger.LogWarning($"Client for session {sessionId} already exists. Kicking.");
-                    _transport.DisconnectSession(sessionId, InternalDisconnectReason.UnexpectedProblem);
+                    ScaleNetManager.Logger.LogWarning($"Client for connectionId {connectionId} already exists. Kicking.");
+                    _transport.StopConnection(connectionId, InternalDisconnectReason.UnexpectedProblem);
                     return;
                 }
                 
@@ -230,29 +231,16 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
             }
             case ConnectionState.Disconnected:
             {
-                if (!ConnectionManager.TryRemoveConnection(sessionId, out connection))
+                if (!ConnectionManager.TryRemoveConnection(connectionId, out connection))
                 {
-                    ScaleNetManager.Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
+                    ScaleNetManager.Logger.LogWarning($"Client for connectionId {connectionId} not found in the client manager.");
                     return;
                 }
                 
                 break;
             }
-            case ConnectionState.SslHandshaking:
-            case ConnectionState.Ready:
-            case ConnectionState.Connected:
-            case ConnectionState.Disconnecting:
-            {
-                if (!ConnectionManager.TryGetConnection(sessionId, out connection))
-                {
-                    ScaleNetManager.Logger.LogWarning($"Client for session {sessionId} not found in the client manager.");
-                    return;
-                }
-
-                break;
-            }
             default:
-                throw new InvalidOperationException($"Unknown session state: {sessionStateChangeArgs.NewState}");
+                throw new InvalidOperationException($"Unknown connectionId state: {sessionStateChangeArgs.NewState}");
         }
                 
         ClientStateChanged?.Invoke(new ClientStateChangeArgs<TConnection>(connection, sessionStateChangeArgs.NewState));

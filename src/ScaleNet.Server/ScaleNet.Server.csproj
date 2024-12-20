@@ -13,6 +13,10 @@
       <ProjectReference Include="..\ScaleNet.Common\ScaleNet.Common.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="LowLevel\Transport\WebSocket\Implementation\" />
+    </ItemGroup>
+
     <!-- Debug configuration -->
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
         <DefineConstants>TRACE</DefineConstants>

@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using ScaleNet.Server;
+using ScaleNet.Server.LowLevel.Transport;
+using Shared;
 using Shared.Authentication;
 
 namespace Server;
@@ -9,8 +11,14 @@ public class ClientConnection : Connection
     private AccountUID _accountId;
 
     public bool IsAuthenticated { get; private set; }
-    
+
     public PlayerData? PlayerData { get; internal set; }
+
+
+    public ClientConnection(ConnectionId connectionId, IServerTransport transport) : base(connectionId, transport)
+    {
+    }
+
 
     /// <summary>
     /// Unique ID of the account.
@@ -34,4 +42,7 @@ public class ClientConnection : Connection
         IsAuthenticated = true;
         AccountId = accountUid;
     }
+
+
+    public void Kick(DisconnectReason reason) => Kick(new NetMessages.DisconnectMessage(reason));
 }
