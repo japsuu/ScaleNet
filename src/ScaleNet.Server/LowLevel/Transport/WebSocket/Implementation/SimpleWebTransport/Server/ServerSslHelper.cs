@@ -1,7 +1,5 @@
 using System.Net.Security;
 using System.Net.Sockets;
-using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
 using ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Common;
 
 namespace ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Server;
@@ -10,7 +8,7 @@ internal class ServerSslHelper(ServerSslContext? sslContext)
 {
     internal bool TryCreateStream(Common.Connection conn)
     {
-        NetworkStream stream = conn.Client.GetStream();
+        NetworkStream stream = conn.Client!.GetStream();
         if (sslContext == null)
         {
             conn.Stream = stream;

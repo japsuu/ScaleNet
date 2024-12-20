@@ -19,9 +19,7 @@ public sealed class WebSocketServerTransport : IServerTransport
     private const int MAXIMUM_MTU = ushort.MaxValue;
     
     private readonly ServerSocket _serverSocket;
-    private readonly ServerSslContext _sslContext;
     private readonly IPacketMiddleware? _middleware;
-    private readonly int _maxPacketSize;
 
     public ushort Port { get; }
     public int MaxConnections { get; }
@@ -34,17 +32,15 @@ public sealed class WebSocketServerTransport : IServerTransport
 
     public WebSocketServerTransport(ServerSslContext sslContext, ushort port, int maxConnections, int maxPacketSize = SharedConstants.MAX_PACKET_SIZE_BYTES, IPacketMiddleware? middleware = null)
     {
-        _sslContext = sslContext;
         Port = port;
         MaxConnections = maxConnections;
         
-        _maxPacketSize = maxPacketSize;
-        if (_maxPacketSize < 0)
-            _maxPacketSize = MINIMUM_MTU;
-        else if (_maxPacketSize > MAXIMUM_MTU)
-            _maxPacketSize = MAXIMUM_MTU;
+        if (maxPacketSize < 0)
+            maxPacketSize = MINIMUM_MTU;
+        else if (maxPacketSize > MAXIMUM_MTU)
+            maxPacketSize = MAXIMUM_MTU;
 
-        _serverSocket = new ServerSocket(_maxPacketSize, _sslContext);
+        _serverSocket = new ServerSocket(maxPacketSize, sslContext);
         _serverSocket.ServerStateChanged += OnServerStateChanged;
         _serverSocket.SessionStateChanged += OnSessionStateChanged;
         _serverSocket.DataReceived += OnReceivedData;
