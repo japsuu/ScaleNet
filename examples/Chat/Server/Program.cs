@@ -27,7 +27,6 @@ internal static class Program
         // Create the server
         using ChatServer server = new(
             context,
-            IPAddress.Any,
             SharedConstants.SERVER_PORT,
             ConfigManager.CurrentConfiguration.MaxConnections,
             ConfigManager.CurrentConfiguration.AllowAccountRegistration);
