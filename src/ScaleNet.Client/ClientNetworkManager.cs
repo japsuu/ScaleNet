@@ -9,6 +9,12 @@ namespace ScaleNet.Client
     {
         private readonly IClientTransport _transport;
         private readonly MessageHandlerManager _messageHandlerManager;
+        private readonly int _pingInterval;
+    
+        private long _lastSentPingTimestamp;
+        private bool _isWaitingForPong;
+    
+        public long RTT { get; private set; }
     
         /// <summary>
         /// True if the local client is connected to the server.
@@ -21,7 +27,7 @@ namespace ScaleNet.Client
         public event Action<ConnectionStateArgs>? ConnectionStateChanged;
 
 
-        public ClientNetworkManager(IClientTransport transport)
+        public ClientNetworkManager(IClientTransport transport, int pingInterval = 500)
         {
             if(!ScaleNetManager.IsInitialized)
                 throw new InvalidOperationException("Networking.Initialize() must be called before creating a server.");
@@ -30,8 +36,11 @@ namespace ScaleNet.Client
             _transport = transport;
             _transport.ConnectionStateChanged += OnConnectionStateChanged;
             _transport.MessageReceived += OnMessageReceived;
+            
+            _pingInterval = pingInterval;
         
             RegisterMessageHandler<InternalDisconnectMessage>(OnDisconnectReceived);
+            RegisterMessageHandler<InternalPongMessage>(OnPongReceived);
         }
 
 
@@ -62,9 +71,12 @@ namespace ScaleNet.Client
         public void Update()
         {
             _transport.IterateIncoming();
+
+            PingServer();
+            
             _transport.IterateOutgoing();
         }
-    
+
 
         /// <summary>
         /// Registers a method to call when a message of the specified type arrives.
@@ -132,6 +144,35 @@ namespace ScaleNet.Client
         
             // Disconnect the local client.
             Disconnect();
+        }
+
+
+        private void PingServer()
+        {
+            if (!_isWaitingForPong)
+                return;
+            
+            long currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            if (currentTime - _lastSentPingTimestamp < _pingInterval)
+                return;
+
+            SendMessageToServer(new InternalPingMessage());
+            _lastSentPingTimestamp = currentTime;
+            _isWaitingForPong = true;
+        }
+
+
+        private void OnPongReceived(InternalPongMessage msg)
+        {
+            if (!_isWaitingForPong)
+            {
+                ScaleNetManager.Logger.LogWarning("Received a pong message when not expecting one.");
+                return;
+            }
+        
+            long currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            RTT = currentTime - _lastSentPingTimestamp;
+            _isWaitingForPong = false;
         }
         
         
