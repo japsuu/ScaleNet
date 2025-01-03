@@ -73,7 +73,8 @@ namespace ScaleNet.Client
         {
             _transport.IterateIncoming();
 
-            PingServer();
+            if (IsConnected)
+                PingServer();
             
             _transport.IterateOutgoing();
         }
