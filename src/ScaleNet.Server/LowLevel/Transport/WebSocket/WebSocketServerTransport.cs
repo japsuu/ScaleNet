@@ -8,20 +8,11 @@ namespace ScaleNet.Server.LowLevel.Transport.WebSocket;
 
 public sealed class WebSocketServerTransport : IServerTransport
 {
-    /// <summary>
-    /// Minimum MTU allowed.
-    /// </summary>
-    private const int MINIMUM_MTU = 576;
-    
-    /// <summary>
-    /// Maximum MTU allowed.
-    /// </summary>
-    private const int MAXIMUM_MTU = ushort.MaxValue;
-    
     private readonly ServerSocket _serverSocket;
+    private readonly WebSocketServerSettings _settings;
 
-    public ushort Port { get; }
-    public int MaxConnections { get; }
+    public ushort Port => _settings.Port;
+    public int MaxConnections => _settings.MaxConnections;
     public ServerState State => _serverSocket.State;
     
     public event Action<ServerStateChangeArgs>? ServerStateChanged;
@@ -29,17 +20,11 @@ public sealed class WebSocketServerTransport : IServerTransport
     public event Action<ConnectionId, DeserializedNetMessage>? MessageReceived;
 
 
-    public WebSocketServerTransport(ServerSslContext sslContext, ushort port, int maxConnections, int maxPacketSize = SharedConstants.MAX_PACKET_SIZE_BYTES)
+    public WebSocketServerTransport(WebSocketServerSettings settings)
     {
-        Port = port;
-        MaxConnections = maxConnections;
-        
-        if (maxPacketSize < 0)
-            maxPacketSize = MINIMUM_MTU;
-        else if (maxPacketSize > MAXIMUM_MTU)
-            maxPacketSize = MAXIMUM_MTU;
+        _settings = settings;
 
-        _serverSocket = new ServerSocket(maxPacketSize, sslContext);
+        _serverSocket = new ServerSocket(settings.MaxFragmentSize, settings.SslContext);
         _serverSocket.ServerStateChanged += OnServerStateChanged;
         _serverSocket.SessionStateChanged += OnSessionStateChanged;
         _serverSocket.DataReceived += OnReceivedData;
@@ -129,7 +114,7 @@ public sealed class WebSocketServerTransport : IServerTransport
     {
         ScaleNetManager.Logger.LogInfo($"Starting WS transport on port {Port}...");
 
-        bool started = _serverSocket.StartServer(Port, MaxConnections);
+        bool started = _serverSocket.StartServer(_settings);
         
         if (started)
             ScaleNetManager.Logger.LogInfo("WS transport started successfully.");

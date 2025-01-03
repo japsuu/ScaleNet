@@ -70,11 +70,11 @@ internal sealed class ServerSocket : IDisposable
     /// Threaded operation to process server actions.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void InitializeSocket(int maxClients)
+    private void InitializeSocket(WebSocketServerSettings settings)
     {
-        TcpConfig tcpConfig = new(false, 5000, 20000);
+        TcpConfig tcpConfig = new(settings.NoDelay, settings.SendTimeout, settings.ReceiveTimeout);
 
-        _server = new SimpleWebServer(maxClients, 10000, tcpConfig, _maxPacketSize, 5000, _sslContext);
+        _server = new SimpleWebServer(settings.MaxConnections, settings.MaxMessagesPerTick, tcpConfig, _maxPacketSize, settings.HandshakeMaxSize, _sslContext);
 
         _server.OnConnect += OnClientConnect;
         _server.OnDisconnect += OnClientDisconnect;
@@ -172,17 +172,17 @@ internal sealed class ServerSocket : IDisposable
     /// <summary>
     /// Starts the server.
     /// </summary>
-    public bool StartServer(ushort port, int maximumClients)
+    public bool StartServer(WebSocketServerSettings settings)
     {
         if (State != ServerState.Stopped)
             return false;
 
         SetServerState(ServerState.Starting);
 
-        _port = port;
-        _maximumClients = maximumClients;
+        _port = settings.Port;
+        _maximumClients = settings.MaxConnections;
         ResetQueues();
-        InitializeSocket(maximumClients);
+        InitializeSocket(settings);
         return true;
     }
 
