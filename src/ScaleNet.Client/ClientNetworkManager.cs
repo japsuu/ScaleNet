@@ -150,7 +150,7 @@ namespace ScaleNet.Client
 
         private void PingServer()
         {
-            if (!_isWaitingForPong)
+            if (_isWaitingForPong)
                 return;
             
             long currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
