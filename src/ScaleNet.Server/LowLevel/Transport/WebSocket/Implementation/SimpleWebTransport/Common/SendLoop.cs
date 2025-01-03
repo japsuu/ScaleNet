@@ -171,9 +171,13 @@ internal static class SendLoop
         }
         else if (msgLength <= ushort.MaxValue)
         {
+            byte firstByte = (byte)(msgLength >> 8);
+            // Since we check for overflow/underflow, we cannot just cast to byte
+            byte secondByte = (byte)(msgLength & 0xFF);
+            
             buffer[startOffset + 1] = 126;
-            buffer[startOffset + 2] = (byte)(msgLength >> 8);
-            buffer[startOffset + 3] = (byte)msgLength;
+            buffer[startOffset + 2] = firstByte;
+            buffer[startOffset + 3] = secondByte;
             sendLength += 3;
         }
         else
