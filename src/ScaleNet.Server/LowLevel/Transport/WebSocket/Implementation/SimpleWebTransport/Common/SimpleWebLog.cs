@@ -52,7 +52,7 @@ internal static class SimpleWebLog
 
     [Conditional(SIMPLEWEB_LOG_ENABLED)]
     [Conditional(DEBUG)]
-    public static void Warn(string msg, bool showColor = true)
+    public static void Warn(string msg)
     {
         ScaleNetManager.Logger.LogWarning($"WARN: {msg}");
     }
@@ -60,7 +60,7 @@ internal static class SimpleWebLog
 
     [Conditional(SIMPLEWEB_LOG_ENABLED)]
     [Conditional(DEBUG)]
-    public static void Error(string msg, bool showColor = true)
+    public static void Error(string msg)
     {
         ScaleNetManager.Logger.LogError($"ERROR: {msg}");
     }
@@ -69,6 +69,6 @@ internal static class SimpleWebLog
     public static void Exception(Exception e)
     {
         // always log Exceptions
-        ScaleNetManager.Logger.LogError($"EXCEPTION: <color=red>{e.GetType().Name}</color> Message: {e.Message}\n{e.StackTrace}\n\n");
+        ScaleNetManager.Logger.LogError($"EXCEPTION: {e.GetType().Name} Message: {e.Message}\n{e.StackTrace}\n\n");
     }
 }

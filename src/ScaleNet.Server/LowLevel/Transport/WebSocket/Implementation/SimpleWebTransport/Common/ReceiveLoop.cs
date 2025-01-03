@@ -77,13 +77,13 @@ internal static class ReceiveLoop
         catch (SocketException e)
         {
             // this could happen if wss client closes stream
-            SimpleWebLog.Warn($"ReceiveLoop SocketException\n{e.Message}", false);
+            SimpleWebLog.Warn($"ReceiveLoop SocketException\n{e.Message}");
             queue.Enqueue(new Message(conn.ConnId, e));
         }
         catch (IOException e)
         {
             // this could happen if client disconnects
-            SimpleWebLog.Warn($"ReceiveLoop IOException\n{e.Message}", false);
+            SimpleWebLog.Warn($"ReceiveLoop IOException\n{e.Message}");
             queue.Enqueue(new Message(conn.ConnId, e));
         }
         catch (InvalidDataException e)
