@@ -35,6 +35,12 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
     public event Action<ClientStateChangeArgs<TConnection>>? ClientStateChanged;
 
 
+    /// <summary>
+    /// Creates a new server network manager.
+    /// </summary>
+    /// <param name="transport">The transport to use for the server.</param>
+    /// <param name="connectionManager">The connection manager to use for the server.</param>
+    /// <exception cref="InvalidOperationException">Thrown if ScaleNetManager.Initialize() has not been called.</exception>
     public ServerNetworkManager(IServerTransport transport, ConnectionManager<TConnection> connectionManager)
     {
         if(!ScaleNetManager.IsInitialized)
@@ -47,9 +53,12 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
         _transport.ServerStateChanged += OnServerStateChanged;
         _transport.SessionStateChanged += OnSessionStateChanged;
         _transport.MessageReceived += OnMessageReceived;
+        
+        RegisterMessageHandler<InternalPingMessage>(OnPingMessageReceived);
+        RegisterMessageHandler<InternalPongMessage>(OnPongMessageReceived);
     }
 
-    
+
     public void Start()
     {
         _transport.StartServer();
@@ -65,6 +74,9 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
     public void Update()
     {
         _transport.IterateIncomingMessages();
+        
+        ConnectionManager.PingConnections();
+        
         _transport.IterateOutgoingMessages();
     }
 
@@ -244,6 +256,28 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
         }
                 
         ClientStateChanged?.Invoke(new ClientStateChangeArgs<TConnection>(connection, sessionStateChangeArgs.NewState));
+    }
+
+#endregion
+
+
+#region Pinging
+    
+    /// <summary>
+    /// Called when a ping message is received from a client.
+    /// </summary>
+    private static void OnPingMessageReceived(TConnection connection, InternalPingMessage msg)
+    {
+        connection.OnPingReceived();
+    }
+
+
+    /// <summary>
+    /// Called when a pong message is received from a client.
+    /// </summary>
+    private static void OnPongMessageReceived(TConnection connection, InternalPongMessage msg)
+    {
+        connection.OnPongReceived();
     }
 
 #endregion

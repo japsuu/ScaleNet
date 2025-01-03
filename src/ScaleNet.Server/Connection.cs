@@ -11,6 +11,12 @@ namespace ScaleNet.Server;
 public abstract class Connection
 {
     private readonly IServerTransport _transport;
+    
+    private long _lastSentPingTimestamp;
+    
+    internal bool IsWaitingForPong { get; private set; }
+    
+    public long RTT { get; private set; }
 
     /// <summary>
     /// ID of the session/connection.
@@ -27,6 +33,53 @@ public abstract class Connection
         _transport = transport;
         ConnectionId = connectionId;
     }
+
+
+    internal void UpdateRTT(long currentUnixTime)
+    {
+        if (!IsWaitingForPong)
+            return;
+        
+        RTT = currentUnixTime - _lastSentPingTimestamp;
+    }
+
+
+#region Server -> Client pinging
+
+    internal void SendPing()
+    {
+        Debug.Assert(IsWaitingForPong, "Cannot send a ping while waiting for a pong.");
+        
+        _lastSentPingTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        QueueSend(new InternalPingMessage());
+        IsWaitingForPong = true;
+    }
+    
+    
+    internal void OnPongReceived()
+    {
+        if (!IsWaitingForPong)
+        {
+            ScaleNetManager.Logger.LogWarning("Received a pong message when not expecting one.");
+            return;
+        }
+        
+        long currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        UpdateRTT(currentTime);
+        IsWaitingForPong = false;
+    }
+
+#endregion
+
+
+#region Client -> Server pinging
+    
+    internal void OnPingReceived()
+    {
+        QueueSend(new InternalPongMessage());
+    }
+
+#endregion
 
 
     /// <summary>

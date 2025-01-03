@@ -339,5 +339,19 @@ namespace ScaleNet.Common
         }
     }
 
+    [NetMessage(65001)]
+    [MessagePackObject]
+    public readonly struct InternalPingMessage : INetMessage
+    {
+        // Empty message to conserve bandwidth.
+    }
+
+    [NetMessage(65002)]
+    [MessagePackObject]
+    public readonly struct InternalPongMessage : INetMessage
+    {
+        // Empty message to conserve bandwidth.
+    }
+
 #endregion
 }
