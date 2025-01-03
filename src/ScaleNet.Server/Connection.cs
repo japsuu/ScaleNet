@@ -48,7 +48,7 @@ public abstract class Connection
 
     internal void SendPing()
     {
-        Debug.Assert(IsWaitingForPong, "Cannot send a ping while waiting for a pong.");
+        Debug.Assert(!IsWaitingForPong, "Cannot send a ping while waiting for a pong.");
         
         _lastSentPingTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         QueueSend(new InternalPingMessage());
