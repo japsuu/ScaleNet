@@ -1,5 +1,4 @@
 ﻿using System;
-using ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client;
 using ScaleNet.Common;
 
 namespace ScaleNet.Client.LowLevel.Transport

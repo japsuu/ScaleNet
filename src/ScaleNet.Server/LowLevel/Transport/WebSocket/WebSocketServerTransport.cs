@@ -19,7 +19,6 @@ public sealed class WebSocketServerTransport : IServerTransport
     private const int MAXIMUM_MTU = ushort.MaxValue;
     
     private readonly ServerSocket _serverSocket;
-    private readonly IPacketMiddleware? _middleware;
 
     public ushort Port { get; }
     public int MaxConnections { get; }
@@ -30,7 +29,7 @@ public sealed class WebSocketServerTransport : IServerTransport
     public event Action<ConnectionId, DeserializedNetMessage>? MessageReceived;
 
 
-    public WebSocketServerTransport(ServerSslContext sslContext, ushort port, int maxConnections, int maxPacketSize = SharedConstants.MAX_PACKET_SIZE_BYTES, IPacketMiddleware? middleware = null)
+    public WebSocketServerTransport(ServerSslContext sslContext, ushort port, int maxConnections, int maxPacketSize = SharedConstants.MAX_PACKET_SIZE_BYTES)
     {
         Port = port;
         MaxConnections = maxConnections;
@@ -44,8 +43,6 @@ public sealed class WebSocketServerTransport : IServerTransport
         _serverSocket.ServerStateChanged += OnServerStateChanged;
         _serverSocket.SessionStateChanged += OnSessionStateChanged;
         _serverSocket.DataReceived += OnReceivedData;
-        
-        _middleware = middleware;
     }
 
 
@@ -104,8 +101,6 @@ public sealed class WebSocketServerTransport : IServerTransport
         }
         
         NetMessagePacket packet = NetMessagePacket.CreateIncomingNoCopy(data, false);
-        
-        _middleware?.HandleIncomingPacket(ref packet);
         
         bool serializeSuccess = NetMessages.TryDeserialize(packet, out DeserializedNetMessage msg);
                 

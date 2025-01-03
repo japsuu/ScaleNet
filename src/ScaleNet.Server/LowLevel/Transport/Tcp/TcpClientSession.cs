@@ -133,8 +133,6 @@ internal class TcpClientSession(ConnectionId id, TcpServerTransport transport, A
         
         NetMessagePacket packet = NetMessagePacket.CreateIncoming(data, 0, length);
         
-        transport.Middleware?.HandleIncomingPacket(ref packet);
-        
         IncomingPackets.Enqueue(packet);
     }
 

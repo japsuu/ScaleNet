@@ -17,7 +17,6 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     private bool _rejectNewConnections;
     private bool _rejectNewMessages;
 
-    public readonly IPacketMiddleware? Middleware;
     public int MaxConnections { get; }
     public ServerState State { get; private set; } = ServerState.Stopped;
 
@@ -26,10 +25,9 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     public event Action<ConnectionId, DeserializedNetMessage>? MessageReceived;
 
 
-    public TcpServerTransport(ServerSslContext sslContext, IPAddress address, int port, int maxConnections, IPacketMiddleware? middleware = null) : base(sslContext, address, port)
+    public TcpServerTransport(ServerSslContext sslContext, IPAddress address, int port, int maxConnections) : base(sslContext, address, port)
     {
         MaxConnections = maxConnections;
-        Middleware = middleware;
 
         // Fill the available session IDs bag.
         for (uint i = 1; i < maxConnections; i++)
@@ -215,8 +213,6 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     {
         while (session.OutgoingPackets.TryDequeue(out NetMessagePacket packet))
         {
-            Middleware?.HandleOutgoingPacket(ref packet);
-            
             // Get a pooled buffer to add the length prefix.
             int payloadLength = packet.Length;
             int packetLength = payloadLength + 2;

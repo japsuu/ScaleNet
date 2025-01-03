@@ -1,13 +1,11 @@
 ﻿using System;
 using ScaleNet.Client.LowLevel.Transport.WebSocket.Core;
 using ScaleNet.Common;
-using ScaleNet.Common.LowLevel;
 
 namespace ScaleNet.Client.LowLevel.Transport.WebSocket
 {
     public class WebSocketClientTransport : IClientTransport
     {
-        private readonly IPacketMiddleware? _middleware;
         private readonly ClientSocket _clientSocket;
         
         public string Address { get; }
@@ -18,13 +16,11 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket
         public event Action<DeserializedNetMessage>? MessageReceived;
 
 
-        public WebSocketClientTransport(string address, ushort port, ClientSslContext? sslContext, IPacketMiddleware? middleware = null)
+        public WebSocketClientTransport(string address, ushort port, ClientSslContext? sslContext)
         {
             Address = address;
             Port = port;
 
-            _middleware = middleware;
-            
             _clientSocket = new ClientSocket(sslContext);
             _clientSocket.ClientStateChanged += OnClientStateChanged;
             _clientSocket.MessageReceived += OnClientReceivedData;
@@ -48,8 +44,6 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket
         private void OnClientReceivedData(ArraySegment<byte> data)
         {
             NetMessagePacket packet = NetMessagePacket.CreateIncomingNoCopy(data, false);
-        
-            _middleware?.HandleIncomingPacket(ref packet);
         
             bool serializeSuccess = NetMessages.TryDeserialize(packet, out DeserializedNetMessage msg);
                 

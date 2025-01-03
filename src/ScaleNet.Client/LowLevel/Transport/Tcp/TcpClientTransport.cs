@@ -4,7 +4,6 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Net.Sockets;
 using ScaleNet.Common;
-using ScaleNet.Common.LowLevel;
 
 namespace ScaleNet.Client.LowLevel.Transport.Tcp
 {
@@ -12,7 +11,6 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
     {
         // Buffer for accumulating incomplete packet data
         private readonly MemoryStream _receiveBuffer = new();
-        private readonly IPacketMiddleware? _middleware;
 
         public ConnectionState State { get; private set; } = ConnectionState.Disconnected;
 
@@ -20,9 +18,8 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         public event Action<DeserializedNetMessage>? MessageReceived;
 
 
-        public TcpClientTransport(ClientSslContext context, string address, ushort port, IPacketMiddleware? middleware = null) : base(context, address, port)
+        public TcpClientTransport(ClientSslContext context, string address, ushort port) : base(context, address, port)
         {
-            _middleware = middleware;
         }
 
 
@@ -67,8 +64,6 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
                 ScaleNetManager.Logger.LogError($"Message {message} exceeds maximum msg size of {SharedConstants.MAX_MESSAGE_SIZE_BYTES} bytes. Skipping.");
                 return;
             }
-            
-            _middleware?.HandleOutgoingPacket(ref packet);
             
             // Get a pooled buffer to add the length prefix.
             int payloadLength = packet.Length;
@@ -195,8 +190,6 @@ namespace ScaleNet.Client.LowLevel.Transport.Tcp
         {
             NetMessagePacket packet = NetMessagePacket.CreateIncomingNoCopy(data, 0, length, false);
         
-            _middleware?.HandleIncomingPacket(ref packet);
-            
             bool serializeSuccess = NetMessages.TryDeserialize(packet, out DeserializedNetMessage msg);
                 
             if (!serializeSuccess)
