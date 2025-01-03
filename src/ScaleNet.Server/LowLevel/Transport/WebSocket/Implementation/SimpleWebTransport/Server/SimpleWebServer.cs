@@ -76,6 +76,9 @@ public class SimpleWebServer
     public void ProcessMessageQueue()
     {
         int processedCount = 0;
+        
+        if (_wsServer.ReceiveQueue.Count > _maxMessagesPerTick)
+            SimpleWebLog.Warn($"Message congestion detected, client latency may increase. {_wsServer.ReceiveQueue.Count} messages in queue, only {_maxMessagesPerTick} of which will be processed this tick.");
 
         while (processedCount < _maxMessagesPerTick && _wsServer.ReceiveQueue.TryDequeue(out Message next))
         {
