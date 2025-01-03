@@ -25,6 +25,11 @@ namespace ScaleNet.Client
         /// Called after the local client connection state changes.
         /// </summary>
         public event Action<ConnectionStateArgs>? ConnectionStateChanged;
+        
+        /// <summary>
+        /// Called when the round trip time is updated.
+        /// </summary>
+        public event Action<int>? RTTUpdated;
 
 
         public ClientNetworkManager(IClientTransport transport, int pingInterval = 2000)
@@ -175,6 +180,8 @@ namespace ScaleNet.Client
             long currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             RTT = currentTime - _lastSentPingTimestamp;
             _isWaitingForPong = false;
+            
+            RTTUpdated?.Invoke((int)RTT);
         }
         
         
