@@ -120,22 +120,22 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
 
 
 #if UNITY_WEBGL
-        [MonoPInvokeCallback(typeof(Action<int>))]
+        [AOT.MonoPInvokeCallback(typeof(Action<int>))]
 #endif
         private static void OpenCallback(int index) => Instances[index].OnOpen();
 
 #if UNITY_WEBGL
-        [MonoPInvokeCallback(typeof(Action<int>))]
+        [AOT.MonoPInvokeCallback(typeof(Action<int>))]
 #endif
         private static void CloseCallBack(int index) => Instances[index].OnClose();
 
 #if UNITY_WEBGL
-        [MonoPInvokeCallback(typeof(Action<int, IntPtr, int>))]
+        [AOT.MonoPInvokeCallback(typeof(Action<int, IntPtr, int>))]
 #endif
         private static void MessageCallback(int index, IntPtr bufferPtr, int count) => Instances[index].OnMessage(bufferPtr, count);
 
 #if UNITY_WEBGL
-        [MonoPInvokeCallback(typeof(Action<int>))]
+        [AOT.MonoPInvokeCallback(typeof(Action<int>))]
 #endif
         private static void ErrorCallback(int index) => Instances[index].OnErr();
     }
