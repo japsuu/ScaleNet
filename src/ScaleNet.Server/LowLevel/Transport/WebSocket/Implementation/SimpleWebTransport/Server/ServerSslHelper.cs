@@ -22,7 +22,7 @@ internal class ServerSslHelper(ServerSslContext? sslContext)
         }
         catch (Exception e)
         {
-            SimpleWebLog.Error($"Create SSLStream Failed: {e}", false);
+            SimpleWebLog.Warn($"Create SSLStream Failed for connId {conn.ConnId}: {e}");
             return false;
         }
     }
