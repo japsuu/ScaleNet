@@ -107,7 +107,8 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.Core
         /// </summary>
         private void InitializeSocket()
         {
-            TcpConfig tcpConfig = new(false, 5000, 20000);
+            // Originally 5000, 20000. Use larger values here to let the server handle timeouts.
+            TcpConfig tcpConfig = new(false, 60000, 60000);
             _client = SimpleWebClient.Create(ushort.MaxValue, 5000, tcpConfig, _sslContext);
 
             _client.OnConnect += OnClientConnect;
