@@ -27,7 +27,7 @@ namespace ScaleNet.Client
         public event Action<ConnectionStateArgs>? ConnectionStateChanged;
 
 
-        public ClientNetworkManager(IClientTransport transport, int pingInterval = 500)
+        public ClientNetworkManager(IClientTransport transport, int pingInterval = 2000)
         {
             if(!ScaleNetManager.IsInitialized)
                 throw new InvalidOperationException("Networking.Initialize() must be called before creating a server.");
