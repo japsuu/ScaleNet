@@ -10,48 +10,51 @@ namespace ScaleNet.Server.LowLevel.Transport.WebSocket.SimpleWebTransport.Server
 /// </summary>
 internal class ServerHandshakeHandler
 {
-    const int GetSize = 3;
-    const int ResponseLength = 129;
-    const int KeyLength = 24;
-    const int MergedKeyLength = 60;
-    const string KeyHeaderString = "Sec-WebSocket-Key: ";
-    // this isnt an offical max, just a reasonable size for a websocket handshake
-    readonly int maxHttpHeaderSize = 3000;
+    private const int GET_SIZE = 3;
+    private const int RESPONSE_LENGTH = 129;
+    private const int KEY_LENGTH = 24;
+    private const int MERGED_KEY_LENGTH = 60;
 
-    readonly SHA1 sha1 = SHA1.Create();
-    readonly BufferPool bufferPool;
+    private const string KEY_HEADER_STRING = "Sec-WebSocket-Key: ";
+
+    private readonly int _maxHttpHeaderSize;
+    private readonly SHA1 _sha1 = SHA1.Create();
+    private readonly BufferPool _bufferPool;
+
 
     public ServerHandshakeHandler(BufferPool bufferPool, int handshakeMaxSize)
     {
-        this.bufferPool = bufferPool;
-        this.maxHttpHeaderSize = handshakeMaxSize;
+        _bufferPool = bufferPool;
+        _maxHttpHeaderSize = handshakeMaxSize;
     }
+
 
     ~ServerHandshakeHandler()
     {
-        sha1.Dispose();
+        _sha1.Dispose();
     }
+
 
     public bool TryHandshake(Common.Connection conn)
     {
-        Stream stream = conn.Stream;
+        Stream stream = conn.Stream!;
 
-        using (ArrayBuffer getHeader = bufferPool.Take(GetSize))
+        using (ArrayBuffer getHeader = _bufferPool.Take(GET_SIZE))
         {
-            if (!ReadHelper.TryRead(stream, getHeader.Array, 0, GetSize))
+            if (!ReadHelper.TryRead(stream, getHeader.Array, 0, GET_SIZE))
                 return false;
-            getHeader.Count = GetSize;
+            getHeader.Count = GET_SIZE;
 
 
             if (!IsGet(getHeader.Array))
             {
-                //SimpleWebLog.Warn($"First bytes from client was not 'GET' for handshake, instead was {SimpleWebLog.BufferToString(getHeader.array, 0, GetSize)}");
+                SimpleWebLog.Warn($"First bytes from client was not 'GET' for handshake, instead was {SimpleWebLog.BufferToString(getHeader.Array, 0, GET_SIZE)}");
                 return false;
             }
         }
 
 
-        string msg = ReadToEndForHandshake(stream);
+        string? msg = ReadToEndForHandshake(stream);
 
         if (string.IsNullOrEmpty(msg))
             return false;
@@ -68,80 +71,76 @@ internal class ServerHandshakeHandler
         }
     }
 
-    string ReadToEndForHandshake(Stream stream)
+
+    private string? ReadToEndForHandshake(Stream stream)
     {
-        using (ArrayBuffer readBuffer = bufferPool.Take(maxHttpHeaderSize))
-        {
-            int? readCountOrFail = ReadHelper.SafeReadTillMatch(stream, readBuffer.Array, 0, maxHttpHeaderSize, Constants.EndOfHandshake);
-            if (!readCountOrFail.HasValue)
-                return null;
+        using ArrayBuffer readBuffer = _bufferPool.Take(_maxHttpHeaderSize);
+        int? readCountOrFail = ReadHelper.SafeReadTillMatch(stream, readBuffer.Array, 0, _maxHttpHeaderSize, Constants.EndOfHandshake);
+        if (!readCountOrFail.HasValue)
+            return null;
 
-            int readCount = readCountOrFail.Value;
+        int readCount = readCountOrFail.Value;
 
-            string msg = Encoding.ASCII.GetString(readBuffer.Array, 0, readCount);
-            SimpleWebLog.Verbose(msg);
+        string msg = Encoding.ASCII.GetString(readBuffer.Array, 0, readCount);
+        SimpleWebLog.Verbose(msg);
 
-            return msg;
-        }
+        return msg;
     }
 
-    static bool IsGet(byte[] getHeader)
-    {
+
+    private static bool IsGet(byte[] getHeader) =>
         // just check bytes here instead of using Encoding.ASCII
-        return getHeader[0] == 71 && // G
-               getHeader[1] == 69 && // E
-               getHeader[2] == 84;   // T
-    }
+        getHeader[0] == 71 && // G
+        getHeader[1] == 69 && // E
+        getHeader[2] == 84; // T
 
-    void AcceptHandshake(Stream stream, string msg)
+
+    private void AcceptHandshake(Stream stream, string msg)
     {
-        using (
-            ArrayBuffer keyBuffer = bufferPool.Take(KeyLength + Constants.HandshakeGuidLength),
-            responseBuffer = bufferPool.Take(ResponseLength))
-        {
-            GetKey(msg, keyBuffer.Array);
-            AppendGuid(keyBuffer.Array);
-            byte[] keyHash = CreateHash(keyBuffer.Array);
-            CreateResponse(keyHash, responseBuffer.Array);
+        using ArrayBuffer keyBuffer = _bufferPool.Take(KEY_LENGTH + Constants.HandshakeGuidLength), responseBuffer = _bufferPool.Take(RESPONSE_LENGTH);
+        GetKey(msg, keyBuffer.Array);
+        AppendGuid(keyBuffer.Array);
+        byte[] keyHash = CreateHash(keyBuffer.Array);
+        CreateResponse(keyHash, responseBuffer.Array);
 
-            stream.Write(responseBuffer.Array, 0, ResponseLength);
-        }
+        stream.Write(responseBuffer.Array, 0, RESPONSE_LENGTH);
     }
 
 
-    static void GetKey(string msg, byte[] keyBuffer)
+    private static void GetKey(string msg, byte[] keyBuffer)
     {
-        int start = msg.IndexOf(KeyHeaderString) + KeyHeaderString.Length;
+        int start = msg.IndexOf(KEY_HEADER_STRING, StringComparison.Ordinal) + KEY_HEADER_STRING.Length;
 
-        SimpleWebLog.Verbose($"Handshake Key: {msg.Substring(start, KeyLength)}");
-        Encoding.ASCII.GetBytes(msg, start, KeyLength, keyBuffer, 0);
+        SimpleWebLog.Verbose($"Handshake Key: {msg.Substring(start, KEY_LENGTH)}");
+        Encoding.ASCII.GetBytes(msg, start, KEY_LENGTH, keyBuffer, 0);
     }
 
-    static void AppendGuid(byte[] keyBuffer)
+
+    private static void AppendGuid(byte[] keyBuffer)
     {
-        Buffer.BlockCopy(Constants.HandshakeGuidBytes, 0, keyBuffer, KeyLength, Constants.HandshakeGuidLength);
+        Buffer.BlockCopy(Constants.HandshakeGuidBytes, 0, keyBuffer, KEY_LENGTH, Constants.HandshakeGuidLength);
     }
 
-    byte[] CreateHash(byte[] keyBuffer)
+
+    private byte[] CreateHash(byte[] keyBuffer)
     {
-        SimpleWebLog.Verbose($"Handshake Hashing {Encoding.ASCII.GetString(keyBuffer, 0, MergedKeyLength)}");
+        SimpleWebLog.Verbose($"Handshake Hashing {Encoding.ASCII.GetString(keyBuffer, 0, MERGED_KEY_LENGTH)}");
 
-        return sha1.ComputeHash(keyBuffer, 0, MergedKeyLength);
+        return _sha1.ComputeHash(keyBuffer, 0, MERGED_KEY_LENGTH);
     }
 
-    static void CreateResponse(byte[] keyHash, byte[] responseBuffer)
+
+    private static void CreateResponse(byte[] keyHash, byte[] responseBuffer)
     {
         string keyHashString = Convert.ToBase64String(keyHash);
 
         // compiler should merge these strings into 1 string before format
-        string message = string.Format(
-            "HTTP/1.1 101 Switching Protocols\r\n" +
-            "Connection: Upgrade\r\n" +
-            "Upgrade: websocket\r\n" +
-            "Sec-WebSocket-Accept: {0}\r\n\r\n",
-            keyHashString);
+        string message = "HTTP/1.1 101 Switching Protocols\r\n" +
+                         "Connection: Upgrade\r\n" +
+                         "Upgrade: websocket\r\n" +
+                         $"Sec-WebSocket-Accept: {keyHashString}\r\n\r\n";
 
-        SimpleWebLog.Verbose($"Handshake Response length {message.Length}, IsExpected {message.Length == ResponseLength}");
-        Encoding.ASCII.GetBytes(message, 0, ResponseLength, responseBuffer, 0);
+        SimpleWebLog.Verbose($"Handshake Response length {message.Length}, IsExpected {message.Length == RESPONSE_LENGTH}");
+        Encoding.ASCII.GetBytes(message, 0, RESPONSE_LENGTH, responseBuffer, 0);
     }
 }
