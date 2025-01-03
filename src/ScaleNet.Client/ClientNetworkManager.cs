@@ -40,6 +40,7 @@ namespace ScaleNet.Client
             _pingInterval = pingInterval;
         
             RegisterMessageHandler<InternalDisconnectMessage>(OnDisconnectReceived);
+            RegisterMessageHandler<InternalPingMessage>(_ => SendMessageToServer(new InternalPongMessage()));
             RegisterMessageHandler<InternalPongMessage>(OnPongReceived);
         }
 
