@@ -14,7 +14,7 @@ namespace ScaleNet.Client.LowLevel.Transport.WebSocket.SimpleWebTransport.Client
         public static SimpleWebClient Create(int maxMessageSize, int maxMessagesPerTick, TcpConfig tcpConfig, ClientSslContext? sslContext)
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            return new WebSocketClientWebGl(maxMessageSize, maxMessagesPerTick);
+            return new Webgl.WebSocketClientWebGl(maxMessageSize, maxMessagesPerTick);
 #else
             return new WebSocketClientStandAlone(maxMessageSize, maxMessagesPerTick, tcpConfig, sslContext);
 #endif
