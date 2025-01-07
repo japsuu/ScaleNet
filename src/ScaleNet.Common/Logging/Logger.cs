@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace ScaleNet.Common.Logging
+﻿namespace ScaleNet.Common.Logging
 {
     /// <summary>
     /// Represents a logger that can be used to log messages at different log levels.
@@ -13,7 +11,6 @@ namespace ScaleNet.Common.Logging
     {
         public abstract LogLevel LogLevel { get; set; }
         
-        [Conditional("DEBUG")]
         public abstract void LogDebug(string message);
         public abstract void LogInfo(string message);
         public abstract void LogWarning(string message);
