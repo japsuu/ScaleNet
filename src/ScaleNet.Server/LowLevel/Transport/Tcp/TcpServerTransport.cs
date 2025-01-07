@@ -21,7 +21,7 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
     public ServerState State { get; private set; } = ServerState.Stopped;
 
     public event Action<ServerStateChangeArgs>? ServerStateChanged;
-    public event Action<SessionStateChangeArgs>? SessionStateChanged;
+    public event Action<ConnectionStateChangeArgs>? RemoteConnectionStateChanged;
     public event Action<ConnectionId, DeserializedNetMessage>? MessageReceived;
 
 
@@ -245,7 +245,7 @@ public sealed class TcpServerTransport : SslServer, IServerTransport
         
         ConnectionId id = new(uId);
 
-        TcpClientSession session = new(id, this, SessionStateChanged);
+        TcpClientSession session = new(id, this, RemoteConnectionStateChanged);
         _sessions.TryAdd(id, session);
         
         return session;

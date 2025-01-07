@@ -16,7 +16,7 @@ public sealed class WebSocketServerTransport : IServerTransport
     public ServerState State => _serverSocket.State;
     
     public event Action<ServerStateChangeArgs>? ServerStateChanged;
-    public event Action<SessionStateChangeArgs>? SessionStateChanged;
+    public event Action<ConnectionStateChangeArgs>? RemoteConnectionStateChanged;
     public event Action<ConnectionId, DeserializedNetMessage>? MessageReceived;
 
 
@@ -26,7 +26,7 @@ public sealed class WebSocketServerTransport : IServerTransport
 
         _serverSocket = new ServerSocket(settings.MaxFragmentSize, settings.SslContext);
         _serverSocket.ServerStateChanged += OnServerStateChanged;
-        _serverSocket.SessionStateChanged += OnSessionStateChanged;
+        _serverSocket.RemoteConnectionStateChanged += OnRemoteConnectionStateChanged;
         _serverSocket.DataReceived += OnReceivedData;
     }
 
@@ -53,15 +53,15 @@ public sealed class WebSocketServerTransport : IServerTransport
     }
 
 
-    private void OnSessionStateChanged(SessionStateChangeArgs args)
+    private void OnRemoteConnectionStateChanged(ConnectionStateChangeArgs args)
     {
         try
         {
-            SessionStateChanged?.Invoke(args);
+            RemoteConnectionStateChanged?.Invoke(args);
         }
         catch (Exception e)
         {
-            ScaleNetManager.Logger.LogError($"User code threw an exception in the {nameof(SessionStateChanged)} event:\n{e}");
+            ScaleNetManager.Logger.LogError($"User code threw an exception in the {nameof(RemoteConnectionStateChanged)} event:\n{e}");
             throw;
         }
     }
@@ -80,7 +80,7 @@ public sealed class WebSocketServerTransport : IServerTransport
         
         if (data.Count > SharedConstants.MAX_MESSAGE_SIZE_BYTES)
         {
-            ScaleNetManager.Logger.LogWarning($"Session {connectionId} sent a packet that is too large. Kicking immediately.");
+            ScaleNetManager.Logger.LogWarning($"Connection {connectionId} sent a packet that is too large. Kicking immediately.");
             StopConnection(connectionId, InternalDisconnectReason.OversizedPacket);
             return;
         }
@@ -91,7 +91,7 @@ public sealed class WebSocketServerTransport : IServerTransport
                 
         if (!serializeSuccess)
         {
-            ScaleNetManager.Logger.LogWarning($"Received a packet that could not be deserialized. Kicking connectionId {connectionId} immediately.");
+            ScaleNetManager.Logger.LogWarning($"Received a packet that could not be deserialized. Kicking connection {connectionId} immediately.");
             StopConnection(connectionId, InternalDisconnectReason.MalformedData);
             return;
         }
@@ -129,8 +129,8 @@ public sealed class WebSocketServerTransport : IServerTransport
     {
         ScaleNetManager.Logger.LogInfo("Stopping WS transport...");
         
-        foreach (ConnectionId session in _serverSocket.ConnectedClients)
-            StopConnection(session, InternalDisconnectReason.ServerShutdown);
+        foreach (ConnectionId conn in _serverSocket.ConnectedClients)
+            StopConnection(conn, InternalDisconnectReason.ServerShutdown);
         
         // Iterate outgoing to ensure all disconnection messages are sent.
         IterateOutgoingMessages();
@@ -168,7 +168,7 @@ public sealed class WebSocketServerTransport : IServerTransport
 
     public void QueueSendAsync<T>(ConnectionId connectionId, T message) where T : INetMessage
     {
-        Debug.Assert(connectionId != ConnectionId.Invalid, "Invalid connectionId ID.");
+        Debug.Assert(connectionId != ConnectionId.Invalid, "Invalid connectionId.");
         
         // Write to a packet.
         if (!NetMessages.TrySerialize(message, out NetMessagePacket packet))
@@ -187,21 +187,21 @@ public sealed class WebSocketServerTransport : IServerTransport
     {
         QueueSendAsync(connectionId, new InternalDisconnectMessage(reason));
         
-        return DisconnectSession(connectionId, true);
+        return StopRemoteConnection(connectionId, true);
     }
 
     public bool StopConnectionImmediate(ConnectionId connectionId)
     {
-        return DisconnectSession(connectionId, false);
+        return StopRemoteConnection(connectionId, false);
     }
 
 
-    private bool DisconnectSession(ConnectionId connectionId, bool iterateOutgoing)
+    private bool StopRemoteConnection(ConnectionId connectionId, bool iterateOutgoing)
     {
         bool success = _serverSocket.StopConnection(connectionId, iterateOutgoing);
         
         if (!success)
-            ScaleNetManager.Logger.LogError($"Failed to disconnect connectionId {connectionId}.");
+            ScaleNetManager.Logger.LogError($"Failed to disconnect connection {connectionId}.");
         
         return success;
     }

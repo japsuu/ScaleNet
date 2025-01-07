@@ -20,7 +20,7 @@ public class WebSocketServer
     private readonly BufferPool _bufferPool;
     private readonly ConcurrentDictionary<ConnectionId, Common.Connection> _connections = new();
 
-    private readonly ConcurrentBag<uint> _availableSessionIds = [];
+    private readonly ConcurrentBag<uint> _availableConnectionIds = [];
 
 
     public WebSocketServer(int maxClients, TcpConfig tcpConfig, int maxPacketSize, int handshakeMaxSize, ServerSslContext? sslContext, BufferPool bufferPool)
@@ -35,7 +35,7 @@ public class WebSocketServer
         for (uint i = 1; i < maxClients; i++)
         {
             if (!ConnectionId.IsReserved(i))
-                _availableSessionIds.Add(i);
+                _availableConnectionIds.Add(i);
         }
     }
 
@@ -139,7 +139,7 @@ public class WebSocketServer
             if (_isServerStopped)
                 return;
 
-            bool isIdAvailable = _availableSessionIds.TryTake(out uint uId);
+            bool isIdAvailable = _availableConnectionIds.TryTake(out uint uId);
 
             if (!isIdAvailable)
             {
@@ -206,7 +206,7 @@ public class WebSocketServer
         
         ReceiveQueue.Enqueue(new Message(conn.ConnId, EventType.Disconnected));
         _connections.TryRemove(conn.ConnId, out Common.Connection? _);
-        _availableSessionIds.Add(conn.ConnId.Value);
+        _availableConnectionIds.Add(conn.ConnId.Value);
     }
 
 

@@ -49,7 +49,7 @@ internal sealed class ServerSocket : IDisposable
     public ServerState State { get; private set; } = ServerState.Stopped;
     
     public event Action<ServerStateChangeArgs>? ServerStateChanged;
-    public event Action<SessionStateChangeArgs>? SessionStateChanged;
+    public event Action<ConnectionStateChangeArgs>? RemoteConnectionStateChanged;
     public event Action<ConnectionId, ArraySegment<byte>>? DataReceived;
 
 
@@ -100,7 +100,7 @@ internal sealed class ServerSocket : IDisposable
     private void ConnectionStoppedOnSocket(ConnectionId connectionId)
     {
         if (_connectedClients.Remove(connectionId))
-            SessionStateChanged?.Invoke(new SessionStateChangeArgs(connectionId, ConnectionState.Disconnected));
+            RemoteConnectionStateChanged?.Invoke(new ConnectionStateChangeArgs(connectionId, ConnectionState.Disconnected));
     }
 
 
@@ -131,7 +131,7 @@ internal sealed class ServerSocket : IDisposable
         }
 
         _connectedClients.Add(clientId);
-        SessionStateChanged?.Invoke(new SessionStateChangeArgs(clientId, ConnectionState.Connected));
+        RemoteConnectionStateChanged?.Invoke(new ConnectionStateChangeArgs(clientId, ConnectionState.Connected));
     }
 
 

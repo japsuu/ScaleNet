@@ -11,10 +11,10 @@ public abstract class ConnectionManager<TConnection> where TConnection : Connect
     
     private long _lastPingTime = 0;
     
-    protected readonly ConcurrentDictionary<ConnectionId, TConnection> ClientsBySessionId = new();
+    protected readonly ConcurrentDictionary<ConnectionId, TConnection> ClientsByConnectionId = new();
     
-    public IEnumerable<TConnection> Connections => ClientsBySessionId.Values;
-    public int ConnectionCount => ClientsBySessionId.Count;
+    public IEnumerable<TConnection> Connections => ClientsByConnectionId.Values;
+    public int ConnectionCount => ClientsByConnectionId.Count;
 
 
     /// <summary>
@@ -34,13 +34,13 @@ public abstract class ConnectionManager<TConnection> where TConnection : Connect
     
     public bool HasConnection(ConnectionId id)
     {
-        return ClientsBySessionId.ContainsKey(id);
+        return ClientsByConnectionId.ContainsKey(id);
     }
     
     
     public bool TryGetConnection(ConnectionId id, [NotNullWhen(true)]out TConnection? connection)
     {
-        return ClientsBySessionId.TryGetValue(id, out connection);
+        return ClientsByConnectionId.TryGetValue(id, out connection);
     }
 
 
@@ -54,13 +54,13 @@ public abstract class ConnectionManager<TConnection> where TConnection : Connect
         }
         
         connection = CreateConnection(connectionId, _transport);
-        return ClientsBySessionId.TryAdd(connectionId, connection);
+        return ClientsByConnectionId.TryAdd(connectionId, connection);
     }
     
     
     internal bool TryRemoveConnection(ConnectionId id, [NotNullWhen(true)]out TConnection? connection)
     {
-        return ClientsBySessionId.TryRemove(id, out connection);
+        return ClientsByConnectionId.TryRemove(id, out connection);
     }
     
     

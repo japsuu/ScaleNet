@@ -44,17 +44,17 @@ internal class MessageHandler<TConnection, T> : MessageHandler<TConnection> wher
     /// <summary>
     /// Calls all registered actions.
     /// </summary>
-    /// <param name="session"></param>
+    /// <param name="connection"></param>
     /// <param name="message"></param>
     /// <remarks>
     /// Not thread-safe.
     /// </remarks>
-    public override void Invoke(TConnection session, INetMessage message)
+    public override void Invoke(TConnection connection, INetMessage message)
     {
         if (message is not T tMessage)
             return;
         
         foreach (Action<TConnection, T> handler in _actions)
-            handler.Invoke(session, tMessage);
+            handler.Invoke(connection, tMessage);
     }
 }

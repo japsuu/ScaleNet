@@ -1,6 +1,6 @@
 namespace ScaleNet.Server.LowLevel;
 
-public readonly struct SessionStateChangeArgs(ConnectionId connectionId, ConnectionState newState)
+public readonly struct ConnectionStateChangeArgs(ConnectionId connectionId, ConnectionState newState)
 {
     /// <summary>
     /// The ID of the client that changed state.

@@ -51,7 +51,7 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
         _messageHandlerManager = new MessageHandlerManager<TConnection>();
         
         _transport.ServerStateChanged += OnServerStateChanged;
-        _transport.SessionStateChanged += OnSessionStateChanged;
+        _transport.RemoteConnectionStateChanged += OnRemoteConnectionStateChanged;
         _transport.MessageReceived += OnMessageReceived;
         
         RegisterMessageHandler<InternalPingMessage>(OnPingMessageReceived);
@@ -221,20 +221,20 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
 
 #region Client state
 
-    private void OnSessionStateChanged(SessionStateChangeArgs sessionStateChangeArgs)
+    private void OnRemoteConnectionStateChanged(ConnectionStateChangeArgs connectionStateChangeArgs)
     {
-        ConnectionId connectionId = sessionStateChangeArgs.ConnectionId;
+        ConnectionId connectionId = connectionStateChangeArgs.ConnectionId;
         TConnection? connection;
         
-        ScaleNetManager.Logger.LogInfo($"Session {connectionId} is {sessionStateChangeArgs.NewState.ToString().ToLower()}");
+        ScaleNetManager.Logger.LogInfo($"Connection {connectionId} is {connectionStateChangeArgs.NewState.ToString().ToLower()}");
         
-        switch (sessionStateChangeArgs.NewState)
+        switch (connectionStateChangeArgs.NewState)
         {
             case ConnectionState.Connected:
             {
                 if (!ConnectionManager.TryCreateConnection(connectionId, out connection))
                 {
-                    ScaleNetManager.Logger.LogWarning($"Client for connectionId {connectionId} already exists. Kicking.");
+                    ScaleNetManager.Logger.LogWarning($"Client for connection {connectionId} already exists. Kicking.");
                     _transport.StopConnection(connectionId, InternalDisconnectReason.UnexpectedProblem);
                     return;
                 }
@@ -245,17 +245,17 @@ public sealed class ServerNetworkManager<TConnection> : IDisposable where TConne
             {
                 if (!ConnectionManager.TryRemoveConnection(connectionId, out connection))
                 {
-                    ScaleNetManager.Logger.LogWarning($"Client for connectionId {connectionId} not found in the client manager.");
+                    ScaleNetManager.Logger.LogWarning($"Client for connection {connectionId} not found in the client manager.");
                     return;
                 }
                 
                 break;
             }
             default:
-                throw new InvalidOperationException($"Unknown connectionId state: {sessionStateChangeArgs.NewState}");
+                throw new InvalidOperationException($"Unknown connectionId state: {connectionStateChangeArgs.NewState}");
         }
                 
-        ClientStateChanged?.Invoke(new ClientStateChangeArgs<TConnection>(connection, sessionStateChangeArgs.NewState));
+        ClientStateChanged?.Invoke(new ClientStateChangeArgs<TConnection>(connection, connectionStateChangeArgs.NewState));
     }
 
 #endregion

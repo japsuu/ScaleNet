@@ -32,7 +32,7 @@ public readonly struct ConnectionId(uint value) : IEquatable<ConnectionId>
 
     public override bool Equals(object? obj)
     {
-        return obj is ConnectionId sessionId && Value == sessionId.Value;
+        return obj is ConnectionId connId && Value == connId.Value;
     }
 
     public override int GetHashCode()

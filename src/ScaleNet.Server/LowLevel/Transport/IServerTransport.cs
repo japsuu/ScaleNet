@@ -17,7 +17,7 @@ public interface IServerTransport : IDisposable
     /// <summary>
     /// Called when the connection state of a client changes.
     /// </summary>
-    public event Action<SessionStateChangeArgs>? SessionStateChanged;
+    public event Action<ConnectionStateChangeArgs>? RemoteConnectionStateChanged;
 
     /// <summary>
     /// Called to handle incoming messages.<br/>
