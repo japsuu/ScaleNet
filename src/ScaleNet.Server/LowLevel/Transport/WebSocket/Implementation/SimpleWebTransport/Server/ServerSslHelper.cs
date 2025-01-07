@@ -30,7 +30,11 @@ internal class ServerSslHelper(ServerSslContext? sslContext)
 
     private static SslStream CreateSslStream(NetworkStream stream, ServerSslContext sslContext)
     {
-        SslStream sslStream = new(stream, true, sslContext.CertificateValidationCallback);
+        SslStream sslStream = sslContext.CertificateValidationCallback != null
+            ? new SslStream(stream, true, sslContext.CertificateValidationCallback)
+            : new SslStream(stream, true);
+        
+        //TODO: Make Async with BeginAuthenticateAsServer and callback
         sslStream.AuthenticateAsServer(sslContext.Certificate, sslContext.ClientCertificateRequired, ServerSslContext.Protocols, false);
 
         return sslStream;
