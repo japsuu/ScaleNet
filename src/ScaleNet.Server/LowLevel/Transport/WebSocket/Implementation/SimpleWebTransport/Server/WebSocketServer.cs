@@ -205,7 +205,7 @@ public class WebSocketServer
             return;
         
         ReceiveQueue.Enqueue(new Message(conn.ConnId, EventType.Disconnected));
-        _connections.TryRemove(conn.ConnId, out Common.Connection _);
+        _connections.TryRemove(conn.ConnId, out Common.Connection? _);
         _availableSessionIds.Add(conn.ConnId.Value);
     }
 

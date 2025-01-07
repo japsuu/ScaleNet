@@ -475,7 +475,7 @@ public class SslServer : IDisposable
     internal void UnregisterSession(Guid id)
     {
         // Unregister session by Id
-        Sessions.TryRemove(id, out SslSession _);
+        Sessions.TryRemove(id, out SslSession? _);
     }
 
 #endregion
